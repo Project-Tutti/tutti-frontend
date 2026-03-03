@@ -1,26 +1,77 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg-deep: #05070a;
+  --surface: #0f1218;
+  --sidebar-bg: #0a0c10;
+  --accent-blue: #3b82f6;
+  --accent-glow: rgba(59, 130, 246, 0.5);
+  --border-color: #1e293b;
+  --font-inter: var(--font-inter);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-background: var(--bg-deep);
+  --color-foreground: #f8fafc;
+  --font-sans: var(--font-inter);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  background-color: var(--bg-deep);
+  color: #f8fafc;
+}
+
+/* Material Symbols 아이콘 스타일 */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* 사이드바 호버 효과 */
+.sidebar-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* 애니메이션 효과 */
+.instrument-node {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.instrument-node:hover {
+  border-color: var(--accent-blue);
+  transform: translateY(-5px);
+}
+
+.instrument-node.selected {
+  border-color: var(--accent-blue);
+  background: rgba(59, 130, 246, 0.1);
+  box-shadow: 0 0 15px var(--accent-glow);
+}
+
+/* 글로우 효과 */
+.active-glow {
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+
+/* 궤도 선 */
+.orbit-path {
+  border: 1px dashed var(--border-color);
+}
+
+/* 스크롤바 커스터마이징 */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--sidebar-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-blue);
 }
