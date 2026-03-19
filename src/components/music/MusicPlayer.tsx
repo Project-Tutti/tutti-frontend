@@ -14,6 +14,16 @@ type JumpSource = "control" | "click";
 // ✅ ScoreViewer.tsx에서 active 하이라이트 rect에 붙이는 클래스
 const ACTIVE_HIGHLIGHT_CLASS = "osmd-active-measure-highlight";
 
+type OsmdAudioPlayerLike = {
+  loadScore: (osmd: OpenSheetMusicDisplay) => Promise<void>;
+  play: () => Promise<void>;
+  pause: () => void;
+  stop: () => Promise<void>;
+  jumpToStep?: (step: number) => void;
+  on?: (event: string, cb: (arg: unknown) => void) => void;
+  off?: (event: string, cb: (arg: unknown) => void) => void;
+};
+
 interface MusicPlayerProps {
   xmlData?: string | ArrayBuffer | File;
   autoPlay?: boolean;
@@ -27,7 +37,7 @@ export default function MusicPlayer({
 }: MusicPlayerProps) {
   const scoreViewerRef = useRef<ScoreViewerRef>(null);
 
-  const playerRef = useRef<any>(null);
+  const playerRef = useRef<OsmdAudioPlayerLike | null>(null);
   const osmdRef = useRef<OpenSheetMusicDisplay | null>(null);
 
   const measureToStepRef = useRef<Map<number, number>>(new Map());
@@ -56,7 +66,7 @@ export default function MusicPlayer({
 
   const getBottomSafe = () => 120;
 
-  const normalizeState = (raw: any): UiState => {
+  const normalizeState = (raw: unknown): UiState => {
     const s = String(raw ?? "").toUpperCase();
     if (s.includes("PLAY")) return "playing";
     if (s.includes("PAUSE")) return "paused";
@@ -66,8 +76,10 @@ export default function MusicPlayer({
 
   /** ✅ 커서 엘리먼트 */
   const getCursorElement = (): Element | null => {
-    const c: any = scoreViewerRef.current?.getCursor?.();
-    return c?.cursorElement ?? c?.CursorElement ?? null;
+    const c = scoreViewerRef.current?.getCursor?.();
+    if (!c || typeof c !== "object") return null;
+    const cc = c as { cursorElement?: unknown; CursorElement?: unknown };
+    return (cc.cursorElement as Element | undefined) ?? (cc.CursorElement as Element | undefined) ?? null;
   };
 
   /** ✅ 현재 active 하이라이트 rect (두번째 코드의 핵심 기준) */
@@ -113,9 +125,9 @@ export default function MusicPlayer({
   /** ✅ 커서가 화면 안에 충분히 보이면 scrollIntoView를 꺼서 툭 튐 방지 */
   const shouldUseScrollIntoView = (): boolean => {
     const el = getCursorElement();
-    if (!el || typeof (el as any).getBoundingClientRect !== "function") return true;
+    if (!el || typeof (el as Element).getBoundingClientRect !== "function") return true;
 
-    const rect = (el as any).getBoundingClientRect() as DOMRect;
+    const rect = el.getBoundingClientRect();
     const topSafe = getTopSafe();
     const bottomSafe = getBottomSafe();
 
@@ -135,12 +147,12 @@ export default function MusicPlayer({
     behavior: ScrollBehavior = "smooth"
   ): boolean => {
     const el = getActiveHighlightElement();
-    if (!el || typeof (el as any).getBoundingClientRect !== "function") return false;
+    if (!el || typeof (el as Element).getBoundingClientRect !== "function") return false;
 
     const parent = findScrollParent(el, "y");
     if (!parent) return false;
 
-    const rect = (el as any).getBoundingClientRect() as DOMRect;
+    const rect = el.getBoundingClientRect();
     const topSafe = getTopSafe();
     const bottomSafe = getBottomSafe();
 
@@ -187,9 +199,9 @@ export default function MusicPlayer({
    */
   const scrollToCursorVertIfNeeded = (behavior: ScrollBehavior = "smooth"): boolean => {
     const el = getCursorElement();
-    if (!el || typeof (el as any).getBoundingClientRect !== "function") return false;
+    if (!el || typeof (el as Element).getBoundingClientRect !== "function") return false;
 
-    const rect = (el as any).getBoundingClientRect() as DOMRect;
+    const rect = el.getBoundingClientRect();
     const yParent = findScrollParent(el, "y");
     if (!yParent) return false;
 
@@ -304,14 +316,16 @@ export default function MusicPlayer({
     try {
       osmdRef.current = osmd;
 
-      const measures = (osmd.Sheet as any)?.SourceMeasures ?? [];
+      const sheet = osmd.Sheet as unknown as { SourceMeasures?: unknown };
+      const measures = Array.isArray(sheet?.SourceMeasures) ? sheet.SourceMeasures : [];
       totalMeasuresRef.current = measures.length;
       setTotalMeasures(measures.length);
 
       const idx = buildMeasureIndex(osmd.cursor);
       measureToStepRef.current = idx.measureToStep;
 
-      const player = new (AudioPlayer as any)();
+      const AudioPlayerCtor = AudioPlayer as unknown as new () => OsmdAudioPlayerLike;
+      const player = new AudioPlayerCtor();
       playerRef.current = player;
 
       await player.loadScore(osmd);
@@ -319,7 +333,7 @@ export default function MusicPlayer({
       // 초기 페이지 저장
       lastPageElRef.current = getPageElement();
 
-      const onState = (s: any) => {
+      const onState = (s: unknown) => {
         const ui = normalizeState(s);
         setState(ui);
 
@@ -372,14 +386,18 @@ export default function MusicPlayer({
         postHighlightScroll(prevPageEl);
       };
 
+      const onIterationEvent = () => {
+        onIteration();
+      };
+
       if (player.on) {
         player.on("state-change", onState);
-        player.on("iteration", onIteration);
+        player.on("iteration", onIterationEvent);
 
         cleanupPlayerEventsRef.current = () => {
           try {
             player.off?.("state-change", onState);
-            player.off?.("iteration", onIteration);
+            player.off?.("iteration", onIterationEvent);
           } catch {}
         };
       }

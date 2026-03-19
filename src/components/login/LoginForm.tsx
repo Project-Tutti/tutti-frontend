@@ -6,6 +6,7 @@ import FormInput from "./FormInput";
 import GoogleSignInButton from "./GoogleSignInButton";
 import { loginSchema, LoginFormData } from "@/schemas/authSchema";
 import { useLoginMutation } from "@api/user/hooks/mutations/useLoginMutation";
+import { ZodError } from "zod";
 
 const getErrorMessage = (error: unknown) =>
   typeof (error as { message?: unknown })?.message === "string"
@@ -41,8 +42,10 @@ const LoginForm = () => {
     try {
       loginSchema.shape[field].parse(formData[field]);
       setErrors((prev) => ({ ...prev, [field]: undefined }));
-    } catch (error: any) {
-      setErrors((prev) => ({ ...prev, [field]: error.errors[0]?.message }));
+    } catch (error: unknown) {
+      const message =
+        error instanceof ZodError ? error.errors?.[0]?.message : "유효하지 않은 값입니다.";
+      setErrors((prev) => ({ ...prev, [field]: message }));
     }
   };
 
@@ -176,7 +179,7 @@ const LoginForm = () => {
 
       {/* 회원가입 링크 */}
       <p className="text-center text-sm text-gray-500 pt-4">
-        Don't have an account?{" "}
+        Don&apos;t have an account?{" "}
         <Link
           href="/register"
           className="font-bold text-[#3b82f6] hover:text-blue-400"

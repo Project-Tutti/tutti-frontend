@@ -143,7 +143,7 @@ export default function PlayerPage() {
 
             {xmlData && (
               <div>
-                <MusicPlayer xmlData={xmlData} autoPlay={false} />
+                <MusicPlayer xmlData={xmlData} autoPlay={false} onRequestChangeFile={handleReset} />
               </div>
             )}
           </div>

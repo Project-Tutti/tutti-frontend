@@ -4,7 +4,6 @@ import React, {
   useCallback,
   useEffect,
   useImperativeHandle,
-  useMemo,
   useRef,
   forwardRef,
 } from "react";
@@ -29,7 +28,10 @@ export interface ScoreViewerRef {
   reload: () => Promise<void>;
 
   /** 재생 중/선택된 마디(Active) 하이라이트 */
-  highlightMeasure: (measureNumber: number | null, opts?: { scrollIntoView?: boolean }) => void;
+  highlightMeasure: (
+    measureNumber: number | null,
+    opts?: { scrollIntoView?: boolean },
+  ) => void;
 }
 
 type MeasureBox = {
@@ -79,35 +81,38 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           svg.querySelectorAll(`.${className}`).forEach((el) => el.remove());
         }
       },
-      [getAllSvgs]
+      [getAllSvgs],
     );
 
-    const parseMeasureNumberFromLabel = useCallback((label: string): number | null => {
-      const patterns: RegExp[] = [
-        /vexflow-measure-(\d+)/i,
-        /vf[-_]?measure[-_]?(\d+)/i,
-        /measure[_-](\d+)/i,
-        /\bm[_-](\d+)\b/i,
-        /(\d+)[_-]staff/i,
-      ];
+    const parseMeasureNumberFromLabel = useCallback(
+      (label: string): number | null => {
+        const patterns: RegExp[] = [
+          /vexflow-measure-(\d+)/i,
+          /vf[-_]?measure[-_]?(\d+)/i,
+          /measure[_-](\d+)/i,
+          /\bm[_-](\d+)\b/i,
+          /(\d+)[_-]staff/i,
+        ];
 
-      for (const p of patterns) {
-        const m = label.match(p);
-        if (m?.[1]) {
-          const n = parseInt(m[1], 10);
-          if (!Number.isNaN(n)) return n;
+        for (const p of patterns) {
+          const m = label.match(p);
+          if (m?.[1]) {
+            const n = parseInt(m[1], 10);
+            if (!Number.isNaN(n)) return n;
+          }
         }
-      }
 
-      // fallback: 아무 숫자 1개
-      const any = label.match(/(\d+)/);
-      if (any?.[1]) {
-        const n = parseInt(any[1], 10);
-        return Number.isNaN(n) ? null : n;
-      }
+        // fallback: 아무 숫자 1개
+        const any = label.match(/(\d+)/);
+        if (any?.[1]) {
+          const n = parseInt(any[1], 10);
+          return Number.isNaN(n) ? null : n;
+        }
 
-      return null;
-    }, []);
+        return null;
+      },
+      [],
+    );
 
     const buildMeasureBoxesIndex = useCallback(() => {
       const map = new Map<number, MeasureBox>();
@@ -117,12 +122,15 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
       for (const svg of svgs) {
         const groups = Array.from(
           svg.querySelectorAll(
-            'g[class*="measure"], g[class*="Measure"], g[id*="measure"], g[id*="Measure"]'
-          )
+            'g[class*="measure"], g[class*="Measure"], g[id*="measure"], g[id*="Measure"]',
+          ),
         ) as SVGGraphicsElement[];
 
         // measure 하나당 bbox union
-        const union = new Map<number, { minX: number; minY: number; maxX: number; maxY: number }>();
+        const union = new Map<
+          number,
+          { minX: number; minY: number; maxX: number; maxY: number }
+        >();
 
         for (const g of groups) {
           const id = g.getAttribute("id") || "";
@@ -183,7 +191,10 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
       (box: MeasureBox, className: string, fill: string) => {
         const svg = box.svg;
 
-        const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        const rect = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "rect",
+        );
         rect.setAttribute("x", String(box.x));
         rect.setAttribute("y", String(box.y));
         rect.setAttribute("width", String(box.w));
@@ -196,7 +207,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
         if (svg.firstChild) svg.insertBefore(rect, svg.firstChild);
         else svg.appendChild(rect);
       },
-      []
+      [],
     );
 
     const scrollPageIntoView = useCallback((box: MeasureBox) => {
@@ -221,7 +232,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
         insertRect(box, ACTIVE_CLASS, "rgba(59,130,246,0.16)"); // active
         if (opts?.scrollIntoView) scrollPageIntoView(box);
       },
-      [clearHighlightByClass, insertRect, scrollPageIntoView]
+      [clearHighlightByClass, insertRect, scrollPageIntoView],
     );
 
     const highlightHover = useCallback(
@@ -234,7 +245,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
 
         insertRect(box, HOVER_CLASS, "rgba(148,163,184,0.16)"); // hover
       },
-      [clearHighlightByClass, insertRect]
+      [clearHighlightByClass, insertRect],
     );
 
     const applyPointerCursorToMeasures = useCallback(() => {
@@ -242,13 +253,13 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
       for (const svg of svgs) {
         const groups = Array.from(
           svg.querySelectorAll(
-            'g[class*="measure"], g[class*="Measure"], g[id*="measure"], g[id*="Measure"]'
-          )
+            'g[class*="measure"], g[class*="Measure"], g[id*="measure"], g[id*="Measure"]',
+          ),
         ) as SVGGraphicsElement[];
 
         for (const g of groups) {
           try {
-            (g as any).style.cursor = "pointer";
+            g.style.cursor = "pointer";
           } catch {}
         }
       }
@@ -273,13 +284,14 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
 
             if (musicXmlPath) {
               const musicXmlFile = zip.file(musicXmlPath);
-              if (musicXmlFile) musicXmlContent = await musicXmlFile.async("string");
+              if (musicXmlFile)
+                musicXmlContent = await musicXmlFile.async("string");
             }
           }
 
           if (!musicXmlContent) {
             const xmlFiles = Object.keys(zip.files).filter(
-              (n) => n.endsWith(".xml") && !n.includes("META-INF")
+              (n) => n.endsWith(".xml") && !n.includes("META-INF"),
             );
             if (xmlFiles.length > 0) {
               const f = zip.file(xmlFiles[0]);
@@ -287,7 +299,8 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
             }
           }
 
-          if (!musicXmlContent) throw new Error("MXL에서 유효한 MusicXML을 찾지 못했습니다.");
+          if (!musicXmlContent)
+            throw new Error("MXL에서 유효한 MusicXML을 찾지 못했습니다.");
           return musicXmlContent;
         }
 
@@ -303,7 +316,11 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
     // -----------------------------
     // Hit test (click/hover)
     // -----------------------------
-    const getSvgPoint = (svg: SVGSVGElement, clientX: number, clientY: number) => {
+    const getSvgPoint = (
+      svg: SVGSVGElement,
+      clientX: number,
+      clientY: number,
+    ) => {
       const ctm = svg.getScreenCTM();
       if (!ctm) return null;
 
@@ -313,20 +330,27 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
       return pt.matrixTransform(ctm.inverse());
     };
 
-    const tryFindMeasureFromDomPath = (target: Element | null, svg: SVGSVGElement) => {
-      let el: Element | null = target;
-      while (el && el !== svg) {
-        const id = el.getAttribute("id") || "";
-        const cls = el.getAttribute("class") || "";
-        const label = `${id} ${cls}`.trim();
-        const m = parseMeasureNumberFromLabel(label);
-        if (m != null) return m;
-        el = el.parentElement;
-      }
-      return null;
-    };
+    const tryFindMeasureFromDomPath = useCallback(
+      (target: Element | null, svg: SVGSVGElement) => {
+        let el: Element | null = target;
+        while (el && el !== svg) {
+          const id = el.getAttribute("id") || "";
+          const cls = el.getAttribute("class") || "";
+          const label = `${id} ${cls}`.trim();
+          const m = parseMeasureNumberFromLabel(label);
+          if (m != null) return m;
+          el = el.parentElement;
+        }
+        return null;
+      },
+      [parseMeasureNumberFromLabel],
+    );
 
-    const findMeasureByPoint = (svg: SVGSVGElement, x: number, y: number): number | null => {
+    const findMeasureByPoint = (
+      svg: SVGSVGElement,
+      x: number,
+      y: number,
+    ): number | null => {
       // 해당 svg에 속한 measure box만 대상으로
       const boxes = measureBoxesRef.current.filter((b) => b.svg === svg);
       if (boxes.length === 0) return null;
@@ -336,7 +360,10 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
 
       for (const b of boxes) {
         const hit =
-          x >= b.x - tol && x <= b.x + b.w + tol && y >= b.y - tol && y <= b.y + b.h + tol;
+          x >= b.x - tol &&
+          x <= b.x + b.w + tol &&
+          y >= b.y - tol &&
+          y <= b.y + b.h + tol;
         if (!hit) continue;
 
         const d = Math.hypot(x - b.cx, y - b.cy);
@@ -369,7 +396,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
             drawingParameters: "compact",
             // ✅ 페이지 단위(Endless 말고 A4). 필요하면 "A4_L"(가로)로도 테스트 가능
             pageFormat: "A4_P",
-          } as any);
+          } as unknown as Record<string, unknown>);
         } else {
           // 컨테이너가 바뀌거나 innerHTML 비웠으니, 안전하게 clear
           try {
@@ -384,19 +411,27 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
 
         // ✅ 너무 큰 문제: 기본 zoom을 먼저 낮춰서 한 페이지가 더 잘 보이게
         // (필요하면 아래 값만 조정하면 됨)
-        (osmdRef.current as any).Zoom = 0.78;
-        (osmdRef.current as any).zoom = 0.78;
+        const zoomable = osmdRef.current as unknown as {
+          Zoom?: number;
+          zoom?: number;
+        };
+        zoomable.Zoom = 0.78;
+        zoomable.zoom = 0.78;
 
         osmdRef.current.render();
 
         // Cursor
-        const c = (osmdRef.current as any).cursor as Cursor | undefined;
+        const c = (osmdRef.current as unknown as { cursor?: unknown })
+          .cursor as Cursor | undefined;
         if (c) {
           cursorRef.current = c;
 
           // 노트(음) 커서 표시(얇은 라인/하이라이트 느낌)
           try {
-            (c as any).CursorOptions = {
+            const cursorWithOptions = c as unknown as {
+              CursorOptions?: unknown;
+            };
+            cursorWithOptions.CursorOptions = {
               type: 0,
               color: "#f59e0b",
               alpha: 0.38,
@@ -454,7 +489,8 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           if (!svg) return;
 
           const direct = tryFindMeasureFromDomPath(target, svg);
-          const p = direct == null ? getSvgPoint(svg, e.clientX, e.clientY) : null;
+          const p =
+            direct == null ? getSvgPoint(svg, e.clientX, e.clientY) : null;
           const m = direct ?? (p ? findMeasureByPoint(svg, p.x, p.y) : null);
 
           if (m !== hoveredMeasureRef.current) {
@@ -483,7 +519,9 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
         onScoreLoaded?.(osmdRef.current);
       } catch (e) {
         console.error(e);
-        alert(`악보 로드 실패: ${e instanceof Error ? e.message : "Unknown error"}`);
+        alert(
+          `악보 로드 실패: ${e instanceof Error ? e.message : "Unknown error"}`,
+        );
       }
     }, [
       xmlData,
@@ -492,9 +530,10 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
       applyPointerCursorToMeasures,
       highlightMeasure,
       highlightHover,
+      onScoreLoaded,
       onMeasureClick,
       onMeasureHover,
-      parseMeasureNumberFromLabel,
+      tryFindMeasureFromDomPath,
     ]);
 
     // expose ref
@@ -529,6 +568,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           } catch {}
         }
       };
+      // 의도: xmlData가 바뀔 때만 OSMD를 다시 로드(그 외 렌더 변화로 재로드되면 깜빡임/성능 저하)
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [xmlData]);
 
@@ -568,12 +608,12 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
             flex: 0 0 auto;
             background: white;
             border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
           }
         `}</style>
       </div>
     );
-  }
+  },
 );
 
 ScoreViewer.displayName = "ScoreViewer";

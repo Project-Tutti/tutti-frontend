@@ -33,7 +33,7 @@ function makeQueryClient() {
         shouldDehydrateQuery: (query) =>
           defaultShouldDehydrateQuery(query) || query.state.status === 'pending',
         // Next.js 서버 에러는 건들지 않음 - Next가 자체적으로 가공함
-        shouldRedactErrors: (error) => {
+        shouldRedactErrors: () => {
           return false;
         },
       },
