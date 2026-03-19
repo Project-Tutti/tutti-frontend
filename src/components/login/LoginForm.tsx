@@ -5,6 +5,12 @@ import Link from "next/link";
 import FormInput from "./FormInput";
 import GoogleSignInButton from "./GoogleSignInButton";
 import { loginSchema, LoginFormData } from "@/schemas/authSchema";
+import { useLoginMutation } from "@api/user/hooks/mutations/useLoginMutation";
+
+const getErrorMessage = (error: unknown) =>
+  typeof (error as { message?: unknown })?.message === "string"
+    ? (error as { message: string }).message
+    : null;
 
 const LoginForm = () => {
   const [formData, setFormData] = useState<LoginFormData>({
@@ -14,12 +20,16 @@ const LoginForm = () => {
   const [errors, setErrors] = useState<
     Partial<Record<keyof LoginFormData, string>>
   >({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const { mutateAsync: loginMutation, isPending } = useLoginMutation();
 
   const handleChange =
     (field: keyof LoginFormData) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setFormData((prev) => ({ ...prev, [field]: e.target.value }));
+      if (submitError) {
+        setSubmitError(null);
+      }
       // 입력 시 해당 필드 에러 제거
       if (errors[field]) {
         setErrors((prev) => ({ ...prev, [field]: undefined }));
@@ -36,9 +46,9 @@ const LoginForm = () => {
     }
   };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    setSubmitError(null);
 
     // 전체 폼 유효성 검사
     const result = loginSchema.safeParse(formData);
@@ -50,13 +60,14 @@ const LoginForm = () => {
         fieldErrors[field] = error.message;
       });
       setErrors(fieldErrors);
-      setIsSubmitting(false);
       return;
     }
 
-    // TODO: 로그인 로직 구현
-    console.log("Login submitted:", result.data);
-    setIsSubmitting(false);
+    try {
+      await loginMutation(result.data);
+    } catch (error) {
+      setSubmitError(getErrorMessage(error) ?? "로그인에 실패했습니다");
+    }
   };
 
   return (
@@ -132,16 +143,20 @@ const LoginForm = () => {
         {/* 로그인 버튼 */}
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isPending}
           className={`
             w-full bg-[#3b82f6] hover:bg-blue-600 text-white font-bold py-4 rounded-xl 
             shadow-lg transition-all hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] 
             transform hover:-translate-y-0.5
-            ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}
+            ${isPending ? "opacity-50 cursor-not-allowed" : ""}
           `}
         >
-          {isSubmitting ? "Signing In..." : "Sign In"}
+          {isPending ? "Signing In..." : "Sign In"}
         </button>
+
+        {submitError ? (
+          <p className="text-sm text-red-400">{submitError}</p>
+        ) : null}
       </form>
 
       {/* 구분선 */}

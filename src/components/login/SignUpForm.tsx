@@ -5,65 +5,148 @@ import Link from 'next/link';
 import FormInput from './FormInput';
 import GoogleSignInButton from './GoogleSignInButton';
 import { signUpSchema, signUpFields, SignUpFormData } from '@/schemas/authSchema';
+import { useSignupMutation } from '@api/user/hooks/mutations/useSignupMutation';
+import { useCheckEmailDuplicationQuery } from '@api/user/hooks/queries/useCheckEmailDuplicationQuery';
+
+type SignUpField = keyof SignUpFormData;
+type SignUpErrors = Partial<Record<SignUpField, string>>;
+
+const getErrorMessage = (error: unknown) =>
+  typeof (error as { message?: unknown })?.message === 'string'
+    ? ((error as { message: string }).message)
+    : null;
+
+const getErrorStatus = (error: unknown) =>
+  typeof (error as { status?: unknown })?.status === 'number'
+    ? ((error as { status: number }).status)
+    : null;
 
 const SignUpForm = () => {
   const [formData, setFormData] = useState<SignUpFormData>({
-    nickname: '',
+    name: '',
     email: '',
     password: '',
     confirmPassword: '',
   });
-  const [errors, setErrors] = useState<Partial<Record<keyof SignUpFormData, string>>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<SignUpErrors>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isEmailAvailable, setIsEmailAvailable] = useState(false);
+  const { mutateAsync: signupMutation, isPending } = useSignupMutation();
+  const normalizedEmail = formData.email.trim().toLowerCase();
+  const { refetch: refetchEmailDuplication, isFetching: isCheckingEmail } =
+    useCheckEmailDuplicationQuery(normalizedEmail, false);
 
-  const handleChange = (field: keyof SignUpFormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({ ...prev, [field]: e.target.value }));
+  const setFieldError = (field: SignUpField, message?: string) => {
+    setErrors((prev) => ({ ...prev, [field]: message }));
+  };
+
+  const validateField = (field: SignUpField) => {
+    if (field === 'confirmPassword') {
+      if (!formData.confirmPassword) {
+        setFieldError('confirmPassword', '비밀번호 확인을 입력해주세요');
+        return false;
+      }
+
+      if (formData.password !== formData.confirmPassword) {
+        setFieldError('confirmPassword', '비밀번호가 일치하지 않습니다');
+        return false;
+      }
+
+      setFieldError('confirmPassword');
+      return true;
+    }
+
+    const parsed = signUpFields[field].safeParse(formData[field]);
+    if (!parsed.success) {
+      setFieldError(field, parsed.error.errors[0]?.message);
+      return false;
+    }
+
+    setFieldError(field);
+    return true;
+  };
+
+  const handleChange = (field: SignUpField) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFormData(prev => ({ ...prev, [field]: value }));
+
+    if (field === 'email') {
+      setIsEmailAvailable(false);
+    }
+
+    if (submitError) {
+      setSubmitError(null);
+    }
     // 입력 시 해당 필드 에러 제거
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }));
-    }
+    if (errors[field]) setFieldError(field);
   };
 
-  const handleBlur = (field: keyof SignUpFormData) => () => {
-    // 개별 필드 유효성 검사
-    try {
-      if (field === 'confirmPassword') {
-        // confirmPassword는 전체 스키마로 검증 (비밀번호 일치 확인)
-        signUpSchema.parse(formData);
-        setErrors(prev => ({ ...prev, confirmPassword: undefined }));
-      } else {
-        signUpFields[field].parse(formData[field]);
-        setErrors(prev => ({ ...prev, [field]: undefined }));
-      }
-    } catch (error: any) {
-      const errorMessage = error.errors?.[0]?.message;
-      if (errorMessage) {
-        setErrors(prev => ({ ...prev, [field]: errorMessage }));
-      }
-    }
+  const handleBlur = (field: SignUpField) => () => {
+    validateField(field);
   };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleCheckEmailDuplication = async () => {
+    const emailValidation = signUpFields.email.safeParse(formData.email);
+
+    if (!emailValidation.success) {
+      const errorMessage = emailValidation.error.errors[0]?.message;
+      if (errorMessage) setFieldError('email', errorMessage);
+      setIsEmailAvailable(false);
+      return;
+    }
+
+    setFieldError('email');
+
+    const result = await refetchEmailDuplication();
+    const status = getErrorStatus(result.error);
+
+    if (status === 409) {
+      setFieldError('email', '이미 사용 중인 이메일입니다');
+      setIsEmailAvailable(false);
+      return;
+    }
+
+    if (result.isSuccess) {
+      setIsEmailAvailable(true);
+      return;
+    }
+
+    setFieldError('email', '이메일 중복 확인에 실패했습니다');
+    setIsEmailAvailable(false);
+  };
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    setSubmitError(null);
 
     // 전체 폼 유효성 검사
     const result = signUpSchema.safeParse(formData);
     
     if (!result.success) {
-      const fieldErrors: Partial<Record<keyof SignUpFormData, string>> = {};
+      const fieldErrors: SignUpErrors = {};
       result.error.errors.forEach((error) => {
-        const field = error.path[0] as keyof SignUpFormData;
+        const field = error.path[0] as SignUpField;
         fieldErrors[field] = error.message;
       });
       setErrors(fieldErrors);
-      setIsSubmitting(false);
       return;
     }
 
-    // TODO: 회원가입 로직 구현
-    console.log('Sign up submitted:', result.data);
-    setIsSubmitting(false);
+    try {
+      await signupMutation({
+        email: result.data.email,
+        name: result.data.name,
+        password: result.data.password,
+      });
+    } catch (error) {
+      const status = getErrorStatus(error);
+      if (status === 409) {
+        setFieldError('email', '이미 사용 중인 이메일입니다');
+        return;
+      }
+
+      setSubmitError(getErrorMessage(error) ?? '회원가입에 실패했습니다');
+    }
   };
 
   return (
@@ -84,16 +167,16 @@ const SignUpForm = () => {
 
       {/* 회원가입 폼 */}
       <form onSubmit={handleSubmit} className="space-y-5">
-        {/* 닉네임 */}
+        {/* 이름 */}
         <FormInput
-          id="nickname"
-          label="Nickname"
+          id="name"
+          label="Name"
           type="text"
-          placeholder="e.g. Maestro"
-          value={formData.nickname}
-          onChange={handleChange('nickname')}
-          onBlur={handleBlur('nickname')}
-          error={errors.nickname}
+          placeholder="e.g. Tutti User"
+          value={formData.name}
+          onChange={handleChange('name')}
+          onBlur={handleBlur('name')}
+          error={errors.name}
         />
 
         {/* 이메일 */}
@@ -105,8 +188,21 @@ const SignUpForm = () => {
           value={formData.email}
           onChange={handleChange('email')}
           onBlur={handleBlur('email')}
+          rightLabel={
+            <button
+              type="button"
+              onClick={handleCheckEmailDuplication}
+              disabled={isCheckingEmail}
+              className="text-xs font-semibold text-[#3b82f6] hover:text-blue-400 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isCheckingEmail ? '확인 중...' : '중복 확인'}
+            </button>
+          }
           error={errors.email}
         />
+        {isEmailAvailable && !errors.email ? (
+          <p className="-mt-3 text-xs text-emerald-400">사용 가능한 이메일입니다</p>
+        ) : null}
 
         {/* 비밀번호 */}
         <FormInput
@@ -135,16 +231,18 @@ const SignUpForm = () => {
         {/* 회원가입 버튼 */}
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isPending}
           className={`
             w-full bg-[#3b82f6] hover:bg-blue-600 text-white font-bold py-4 rounded-xl 
             shadow-lg transition-all hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] 
             transform hover:-translate-y-0.5 mt-2
-            ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}
+            ${isPending ? 'opacity-50 cursor-not-allowed' : ''}
           `}
         >
-          {isSubmitting ? 'Creating Account...' : 'Sign Up'}
+          {isPending ? 'Creating Account...' : 'Sign Up'}
         </button>
+
+        {submitError ? <p className="text-sm text-red-400">{submitError}</p> : null}
       </form>
 
       {/* 구분선 */}
