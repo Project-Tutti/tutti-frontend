@@ -22,15 +22,13 @@ const instruments: Instrument[] = [
 const HomePage = () => {
   const router = useRouter();
   const {
+    selectedInstrument,
+    setSelectedInstrument,
     setTracks,
-    setSelectedInstrument: setStoreInstrument,
     setUploadedFile: setStoreFile,
   } = useMidiStore();
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [selectedInstrument, setSelectedInstrument] = useState<string | null>(
-    null,
-  );
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
@@ -40,11 +38,10 @@ const HomePage = () => {
   };
 
   const handleInstrumentToggle = (id: string) => {
-    setSelectedInstrument((prev) => (prev === id ? null : id));
+    setSelectedInstrument(selectedInstrument === id ? null : id);
   };
 
   const handleFileUpload = (file: File) => {
-    console.log("Uploaded file:", file.name);
     setUploadedFile(file);
     setParseError(null);
   };
@@ -65,9 +62,8 @@ const HomePage = () => {
         return;
       }
 
-      // Zustand store에 저장
+      // Zustand store에 저장 (악기 선택은 이미 스토어에 반영됨)
       setTracks(tracks);
-      setStoreInstrument(selectedInstrument);
       setStoreFile(uploadedFile);
 
       router.push("/before-create");

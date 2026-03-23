@@ -63,7 +63,6 @@ const BeforeCreatePage = () => {
   };
 
   const handleGenerate = () => {
-    console.log("Generate clicked!");
     // TODO: 생성 로직 구현
   };
 

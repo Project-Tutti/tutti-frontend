@@ -31,7 +31,8 @@ const TrackModal = ({ isOpen, track, onClose }: TrackModalProps) => {
             {track.name}
           </h3>
           <p className="text-gray-400 text-sm mb-4">
-            {track.instrumentType} · Channel {track.channel}
+            {track.instrumentType} · Channel {track.channel} · {track.noteCount}{" "}
+            notes
           </p>
           <div className="flex gap-2 justify-center flex-wrap">
             {track.tags.map((tag, index) => (

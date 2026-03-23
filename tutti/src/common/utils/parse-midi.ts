@@ -48,7 +48,6 @@ export const parseMidiFile = async (file: File): Promise<Track[]> => {
         : track.instrument.family || "unknown";
 
       const tags: string[] = [];
-      if (track.notes.length > 0) tags.push(`${track.notes.length} Notes`);
       if (tempo) tags.push(`${Math.round(tempo)} BPM`);
 
       return {
