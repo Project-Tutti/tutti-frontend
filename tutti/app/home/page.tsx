@@ -7,6 +7,7 @@ import StepProgress from '@/components/home/upload/StepProgress';
 import InstrumentOrbit, { Instrument } from '@/components/home/InstrumentOrbit/InstrumentOrbit';
 import Footer from '@/components/common/Footer';
 import { COMMON_STYLES } from '@/constants/styles';
+import { getUserInfo } from '@api/user/apis/get/get-user-info';
 
 const instruments: Instrument[] = [
   { id: 'violin', name: 'Violin', icon: 'music_note', position: 'top' },
@@ -18,6 +19,8 @@ const HomePage = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [selectedInstrument, setSelectedInstrument] = useState<string | null>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [isFetchingProfile, setIsFetchingProfile] = useState(false);
+  const [profileText, setProfileText] = useState<string>('');
 
   const handleToggleSidebar = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
@@ -31,6 +34,28 @@ const HomePage = () => {
   const handleFileUpload = (file: File) => {
     console.log('Uploaded file:', file.name);
     setUploadedFile(file);
+  };
+
+  const handleTestGetProfile = async () => {
+    try {
+      setIsFetchingProfile(true);
+      setProfileText('');
+
+      const response = await getUserInfo();
+      const user = response.result;
+      setProfileText(`성공: ${user.name} (${user.email})`);
+    } catch (error) {
+      const status = typeof (error as { status?: unknown })?.status === 'number'
+        ? (error as { status: number }).status
+        : 'unknown';
+      const message = typeof (error as { message?: unknown })?.message === 'string'
+        ? (error as { message: string }).message
+        : '프로필 조회 실패';
+
+      setProfileText(`실패(${status}): ${message}`);
+    } finally {
+      setIsFetchingProfile(false);
+    }
   };
 
   // 진행 단계 동적 생성
@@ -103,6 +128,20 @@ const HomePage = () => {
               Generate Partials
               <span className="material-symbols-outlined">auto_awesome</span>
             </button>
+
+            <button
+              type="button"
+              onClick={handleTestGetProfile}
+              disabled={isFetchingProfile}
+              className="text-sm font-semibold text-[#3b82f6] hover:text-blue-400 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isFetchingProfile ? '프로필 조회 중...' : '내 프로필 조회(테스트)'}
+            </button>
+
+            {profileText ? (
+              <p className="text-xs md:text-sm text-gray-300">{profileText}</p>
+            ) : null}
+
             <p className="text-gray-500 text-xs md:text-sm flex items-center gap-2">
               <span className="material-symbols-outlined text-sm">info</span>
               {selectedInstrument 

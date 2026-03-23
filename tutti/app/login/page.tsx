@@ -1,5 +1,6 @@
 import LoginHero from '@/components/login/LoginHero';
 import LoginForm from '@/components/login/LoginForm';
+import { Suspense } from 'react';
 
 const LoginPage = () => {
   return (
@@ -9,7 +10,9 @@ const LoginPage = () => {
 
       {/* 오른쪽: 로그인 폼 */}
       <div className="w-full lg:w-[75%] flex items-center justify-center p-8 md:p-16">
-        <LoginForm />
+        <Suspense fallback={null}>
+          <LoginForm />
+        </Suspense>
       </div>
     </div>
   );
