@@ -37,7 +37,8 @@ export const useLoginMutation = () => {
       if (redirectPath) {
         router.push(redirectPath);
       } else {
-        router.push("/");
+        // 루트(/)는 app/page.tsx에서 항상 /login 으로 보내므로 메인은 /home
+        router.push("/home");
       }
     },
     onError: (err) => {

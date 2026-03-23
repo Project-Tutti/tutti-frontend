@@ -13,15 +13,6 @@ import useAuthStore, {
 } from "@features/auth/stores/auth-store";
 
 /**
- * 정상 응답 처리 함수
- *
- * 응답이 성공적인 경우 JSON으로 변환해서 반환하도록 합니다
- */
-export const handleResponse = async (res: Response) => {
-  return res.json();
-};
-
-/**
  * 응답은 받았으나, 에러인 경우 응답 처리 함수
  */
 export const handleResponseError = async (

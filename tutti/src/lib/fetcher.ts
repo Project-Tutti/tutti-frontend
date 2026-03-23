@@ -1,6 +1,8 @@
-import { ApiError } from "@/common/errors/ApiError";
 import { getAccessToken } from "@features/auth/stores/auth-store";
-import { refreshAccessToken as requestRefreshAccessToken } from "@/lib/fetcher-response-handlers";
+import {
+  handleResponseError,
+  refreshAccessToken as requestRefreshAccessToken,
+} from "@/lib/fetcher-response-handlers";
 
 export interface FetcherConfig {
   baseURL?: string;
@@ -148,45 +150,25 @@ export function createFetcher(config: FetcherConfig = {}) {
       };
 
       const retryRes = await fetch(url, retryInit);
-      const retryParsed = await parseResponse<unknown>(retryRes);
 
       if (!retryRes.ok) {
-        const retryMessage =
-          typeof retryParsed === "object" &&
-          retryParsed !== null &&
-          "message" in retryParsed &&
-          typeof (retryParsed as { message?: unknown }).message === "string"
-            ? (retryParsed as { message: string }).message
-            : `HTTP Error ${retryRes.status}`;
-
-        throw new ApiError({
-          status: retryRes.status,
-          message: retryMessage,
-          body: retryParsed as never,
-        });
+        throw await handleResponseError(
+          retryRes,
+          url,
+          retryInit.body ?? init.body,
+          retryInit.method ?? init.method,
+        );
       }
 
+      const retryParsed = await parseResponse<unknown>(retryRes);
       return retryParsed as T;
     }
 
-    const parsed = await parseResponse<unknown>(res);
-
     if (!res.ok) {
-      const message =
-        typeof parsed === "object" &&
-        parsed !== null &&
-        "message" in parsed &&
-        typeof (parsed as { message?: unknown }).message === "string"
-          ? (parsed as { message: string }).message
-          : `HTTP Error ${res.status}`;
-
-      throw new ApiError({
-        status: res.status,
-        message,
-        body: parsed as never,
-      });
+      throw await handleResponseError(res, url, init.body, init.method);
     }
 
+    const parsed = await parseResponse<unknown>(res);
     return parsed as T;
   };
 }

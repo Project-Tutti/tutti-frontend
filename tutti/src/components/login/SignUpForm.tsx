@@ -132,6 +132,11 @@ const SignUpForm = () => {
       return;
     }
 
+    if (!isEmailAvailable) {
+      setFieldError('email', '이메일 중복 확인을 해주세요');
+      return;
+    }
+
     try {
       await signupMutation({
         email: result.data.email,

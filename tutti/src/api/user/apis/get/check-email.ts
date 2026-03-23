@@ -1,10 +1,12 @@
-import { defaultApi } from "@/lib/fetcher";
-import { AUTH_API_ENDPOINTS } from "../../constants/api-end-point.constants";
+import { AUTH_API_ENDPOINTS } from "@api/user/constants/api-end-point.constants";
 import {
   CheckEmailDuplicationRequestDto,
   CheckEmailDuplicationResponseDto,
-} from "../../types/api.types";
+} from "@api/user/types/api.types";
+
 import { BaseResponseDto } from "@/common/types/api.common.types";
+
+import { defaultApi } from "@/lib/fetcher";
 
 export const checkEmailDuplication = async ({
   email,
