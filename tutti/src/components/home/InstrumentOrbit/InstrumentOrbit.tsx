@@ -15,13 +15,15 @@ interface InstrumentOrbitProps {
   selectedInstrument: string | null;
   onInstrumentToggle: (id: string) => void;
   onFileUpload?: (file: File) => void;
+  isFileUploaded?: boolean;
 }
 
 const InstrumentOrbit = ({ 
   instruments, 
   selectedInstrument,
   onInstrumentToggle,
-  onFileUpload 
+  onFileUpload,
+  isFileUploaded = false,
 }: InstrumentOrbitProps) => {
   return (
     <div className="relative w-[280px] h-[280px] md:w-[420px] md:h-[420px] flex items-center justify-center">
@@ -29,7 +31,7 @@ const InstrumentOrbit = ({
       <div className="absolute inset-0 rounded-full border border-dashed border-[#1e293b] scale-90"></div>
 
       {/* 중앙 업로드 영역 */}
-      <UploadCenter onFileUpload={onFileUpload} />
+      <UploadCenter onFileUpload={onFileUpload} isUploaded={isFileUploaded} />
 
       {/* 악기 노드들 */}
       {instruments.map((instrument) => (

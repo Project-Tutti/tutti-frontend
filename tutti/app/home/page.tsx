@@ -130,11 +130,12 @@ const HomePage = () => {
           <StepProgress steps={steps} />
 
           {/* 악기 선택 영역 */}
-          <InstrumentOrbit
+          <InstrumentOrbit 
             instruments={instruments}
             selectedInstrument={selectedInstrument}
             onInstrumentToggle={handleInstrumentToggle}
             onFileUpload={handleFileUpload}
+            isFileUploaded={!!uploadedFile}
           />
 
           {/* 액션 버튼 */}
