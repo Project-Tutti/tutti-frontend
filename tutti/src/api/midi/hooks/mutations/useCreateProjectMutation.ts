@@ -1,5 +1,3 @@
-"use client";
-
 import { useMemo } from "react";
 
 import { useMutation } from "@tanstack/react-query";
@@ -8,8 +6,6 @@ import { createProject } from "@api/midi/apis/post/create-project";
 import {
   CreateProjectResponseDto,
 } from "@api/midi/types/api.types";
-
-import { ApiError } from "@/common/errors/ApiError";
 
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
 import { INSTRUMENT_OPTIONS } from "@features/midi-create/constants/instrument-options";
@@ -52,7 +48,7 @@ export const useCreateProjectMutation = () => {
     return matchedByLabel?.id ?? null;
   }, [selectedInstrument]);
 
-  return useMutation<CreateProjectResponseDto, ApiError, void>({
+  return useMutation<CreateProjectResponseDto, Error, void>({
     mutationFn: async () => {
       if (!uploadedFile) {
         throw new Error("MIDI file이 없습니다.");

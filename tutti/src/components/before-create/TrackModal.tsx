@@ -25,9 +25,10 @@ const TrackModal = ({ isOpen, track, onClose }: TrackModalProps) => {
 
   useEffect(() => {
     if (!track) return;
-    setInputValue(String(currentMappedInstrumentId));
+    const initialId = trackMappings[track.id] ?? track.sourceInstrumentId;
+    setInputValue(String(initialId));
     setSearchText("");
-  }, [currentMappedInstrumentId, trackId, isOpen, track]);
+  }, [trackId, isOpen, track]);
 
   const filteredOptions = useMemo(() => {
     const query = searchText.trim().toLowerCase();

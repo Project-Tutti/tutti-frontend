@@ -1,5 +1,4 @@
 interface AnalysisInfoProps {
-  confidence?: number;
   onGenerate: () => void;
   isPending?: boolean;
 }
