@@ -10,10 +10,10 @@ export const login = async ({ email, password }: LoginRequestDto) => {
     AUTH_API_ENDPOINTS.LOGIN,
     {
       method: 'POST',
-      body: JSON.stringify({
+      body: {
         email,
         password,
-      }),
+      },
     },
   );
 

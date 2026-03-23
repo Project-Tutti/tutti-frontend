@@ -10,11 +10,11 @@ export const signup = async ({ email, password, name }: SignupRequestDto) => {
     AUTH_API_ENDPOINTS.SIGN_UP,
     {
       method: 'POST',
-      body: JSON.stringify({
+      body: {
         email,
         name,
         password,
-      }),
+      },
     },
   );
 

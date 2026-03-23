@@ -7,7 +7,7 @@ import { useMutation } from "@tanstack/react-query";
 import { signup } from "@api/user/apis/post/signup";
 import { SignupRequestDto, SignupResponseDto } from "@api/user/types/api.types";
 
-import { ApiError } from "@/lib/fetcher";
+import { ApiError } from "@/common/errors/ApiError";
 
 import { useAuthStoreActions } from "@features/auth/hooks/useAuthStore";
 

@@ -1,3 +1,5 @@
+import { ApiError } from "@/common/errors/ApiError";
+import { getAccessToken } from "@features/auth/stores/auth-store";
 import { refreshAccessToken as requestRefreshAccessToken } from "@/lib/fetcher-response-handlers";
 
 export interface FetcherConfig {
@@ -8,19 +10,10 @@ export interface FetcherConfig {
   refreshAccessToken?: () => Promise<string>;
 }
 
-export interface RequestOptions extends RequestInit {
+/** fetcher 내부에서 plain object는 JSON.stringify 처리 */
+export interface RequestOptions extends Omit<RequestInit, "body"> {
   auth?: boolean;
-}
-
-export class ApiError extends Error {
-  constructor(
-    public readonly status: number,
-    message: string,
-    public readonly body?: unknown,
-  ) {
-    super(message);
-    this.name = "ApiError";
-  }
+  body?: RequestInit["body"] | Record<string, unknown> | null;
 }
 
 function joinURL(base: string, path: string): string {
@@ -166,7 +159,11 @@ export function createFetcher(config: FetcherConfig = {}) {
             ? (retryParsed as { message: string }).message
             : `HTTP Error ${retryRes.status}`;
 
-        throw new ApiError(retryRes.status, retryMessage, retryParsed);
+        throw new ApiError({
+          status: retryRes.status,
+          message: retryMessage,
+          body: retryParsed as never,
+        });
       }
 
       return retryParsed as T;
@@ -183,7 +180,11 @@ export function createFetcher(config: FetcherConfig = {}) {
           ? (parsed as { message: string }).message
           : `HTTP Error ${res.status}`;
 
-      throw new ApiError(res.status, message, parsed);
+      throw new ApiError({
+        status: res.status,
+        message,
+        body: parsed as never,
+      });
     }
 
     return parsed as T;
@@ -191,10 +192,7 @@ export function createFetcher(config: FetcherConfig = {}) {
 }
 
 export const defaultApi = createFetcher({
-  getAccessToken: () => {
-    if (typeof window === "undefined") return null;
-    return window.localStorage.getItem("accessToken");
-  },
+  getAccessToken,
   refreshAccessToken: requestRefreshAccessToken,
   fetchOptions: {
     cache: "no-store",

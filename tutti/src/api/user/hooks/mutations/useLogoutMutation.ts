@@ -9,7 +9,9 @@ import { LogoutResponseDto } from "@api/user/types/api.types";
 
 import queryKeys from "@common/constants/query-key.constants";
 
-import { ApiError } from "@/lib/fetcher";
+import { ApiError } from "@/common/errors/ApiError";
+
+import useAuthStore from "@features/auth/stores/auth-store";
 
 export const useLogoutMutation = () => {
   const queryClient = useQueryClient();
@@ -21,11 +23,7 @@ export const useLogoutMutation = () => {
       return response.result;
     },
     onSuccess: async () => {
-      if (typeof window !== "undefined") {
-        window.localStorage.removeItem("accessToken");
-        window.localStorage.removeItem("refreshToken");
-        window.localStorage.removeItem("user");
-      }
+      useAuthStore.getState().actions.clearAuth();
 
       await queryClient.invalidateQueries(queryKeys.user.detail());
       router.push("/login");

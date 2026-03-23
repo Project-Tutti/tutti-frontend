@@ -10,7 +10,7 @@ import { LoginRequestDto, LoginResponseDto } from "@api/user/types/api.types";
 
 import queryKeys from "@common/constants/query-key.constants";
 
-import { ApiError } from "@/lib/fetcher";
+import { ApiError } from "@/common/errors/ApiError";
 
 import { useAuthStoreActions } from "@features/auth/hooks/useAuthStore";
 

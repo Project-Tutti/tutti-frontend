@@ -15,7 +15,7 @@ export const refreshAccessToken = async ({
     AUTH_API_ENDPOINTS.REFRESH_TOKEN,
     {
       method: 'POST',
-      body: JSON.stringify({ refreshToken }),
+      body: { refreshToken },
       auth: true,
     },
   );

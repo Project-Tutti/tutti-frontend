@@ -7,21 +7,10 @@ import { ApiError } from "@common/errors/ApiError";
 
 import { joinURL } from "@common/utils/join-url.utils";
 
-const getStoredToken = (key: "accessToken" | "refreshToken") => {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(key);
-};
-
-const setStoredToken = (key: "accessToken" | "refreshToken", value: string) => {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(key, value);
-};
-
-const clearStoredTokens = () => {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem("accessToken");
-  window.localStorage.removeItem("refreshToken");
-};
+import useAuthStore, {
+  getAccessToken,
+  getRefreshToken,
+} from "@features/auth/stores/auth-store";
 
 /**
  * 정상 응답 처리 함수
@@ -99,16 +88,11 @@ export const handleResponseError = async (
 };
 
 export const refreshAccessToken = async () => {
-  const accessToken = getStoredToken("accessToken");
-  const refreshToken = getStoredToken("refreshToken");
-
-  console.log("[fetcher.ts] 토큰 갱신 요청을 시작합니다.", {
-    accessToken,
-    refreshToken,
-  });
+  const accessToken = getAccessToken();
+  const refreshToken = getRefreshToken();
 
   if (!refreshToken) {
-    clearStoredTokens();
+    useAuthStore.getState().actions.clearTokens();
     throw new Error("NO REFRESH TOKEN AVAILABLE");
   }
 
@@ -134,8 +118,7 @@ export const refreshAccessToken = async () => {
   });
 
   if (!res.ok) {
-    // 토큰 갱신 실패 시, 토큰을 초기화합니다.
-    clearStoredTokens();
+    useAuthStore.getState().actions.clearTokens();
     throw new ApiError({
       status: res.status,
       isSuccess: false,
@@ -146,8 +129,9 @@ export const refreshAccessToken = async () => {
 
   const data: BaseResponseDto<RefreshAccessTokenResponseDto> = await res.json();
 
-  setStoredToken("accessToken", data.result.accessToken);
-  setStoredToken("refreshToken", data.result.refreshToken);
+  const { setAccessToken, setRefreshToken } = useAuthStore.getState().actions;
+  setAccessToken(data.result.accessToken);
+  setRefreshToken(data.result.refreshToken);
 
   return data.result.accessToken;
 };
