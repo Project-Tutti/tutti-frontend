@@ -146,8 +146,8 @@ export const handleFetchError = (error: unknown) => {
     // - Navigation aborted: Next.js 내부 요청 취소
   } else if (
     error instanceof Error &&
-    // 넘어감 목록
-    !error.message.includes("AbortError") &&
+    // 넘어감 목록 (AbortError는 name으로 판별 — message는 브라우저마다 다름)
+    error.name !== "AbortError" &&
     !error.message.includes("canceled") &&
     !error.message.includes("Navigation aborted")
   ) {

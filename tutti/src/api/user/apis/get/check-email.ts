@@ -4,7 +4,7 @@ import {
   CheckEmailDuplicationResponseDto,
 } from "@api/user/types/api.types";
 
-import { BaseResponseDto } from "@/common/types/api.common.types";
+import { BaseResponseDto } from "@common/types/api.common.types";
 
 import { defaultApi } from "@/lib/fetcher";
 

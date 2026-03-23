@@ -11,11 +11,12 @@ import queryKeys from "@common/constants/query-key.constants";
 
 import { ApiError } from "@/common/errors/ApiError";
 
-import useAuthStore from "@features/auth/stores/auth-store";
+import { useAuthStoreActions } from "@features/auth/hooks/useAuthStore";
 
 export const useLogoutMutation = () => {
   const queryClient = useQueryClient();
   const router = useRouter();
+  const { clearAuth } = useAuthStoreActions();
 
   return useMutation<LogoutResponseDto, ApiError, void>({
     mutationFn: async () => {
@@ -23,7 +24,7 @@ export const useLogoutMutation = () => {
       return response.result;
     },
     onSuccess: async () => {
-      useAuthStore.getState().actions.clearAuth();
+      clearAuth();
 
       await queryClient.invalidateQueries(queryKeys.user.detail());
       router.push("/login");
