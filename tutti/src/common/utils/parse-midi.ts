@@ -46,6 +46,7 @@ export const parseMidiFile = async (file: File): Promise<Track[]> => {
       const instrumentFamily = isDrumChannel
         ? "percussive"
         : track.instrument.family || "unknown";
+      const sourceInstrumentId = isDrumChannel ? 128 : track.instrument.number;
 
       const tags: string[] = [];
       if (tempo) tags.push(`${Math.round(tempo)} BPM`);
@@ -55,6 +56,7 @@ export const parseMidiFile = async (file: File): Promise<Track[]> => {
         name: track.name || `Track ${index + 1}`,
         icon: isDrumChannel ? "album" : getIconByFamily(instrumentFamily),
         instrumentType: formatInstrumentType(instrumentName),
+        sourceInstrumentId,
         channel: track.channel ?? index,
         tags,
         noteCount: track.notes.length,

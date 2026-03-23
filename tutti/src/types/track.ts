@@ -4,6 +4,7 @@ export interface Track {
   name: string;
   icon: string;
   instrumentType: string;
+  sourceInstrumentId: number;
   channel: number;
   tags: string[];
   noteCount?: number;
