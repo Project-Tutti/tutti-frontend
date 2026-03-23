@@ -38,7 +38,7 @@ const TrackCard = ({ track, onClick }: TrackCardProps) => {
           {track.name}
         </p>
         <p className="text-gray-500 text-[9px] md:text-[10px] font-bold uppercase tracking-widest">
-          Channel {track.channel}
+          Channel {track.channel} · {track.noteCount} notes
         </p>
         
         {/* 태그들 */}
