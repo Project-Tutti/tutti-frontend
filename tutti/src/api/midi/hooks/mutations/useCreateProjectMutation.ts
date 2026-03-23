@@ -14,6 +14,9 @@ import { ApiError } from "@/common/errors/ApiError";
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
 import { INSTRUMENT_OPTIONS } from "@features/midi-create/constants/instrument-options";
 
+// 최초 생성은 v1로 고정 (재생성 API가 분리되어 있기 때문)
+const INITIAL_VERSION_NAME = "v1";
+
 /**
  * before-create에서 프로젝트 생성 요청을 보냅니다.
  *
@@ -23,10 +26,6 @@ import { INSTRUMENT_OPTIONS } from "@features/midi-create/constants/instrument-o
 
 export const useCreateProjectMutation = () => {
   const { tracks, uploadedFile, selectedInstrument, trackMappings } = useMidiStore();
-
-  // TODO: 재생성 API가 분리되어 있으니 최초 생성은 v1 고정으로 둔다.
-  // 추후 서버 스펙(버전 증가 규칙)이 확정되면 이 상수만 교체하면 되도록 분리.
-  const INITIAL_VERSION_NAME = "v1";
 
   const instrumentId = useMemo(() => {
     if (!selectedInstrument) return null;
