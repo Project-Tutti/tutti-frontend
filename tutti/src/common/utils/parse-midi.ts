@@ -38,7 +38,8 @@ export const parseMidiFile = async (file: File): Promise<Track[]> => {
   return midi.tracks
     .filter((track) => track.notes.length > 0)
     .map((track, index) => {
-      const isDrumChannel = track.channel === 9 || track.channel === 10;
+      // GM 표준 드럼 채널은 MIDI 1-based 10번 = @tonejs/midi 의 0-based 채널 9
+      const isDrumChannel = track.channel === 9;
       const instrumentName = isDrumChannel
         ? "Drum Kit"
         : track.instrument.name || "Unknown";

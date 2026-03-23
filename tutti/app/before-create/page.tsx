@@ -22,13 +22,26 @@ const BeforeCreatePage = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [hasHydrated, setHasHydrated] = useState(false);
 
-  // tracks가 없으면 홈으로 리다이렉트
+  // persist 재수화 전에는 tracks가 비어 있어 오인하지 않도록 대기
   useEffect(() => {
-    if (tracks.length === 0) {
-      router.replace("/");
+    const unsub = useMidiStore.persist.onFinishHydration(() =>
+      setHasHydrated(true),
+    );
+    if (useMidiStore.persist.hasHydrated()) {
+      setHasHydrated(true);
     }
-  }, [tracks, router]);
+    return unsub;
+  }, []);
+
+  // 재수화 완료 후에만: 분석 데이터 없으면 업로드 화면으로
+  useEffect(() => {
+    if (!hasHydrated) return;
+    if (tracks.length === 0) {
+      router.replace("/home");
+    }
+  }, [hasHydrated, tracks, router]);
 
   const totalPages = Math.ceil(tracks.length / TRACKS_PER_PAGE);
   const currentTracks = tracks.slice(
@@ -54,7 +67,14 @@ const BeforeCreatePage = () => {
     // TODO: 생성 로직 구현
   };
 
-  // 리다이렉트 되는 동안 빈 화면 방지
+  if (!hasHydrated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#05070a] text-gray-400 text-sm">
+        불러오는 중…
+      </div>
+    );
+  }
+
   if (tracks.length === 0) return null;
 
   return (
