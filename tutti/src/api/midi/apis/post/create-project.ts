@@ -19,18 +19,6 @@ export const createProject = async ({
     new Blob([JSON.stringify(request)], { type: "application/json" }),
   );
 
-  // multipart/form-data 전체를 그대로 찍기는 어렵기 때문에,
-  // body 구성 요소(메타 + request JSON)만 확인합니다.
-  const requestBlob = formData.get("request") as Blob | null;
-
-  if (requestBlob) {
-    try {
-      const raw = await requestBlob.text();
-    } catch {
-      // ignore
-    }
-  }
-
   const response = await defaultApi<BaseResponseDto<CreateProjectResponseDto>>(
     MIDI_API_ENDPOINTS.CREATE_PROJECT,
     {
