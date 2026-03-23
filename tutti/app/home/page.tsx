@@ -1,83 +1,108 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Sidebar from '@/components/common/Sidebar';
-import Header from '@/components/common/Header';
-import StepProgress from '@/components/home/upload/StepProgress';
-import InstrumentOrbit, { Instrument } from '@/components/home/InstrumentOrbit/InstrumentOrbit';
-import Footer from '@/components/common/Footer';
-import { COMMON_STYLES } from '@/constants/styles';
-import { getUserInfo } from '@api/user/apis/get/get-user-info';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Sidebar from "@/components/common/Sidebar";
+import Header from "@/components/common/Header";
+import StepProgress from "@/components/home/upload/StepProgress";
+import InstrumentOrbit, {
+  Instrument,
+} from "@/components/home/InstrumentOrbit/InstrumentOrbit";
+import Footer from "@/components/common/Footer";
+import { COMMON_STYLES } from "@/constants/styles";
+import { parseMidiFile } from "@common/utils/parse-midi";
+import { useMidiStore } from "@features/midi-create/stores/midi-store";
 
 const instruments: Instrument[] = [
-  { id: 'violin', name: 'Violin', icon: 'music_note', position: 'top' },
-  { id: 'oboe', name: 'Oboe', icon: 'queue_music', position: 'right' },
-  { id: 'flute', name: 'Flute', icon: 'air', position: 'left' },
+  { id: "violin", name: "Violin", icon: "music_note", position: "top" },
+  { id: "oboe", name: "Oboe", icon: "queue_music", position: "right" },
+  { id: "flute", name: "Flute", icon: "air", position: "left" },
 ];
 
 const HomePage = () => {
+  const router = useRouter();
+  const {
+    setTracks,
+    setSelectedInstrument: setStoreInstrument,
+    setUploadedFile: setStoreFile,
+  } = useMidiStore();
+
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [selectedInstrument, setSelectedInstrument] = useState<string | null>(null);
+  const [selectedInstrument, setSelectedInstrument] = useState<string | null>(
+    null,
+  );
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [isFetchingProfile, setIsFetchingProfile] = useState(false);
-  const [profileText, setProfileText] = useState<string>('');
+  const [isParsing, setIsParsing] = useState(false);
+  const [parseError, setParseError] = useState<string | null>(null);
 
   const handleToggleSidebar = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
   };
 
   const handleInstrumentToggle = (id: string) => {
-    // 이미 선택된 악기를 다시 클릭하면 선택 해제, 다른 악기 클릭하면 그 악기 선택
-    setSelectedInstrument((prev) => prev === id ? null : id);
+    setSelectedInstrument((prev) => (prev === id ? null : id));
   };
 
   const handleFileUpload = (file: File) => {
-    console.log('Uploaded file:', file.name);
+    console.log("Uploaded file:", file.name);
     setUploadedFile(file);
+    setParseError(null);
   };
 
-  const handleTestGetProfile = async () => {
+  const handleGenerate = async () => {
+    if (!uploadedFile || !selectedInstrument) return;
+
     try {
-      setIsFetchingProfile(true);
-      setProfileText('');
+      setIsParsing(true);
+      setParseError(null);
 
-      const response = await getUserInfo();
-      const user = response.result;
-      setProfileText(`성공: ${user.name} (${user.email})`);
-    } catch (error) {
-      const status = typeof (error as { status?: unknown })?.status === 'number'
-        ? (error as { status: number }).status
-        : 'unknown';
-      const message = typeof (error as { message?: unknown })?.message === 'string'
-        ? (error as { message: string }).message
-        : '프로필 조회 실패';
+      const tracks = await parseMidiFile(uploadedFile);
 
-      setProfileText(`실패(${status}): ${message}`);
+      if (tracks.length === 0) {
+        setParseError(
+          "트랙을 찾을 수 없습니다. 다른 MIDI 파일을 시도해주세요.",
+        );
+        return;
+      }
+
+      // Zustand store에 저장
+      setTracks(tracks);
+      setStoreInstrument(selectedInstrument);
+      setStoreFile(uploadedFile);
+
+      router.push("/before-create");
+    } catch (e) {
+      console.error("MIDI 파싱 실패:", e);
+      setParseError(
+        "MIDI 파일 파싱에 실패했습니다. 올바른 파일인지 확인해주세요.",
+      );
     } finally {
-      setIsFetchingProfile(false);
+      setIsParsing(false);
     }
   };
 
-  // 진행 단계 동적 생성
   const steps = [
-    { 
-      label: 'Instrument Selection', 
-      icon: selectedInstrument ? 'check' : 'music_note', 
-      isActive: !!selectedInstrument 
+    {
+      label: "Instrument Selection",
+      icon: selectedInstrument ? "check" : "music_note",
+      isActive: !!selectedInstrument,
     },
-    { 
-      label: 'File Upload', 
-      icon: uploadedFile ? 'check' : 'upload', 
-      isActive: !!uploadedFile 
+    {
+      label: "File Upload",
+      icon: uploadedFile ? "check" : "upload",
+      isActive: !!uploadedFile,
     },
   ];
 
-  const canGenerate = selectedInstrument && uploadedFile;
+  const canGenerate = !!selectedInstrument && !!uploadedFile && !isParsing;
 
   return (
     <div className="min-h-screen flex flex-row overflow-x-hidden">
       {/* 사이드바 */}
-      <Sidebar isCollapsed={isSidebarCollapsed} onToggle={handleToggleSidebar} />
+      <Sidebar
+        isCollapsed={isSidebarCollapsed}
+        onToggle={handleToggleSidebar}
+      />
 
       {/* 메인 컨텐츠 */}
       <div className="grow flex flex-col min-h-screen">
@@ -109,45 +134,42 @@ const HomePage = () => {
           <StepProgress steps={steps} />
 
           {/* 악기 선택 영역 */}
-          <InstrumentOrbit 
-            instruments={instruments} 
+          <InstrumentOrbit
+            instruments={instruments}
             selectedInstrument={selectedInstrument}
             onInstrumentToggle={handleInstrumentToggle}
-            onFileUpload={handleFileUpload} 
+            onFileUpload={handleFileUpload}
           />
 
           {/* 액션 버튼 */}
           <div className="mt-12 flex flex-col items-center gap-4 relative z-10">
-            <button 
+            <button
+              onClick={handleGenerate}
               disabled={!canGenerate}
               className={`
                 ${COMMON_STYLES.button.primary} flex items-center gap-3
-                ${!canGenerate ? 'opacity-50 cursor-not-allowed hover:transform-none hover:shadow-lg' : ''}
+                ${!canGenerate ? "opacity-50 cursor-not-allowed hover:transform-none hover:shadow-lg" : ""}
               `}
             >
-              Generate Partials
-              <span className="material-symbols-outlined">auto_awesome</span>
+              {isParsing ? "분석 중..." : "Generate Partials"}
+              <span className="material-symbols-outlined">
+                {isParsing ? "hourglass_empty" : "auto_awesome"}
+              </span>
             </button>
 
-            <button
-              type="button"
-              onClick={handleTestGetProfile}
-              disabled={isFetchingProfile}
-              className="text-sm font-semibold text-[#3b82f6] hover:text-blue-400 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isFetchingProfile ? '프로필 조회 중...' : '내 프로필 조회(테스트)'}
-            </button>
-
-            {profileText ? (
-              <p className="text-xs md:text-sm text-gray-300">{profileText}</p>
-            ) : null}
+            {/* 에러 메시지 */}
+            {parseError && (
+              <p className="text-red-400 text-xs md:text-sm flex items-center gap-1">
+                <span className="material-symbols-outlined text-sm">error</span>
+                {parseError}
+              </p>
+            )}
 
             <p className="text-gray-500 text-xs md:text-sm flex items-center gap-2">
               <span className="material-symbols-outlined text-sm">info</span>
-              {selectedInstrument 
-                ? `${instruments.find(i => i.id === selectedInstrument)?.name} 선택됨`
-                : '악기를 선택해주세요'
-              }
+              {selectedInstrument
+                ? `${instruments.find((i) => i.id === selectedInstrument)?.name} 선택됨`
+                : "악기를 선택해주세요"}
               {uploadedFile && ` • ${uploadedFile.name}`}
             </p>
           </div>
