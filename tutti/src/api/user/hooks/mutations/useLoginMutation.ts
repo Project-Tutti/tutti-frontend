@@ -38,8 +38,13 @@ export const useLoginMutation = () => {
         await queryClient.prefetchInfiniteQuery(
           getLibraryListInfiniteQueryOptions(),
         );
-      } catch {
-        /* 홈에서 Sidebar가 다시 요청함 */
+      } catch (error) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn(
+            "[Library prefetch] 실패, Sidebar에서 재요청합니다:",
+            error,
+          );
+        }
       }
 
       const redirectPath = searchParams.get("redirect");

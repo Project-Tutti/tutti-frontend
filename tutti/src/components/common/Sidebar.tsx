@@ -1,9 +1,10 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useEffect, useMemo, useRef } from 'react';
+import Link from "next/link";
+import { useEffect, useMemo, useRef } from "react";
 
-import { useLibraryListInfiniteQuery } from '@api/library/hooks/queries/useLibraryListInfiniteQuery';
+import { useLibraryListInfiniteQuery } from "@api/library/hooks/queries/useLibraryListInfiniteQuery";
+import { useUser } from "@features/auth/hooks/useAuthStore";
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -11,8 +12,11 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
+  const user = useUser();
   const scrollRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const hasNextPageRef = useRef(false);
+  const isFetchingNextPageRef = useRef(false);
 
   const {
     data,
@@ -23,9 +27,16 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
     isError,
   } = useLibraryListInfiniteQuery();
 
+  useEffect(() => {
+    hasNextPageRef.current = !!hasNextPage;
+  }, [hasNextPage]);
+
+  useEffect(() => {
+    isFetchingNextPageRef.current = !!isFetchingNextPage;
+  }, [isFetchingNextPage]);
+
   const projects = useMemo(() => {
-    const rows =
-      data?.pages.flatMap((p) => p.result?.projects ?? []) ?? [];
+    const rows = data?.pages.flatMap((p) => p.result?.projects ?? []) ?? [];
     const byId = new Map<number, (typeof rows)[number]>();
     for (const item of rows) {
       if (!byId.has(item.projectId)) {
@@ -46,41 +57,47 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
         const [entry] = entries;
         if (
           entry?.isIntersecting &&
-          hasNextPage &&
-          !isFetchingNextPage
+          hasNextPageRef.current &&
+          !isFetchingNextPageRef.current
         ) {
           void fetchNextPage();
         }
       },
-      { root, rootMargin: '80px', threshold: 0 },
+      { root, rootMargin: "80px", threshold: 0 },
     );
 
     observer.observe(target);
     return () => observer.disconnect();
-  }, [isCollapsed, fetchNextPage, hasNextPage, isFetchingNextPage]);
+  }, [isCollapsed, fetchNextPage, hasNextPage]);
 
   return (
     <aside
       className={`
         bg-[#0a0c10] border-r border-[#1e293b] flex flex-col h-screen sticky top-0 
         transition-all duration-300 ease-in-out z-60
-        ${isCollapsed ? 'w-0 border-r-0' : 'w-60'}
+        ${isCollapsed ? "w-0 border-r-0" : "w-60"}
       `}
-      style={{ overflow: isCollapsed ? 'hidden' : 'visible' }}
+      style={{ overflow: isCollapsed ? "hidden" : "visible" }}
     >
       <div className="p-3 border-b border-[#1e293b] flex items-center justify-between min-w-[240px]">
         <div className="flex items-center gap-2">
           <div className="bg-[#3b82f6] p-1 rounded-lg">
-            <span className="material-symbols-outlined text-white text-lg">graphic_eq</span>
+            <span className="material-symbols-outlined text-white text-lg">
+              graphic_eq
+            </span>
           </div>
-          <span className="text-base font-bold tracking-tight text-white">Harmonix</span>
+          <span className="text-base font-bold tracking-tight text-white">
+            Harmonix
+          </span>
         </div>
         <button
           onClick={onToggle}
           className="text-gray-500 hover:text-white transition-colors"
           aria-label="Toggle sidebar"
         >
-          <span className="material-symbols-outlined text-lg">side_navigation</span>
+          <span className="material-symbols-outlined text-lg">
+            side_navigation
+          </span>
         </button>
       </div>
 
@@ -98,7 +115,9 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
               className="text-gray-500 hover:text-[#3b82f6] transition-colors"
               aria-label="새 프로젝트"
             >
-              <span className="material-symbols-outlined text-base">add_circle</span>
+              <span className="material-symbols-outlined text-base">
+                add_circle
+              </span>
             </Link>
           </div>
 
@@ -126,10 +145,16 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
                 {item.name}
               </Link>
             ))}
-            <div ref={sentinelRef} className="h-1 w-full shrink-0" aria-hidden />
             {isFetchingNextPage && (
-              <p className="text-[10px] text-gray-500 px-2 py-1.5">더 불러오는 중…</p>
+              <p className="text-[10px] text-gray-500 px-2 py-1.5">
+                더 불러오는 중…
+              </p>
             )}
+            <div
+              ref={sentinelRef}
+              className="h-1 w-full shrink-0"
+              aria-hidden
+            />
           </div>
         </div>
       </div>
@@ -150,12 +175,22 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
           <span>Settings</span>
         </a>
 
-        <div className="mt-3 flex items-center gap-2 px-2 py-1.5">
-          <div className="h-7 w-7 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 border border-white/20"></div>
-          <div className="flex flex-col">
-            <span className="text-xs font-medium text-white">Alex Mercer</span>
-            <span className="text-[9px] text-gray-500 uppercase font-bold tracking-tighter">
-              Pro Plan
+        <div className="mt-3 flex items-center gap-2 px-2 py-1.5 min-w-0">
+          {user?.avatarUrl ? (
+            <img
+              src={user.avatarUrl}
+              alt=""
+              className="h-7 w-7 rounded-full border border-white/20 object-cover shrink-0"
+            />
+          ) : (
+            <div className="h-7 w-7 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 border border-white/20 shrink-0" />
+          )}
+          <div className="flex flex-col min-w-0">
+            <span className="text-xs font-medium text-white truncate">
+              {user?.name ?? "—"}
+            </span>
+            <span className="text-[9px] text-gray-500 font-bold tracking-tighter truncate">
+              {user?.email ?? ""}
             </span>
           </div>
         </div>
