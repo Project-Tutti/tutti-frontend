@@ -1,25 +1,64 @@
 'use client';
 
+import Link from 'next/link';
+import { useEffect, useMemo, useRef } from 'react';
+
+import { useLibraryListInfiniteQuery } from '@api/library/hooks/queries/useLibraryListInfiniteQuery';
+
 interface SidebarProps {
   isCollapsed: boolean;
   onToggle: () => void;
 }
 
-interface RecentItem {
-  id: string;
-  title: string;
-  time: string;
-  icon: string;
-}
-
-const recentGenerations: RecentItem[] = [
-  { id: '1', title: 'Symphony No. 5 Arrangement', time: '2 hours ago', icon: 'music_note' },
-  { id: '2', title: 'Oboe Solo - Oct 24', time: 'Yesterday', icon: 'queue_music' },
-  { id: '3', title: 'String Quartet Draft', time: 'Oct 22, 2024', icon: 'music_note' },
-  { id: '4', title: 'Flute Sonata Rework', time: 'Oct 20, 2024', icon: 'air' },
-];
-
 const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isPending,
+    isError,
+  } = useLibraryListInfiniteQuery();
+
+  const projects = useMemo(() => {
+    const rows =
+      data?.pages.flatMap((p) => p.result?.projects ?? []) ?? [];
+    const byId = new Map<number, (typeof rows)[number]>();
+    for (const item of rows) {
+      if (!byId.has(item.projectId)) {
+        byId.set(item.projectId, item);
+      }
+    }
+    return Array.from(byId.values());
+  }, [data?.pages]);
+
+  useEffect(() => {
+    if (isCollapsed) return;
+    const root = scrollRef.current;
+    const target = sentinelRef.current;
+    if (!root || !target) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (
+          entry?.isIntersecting &&
+          hasNextPage &&
+          !isFetchingNextPage
+        ) {
+          void fetchNextPage();
+        }
+      },
+      { root, rootMargin: '80px', threshold: 0 },
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [isCollapsed, fetchNextPage, hasNextPage, isFetchingNextPage]);
+
   return (
     <aside
       className={`
@@ -45,33 +84,52 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
         </button>
       </div>
 
-      <div className="grow flex flex-col p-3 space-y-5 overflow-y-auto min-w-[240px]">
+      <div
+        ref={scrollRef}
+        className="grow flex flex-col p-3 space-y-5 overflow-y-auto min-w-[240px] min-h-0"
+      >
         <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-              Recent Generations
+              프로젝트 히스토리
             </h2>
-            <button className="text-gray-500 hover:text-[#3b82f6] transition-colors">
+            <Link
+              href="/home"
+              className="text-gray-500 hover:text-[#3b82f6] transition-colors"
+              aria-label="새 프로젝트"
+            >
               <span className="material-symbols-outlined text-base">add_circle</span>
-            </button>
+            </Link>
           </div>
 
+          {isPending && (
+            <p className="text-[11px] text-gray-500 px-2 py-2">불러오는 중…</p>
+          )}
+          {isError && (
+            <p className="text-[11px] text-red-400/90 px-2 py-2">
+              목록을 불러오지 못했습니다.
+            </p>
+          )}
+          {!isPending && !isError && projects.length === 0 && (
+            <p className="text-[11px] text-gray-500 px-2 py-2">
+              저장된 프로젝트가 없습니다.
+            </p>
+          )}
+
           <div className="space-y-0.5">
-            {recentGenerations.map((item) => (
-              <a
-                key={item.id}
-                href="#"
-                className="sidebar-item group flex items-center gap-2 px-2 py-2 rounded-lg text-xs text-gray-300 hover:text-white transition-all hover:bg-white/5"
+            {projects.map((item) => (
+              <Link
+                key={item.projectId}
+                href={`/home?projectId=${item.projectId}`}
+                className="sidebar-item block w-full text-left px-2 py-2 rounded-lg text-[13px] leading-snug text-gray-300 hover:text-white hover:bg-white/5 transition-colors truncate"
               >
-                <span className="material-symbols-outlined text-gray-500 group-hover:text-[#3b82f6] text-base">
-                  {item.icon}
-                </span>
-                <div className="flex flex-col truncate">
-                  <span className="truncate">{item.title}</span>
-                  <span className="text-[9px] text-gray-600">{item.time}</span>
-                </div>
-              </a>
+                {item.name}
+              </Link>
             ))}
+            <div ref={sentinelRef} className="h-1 w-full shrink-0" aria-hidden />
+            {isFetchingNextPage && (
+              <p className="text-[10px] text-gray-500 px-2 py-1.5">더 불러오는 중…</p>
+            )}
           </div>
         </div>
       </div>
