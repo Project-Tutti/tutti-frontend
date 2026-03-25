@@ -68,7 +68,7 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
 
     observer.observe(target);
     return () => observer.disconnect();
-  }, [isCollapsed, fetchNextPage, hasNextPage]);
+  }, [isCollapsed, fetchNextPage]);
 
   return (
     <aside
@@ -177,6 +177,7 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
 
         <div className="mt-3 flex items-center gap-2 px-2 py-1.5 min-w-0">
           {user?.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={user.avatarUrl}
               alt=""
