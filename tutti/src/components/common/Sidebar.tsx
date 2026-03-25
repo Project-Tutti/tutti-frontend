@@ -1,77 +1,160 @@
-'use client';
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useRef } from "react";
+
+import { useLibraryListInfiniteQuery } from "@api/library/hooks/queries/useLibraryListInfiniteQuery";
+import { useUser } from "@features/auth/hooks/useAuthStore";
 
 interface SidebarProps {
   isCollapsed: boolean;
   onToggle: () => void;
 }
 
-interface RecentItem {
-  id: string;
-  title: string;
-  time: string;
-  icon: string;
-}
-
-const recentGenerations: RecentItem[] = [
-  { id: '1', title: 'Symphony No. 5 Arrangement', time: '2 hours ago', icon: 'music_note' },
-  { id: '2', title: 'Oboe Solo - Oct 24', time: 'Yesterday', icon: 'queue_music' },
-  { id: '3', title: 'String Quartet Draft', time: 'Oct 22, 2024', icon: 'music_note' },
-  { id: '4', title: 'Flute Sonata Rework', time: 'Oct 20, 2024', icon: 'air' },
-];
-
 const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
+  const user = useUser();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const hasNextPageRef = useRef(false);
+  const isFetchingNextPageRef = useRef(false);
+
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isPending,
+    isError,
+  } = useLibraryListInfiniteQuery();
+
+  useEffect(() => {
+    hasNextPageRef.current = !!hasNextPage;
+  }, [hasNextPage]);
+
+  useEffect(() => {
+    isFetchingNextPageRef.current = !!isFetchingNextPage;
+  }, [isFetchingNextPage]);
+
+  const projects = useMemo(() => {
+    const rows = data?.pages.flatMap((p) => p.result?.projects ?? []) ?? [];
+    const byId = new Map<number, (typeof rows)[number]>();
+    for (const item of rows) {
+      if (!byId.has(item.projectId)) {
+        byId.set(item.projectId, item);
+      }
+    }
+    return Array.from(byId.values());
+  }, [data?.pages]);
+
+  useEffect(() => {
+    if (isCollapsed) return;
+    const root = scrollRef.current;
+    const target = sentinelRef.current;
+    if (!root || !target) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (
+          entry?.isIntersecting &&
+          hasNextPageRef.current &&
+          !isFetchingNextPageRef.current
+        ) {
+          void fetchNextPage();
+        }
+      },
+      { root, rootMargin: "80px", threshold: 0 },
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [isCollapsed, fetchNextPage]);
+
   return (
     <aside
       className={`
         bg-[#0a0c10] border-r border-[#1e293b] flex flex-col h-screen sticky top-0 
         transition-all duration-300 ease-in-out z-60
-        ${isCollapsed ? 'w-0 border-r-0' : 'w-60'}
+        ${isCollapsed ? "w-0 border-r-0" : "w-60"}
       `}
-      style={{ overflow: isCollapsed ? 'hidden' : 'visible' }}
+      style={{ overflow: isCollapsed ? "hidden" : "visible" }}
     >
       <div className="p-3 border-b border-[#1e293b] flex items-center justify-between min-w-[240px]">
         <div className="flex items-center gap-2">
           <div className="bg-[#3b82f6] p-1 rounded-lg">
-            <span className="material-symbols-outlined text-white text-lg">graphic_eq</span>
+            <span className="material-symbols-outlined text-white text-lg">
+              graphic_eq
+            </span>
           </div>
-          <span className="text-base font-bold tracking-tight text-white">Harmonix</span>
+          <span className="text-base font-bold tracking-tight text-white">
+            Harmonix
+          </span>
         </div>
         <button
           onClick={onToggle}
           className="text-gray-500 hover:text-white transition-colors"
           aria-label="Toggle sidebar"
         >
-          <span className="material-symbols-outlined text-lg">side_navigation</span>
+          <span className="material-symbols-outlined text-lg">
+            side_navigation
+          </span>
         </button>
       </div>
 
-      <div className="grow flex flex-col p-3 space-y-5 overflow-y-auto min-w-[240px]">
+      <div
+        ref={scrollRef}
+        className="grow flex flex-col p-3 space-y-5 overflow-y-auto min-w-[240px] min-h-0"
+      >
         <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-              Recent Generations
+              프로젝트 히스토리
             </h2>
-            <button className="text-gray-500 hover:text-[#3b82f6] transition-colors">
-              <span className="material-symbols-outlined text-base">add_circle</span>
-            </button>
+            <Link
+              href="/home"
+              className="text-gray-500 hover:text-[#3b82f6] transition-colors"
+              aria-label="새 프로젝트"
+            >
+              <span className="material-symbols-outlined text-base">
+                add_circle
+              </span>
+            </Link>
           </div>
 
+          {isPending && (
+            <p className="text-[11px] text-gray-500 px-2 py-2">불러오는 중…</p>
+          )}
+          {isError && (
+            <p className="text-[11px] text-red-400/90 px-2 py-2">
+              목록을 불러오지 못했습니다.
+            </p>
+          )}
+          {!isPending && !isError && projects.length === 0 && (
+            <p className="text-[11px] text-gray-500 px-2 py-2">
+              저장된 프로젝트가 없습니다.
+            </p>
+          )}
+
           <div className="space-y-0.5">
-            {recentGenerations.map((item) => (
-              <a
-                key={item.id}
-                href="#"
-                className="sidebar-item group flex items-center gap-2 px-2 py-2 rounded-lg text-xs text-gray-300 hover:text-white transition-all hover:bg-white/5"
+            {projects.map((item) => (
+              <Link
+                key={item.projectId}
+                href={`/home?projectId=${item.projectId}`}
+                className="sidebar-item block w-full text-left px-2 py-2 rounded-lg text-[13px] leading-snug text-gray-300 hover:text-white hover:bg-white/5 transition-colors truncate"
               >
-                <span className="material-symbols-outlined text-gray-500 group-hover:text-[#3b82f6] text-base">
-                  {item.icon}
-                </span>
-                <div className="flex flex-col truncate">
-                  <span className="truncate">{item.title}</span>
-                  <span className="text-[9px] text-gray-600">{item.time}</span>
-                </div>
-              </a>
+                {item.name}
+              </Link>
             ))}
+            {isFetchingNextPage && (
+              <p className="text-[10px] text-gray-500 px-2 py-1.5">
+                더 불러오는 중…
+              </p>
+            )}
+            <div
+              ref={sentinelRef}
+              className="h-1 w-full shrink-0"
+              aria-hidden
+            />
           </div>
         </div>
       </div>
@@ -92,12 +175,23 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
           <span>Settings</span>
         </a>
 
-        <div className="mt-3 flex items-center gap-2 px-2 py-1.5">
-          <div className="h-7 w-7 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 border border-white/20"></div>
-          <div className="flex flex-col">
-            <span className="text-xs font-medium text-white">Alex Mercer</span>
-            <span className="text-[9px] text-gray-500 uppercase font-bold tracking-tighter">
-              Pro Plan
+        <div className="mt-3 flex items-center gap-2 px-2 py-1.5 min-w-0">
+          {user?.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={user.avatarUrl}
+              alt=""
+              className="h-7 w-7 rounded-full border border-white/20 object-cover shrink-0"
+            />
+          ) : (
+            <div className="h-7 w-7 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 border border-white/20 shrink-0" />
+          )}
+          <div className="flex flex-col min-w-0">
+            <span className="text-xs font-medium text-white truncate">
+              {user?.name ?? "—"}
+            </span>
+            <span className="text-[9px] text-gray-500 font-bold tracking-tighter truncate">
+              {user?.email ?? ""}
             </span>
           </div>
         </div>

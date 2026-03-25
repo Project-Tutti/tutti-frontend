@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { getLibraryListInfiniteQueryOptions } from "@api/library/library-list-infinite-query-options";
 import { getUserInfo } from "@api/user/apis/get/get-user-info";
 import { signup } from "@api/user/apis/post/signup";
 import { SignupRequestDto, SignupResponseDto } from "@api/user/types/api.types";
@@ -34,6 +35,19 @@ export const useSignupMutation = () => {
         queryFn: getUserInfo,
       });
       setUser(userInfo.result);
+
+      try {
+        await queryClient.prefetchInfiniteQuery(
+          getLibraryListInfiniteQueryOptions(),
+        );
+      } catch (error) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn(
+            "[Library prefetch] 실패, Sidebar에서 재요청합니다:",
+            error,
+          );
+        }
+      }
 
       router.push("/home");
     },
