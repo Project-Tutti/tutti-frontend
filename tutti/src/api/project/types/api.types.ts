@@ -42,10 +42,8 @@ export interface GetProjectDownloadResponseDto {
   downloadLink: string;
 }
 
-export interface RegenerateProjectMappingDto {
-  trackIndex: number;
-  targetInstrumentId: number;
-}
+/** 요청/응답에서 공통으로 쓰이는 매핑 형태 */
+export type RegenerateProjectMappingDto = ProjectVersionMappingResponseDto;
 
 /** POST /api/projects/{projectId}/regenerate body */
 export interface RegenerateProjectRequestDto {

@@ -17,7 +17,7 @@ export const regenerateProject = async (
   >(PROJECT_API_ENDPOINTS.regenerate(projectId), {
     method: "POST",
     auth: true,
-    body: body as unknown as Record<string, unknown>,
+    body,
   });
 
   return response;

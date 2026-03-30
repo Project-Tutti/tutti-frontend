@@ -64,6 +64,12 @@ const BeforeCreatePage = () => {
     return `v${next}`;
   }, [isRegenerateMode, projectQuery.data?.result?.versions]);
 
+  useEffect(() => {
+    if (!isRegenerateMode) return;
+    if (!projectQuery.isError) return;
+    setCreateError("버전 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
+  }, [isRegenerateMode, projectQuery.isError]);
+
   // persist 재수화 전에는 tracks가 비어 있어 오인하지 않도록 대기
   useEffect(() => {
     const unsub = useMidiStore.persist.onFinishHydration(() =>
@@ -109,6 +115,12 @@ const BeforeCreatePage = () => {
       if (isRegenerateMode) {
         if (parsedRegenerateProjectId == null) {
           throw new Error("projectId가 올바르지 않습니다.");
+        }
+        if (projectQuery.isPending) {
+          throw new Error("버전 정보를 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
+        }
+        if (projectQuery.isError) {
+          throw new Error("버전 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
         }
 
         const mappings = tracks.map((track, index) => {
@@ -208,7 +220,9 @@ const BeforeCreatePage = () => {
             }}
             isPending={
               isRegenerateMode
-                ? regenerateMutation.isPending
+                ? regenerateMutation.isPending ||
+                  projectQuery.isPending ||
+                  projectQuery.isError
                 : createProjectMutation.isPending
             }
             label={isRegenerateMode ? "Regenerate" : "Generate"}
