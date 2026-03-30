@@ -1,11 +1,17 @@
 interface AnalysisInfoProps {
   onGenerate: () => void;
   isPending?: boolean;
+  label?: string;
+  pendingLabel?: string;
+  icon?: string;
 }
 
 const AnalysisInfo = ({ 
   onGenerate,
   isPending,
+  label = "Generate",
+  pendingLabel = "Generating...",
+  icon = "auto_fix_high",
 }: AnalysisInfoProps) => {
   return (
     <div className="mt-auto pt-8 md:pt-10 max-w-4xl mx-auto w-full">
@@ -27,9 +33,9 @@ const AnalysisInfo = ({
           "
         >
           <span className="material-symbols-outlined text-xl md:text-2xl">
-            auto_fix_high
+            {icon}
           </span>
-          {isPending ? "Generating..." : "Generate"}
+          {isPending ? pendingLabel : label}
         </button>
       </div>
     </div>

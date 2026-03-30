@@ -41,3 +41,21 @@ export interface GetProjectTracksResponseDto {
 export interface GetProjectDownloadResponseDto {
   downloadLink: string;
 }
+
+export interface RegenerateProjectMappingDto {
+  trackIndex: number;
+  targetInstrumentId: number;
+}
+
+/** POST /api/projects/{projectId}/regenerate body */
+export interface RegenerateProjectRequestDto {
+  versionName: string;
+  mappings: RegenerateProjectMappingDto[];
+}
+
+/** POST /api/projects/{projectId}/regenerate — `BaseResponseDto.result` */
+export interface RegenerateProjectResponseDto {
+  projectId: number;
+  versionId: number;
+  status: string;
+}

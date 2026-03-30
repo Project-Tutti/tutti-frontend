@@ -12,6 +12,8 @@ export const PROJECT_API_ENDPOINTS = {
   detail: (projectId: number | string) => `/projects/${projectId}`,
   /** 재생성을 위해 해당 악보(프로젝트)의 MIDI 트랙 정보 조회 (생성된 악기는 제외) */
   tracks: (projectId: number | string) => `/projects/${projectId}/tracks`,
+  /** 기존 프로젝트로 새 버전 편곡 생성 */
+  regenerate: (projectId: number | string) => `/projects/${projectId}/regenerate`,
   /** 편곡 결과 다운로드 URL 발급 — JSON `result.downloadLink` */
   download: (
     projectId: number | string,

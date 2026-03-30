@@ -8,6 +8,8 @@ import Header from "@/components/common/Header";
 import Footer from "@/components/common/Footer";
 import { Spinner } from "@/components/common/Spinner";
 import { useProjectScoreQuery } from "@api/project/hooks/queries/useProjectScoreQuery";
+import { useProjectTracksQuery } from "@api/project/hooks/queries/useProjectTracksQuery";
+import { useMidiStore } from "@features/midi-create/stores/midi-store";
 
 /** TODO: `/player`만 열었을 때 기본 pid/vid 제거 — 개발용 */
 const DEV_PLAYER_PROJECT_ID = 14;
@@ -39,6 +41,12 @@ function PlayerPageContent() {
   const versionId = useDevDefault ? DEV_PLAYER_VERSION_ID : parsedVersionId;
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const { setTracks, setUploadedFile } = useMidiStore();
+
+  const tracksQuery = useProjectTracksQuery(
+    Number.isFinite(projectId) ? projectId : null,
+    false,
+  );
 
   const mainRef = useRef<HTMLElement>(null);
 
@@ -70,6 +78,37 @@ function PlayerPageContent() {
     router.push(`/player/download?${qs.toString()}`);
   };
 
+  const handleRegenerate = async () => {
+    if (!fetchScoreFromApi || !Number.isFinite(projectId) || !Number.isFinite(versionId)) return;
+    try {
+      const res = await tracksQuery.refetch();
+      const tracks = res.data?.result?.tracks ?? [];
+      if (!tracks.length) {
+        throw new Error("트랙 정보를 불러오지 못했습니다.");
+      }
+
+      setUploadedFile(null);
+      setTracks(
+        tracks.map((t) => ({
+          id: `track-${t.trackIndex}`,
+          name: `Track ${t.trackIndex + 1}`,
+          icon: "music_note",
+          instrumentType: "MIDI",
+          sourceInstrumentId: t.sourceInstrumentId,
+          channel: t.trackIndex,
+          tags: ["original"],
+        })),
+      );
+
+      router.push(
+        `/before-create?mode=regenerate&projectId=${encodeURIComponent(String(projectId))}`,
+      );
+    } catch (e) {
+      console.error(e);
+      alert(e instanceof Error ? e.message : "재생성 준비에 실패했습니다.");
+    }
+  };
+
   const showInvalidParams = !fetchScoreFromApi;
   const showScoreLoading = fetchScoreFromApi && isScorePending;
   const showScoreError =
@@ -90,17 +129,31 @@ function PlayerPageContent() {
           subtitle={effectiveSubtitle}
           rightContent={
             fetchScoreFromApi ? (
-              <button
-                type="button"
-                onClick={() => openDownloadModal()}
-                disabled={isScorePending}
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold bg-[#1e293b] text-gray-200 hover:bg-[#334155] border border-[#334155] disabled:opacity-50 disabled:pointer-events-none transition-colors"
-              >
-                <span className="material-symbols-outlined text-lg" aria-hidden>
-                  download
-                </span>
-                다운로드
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => void handleRegenerate()}
+                  disabled={isScorePending || tracksQuery.isFetching}
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold bg-[#0f1218] text-gray-200 hover:bg-white/6 border border-[#1e293b] disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                >
+                  <span className="material-symbols-outlined text-lg" aria-hidden>
+                    {tracksQuery.isFetching ? "progress_activity" : "autorenew"}
+                  </span>
+                  {tracksQuery.isFetching ? "불러오는 중…" : "재생성"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => openDownloadModal()}
+                  disabled={isScorePending}
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold bg-[#1e293b] text-gray-200 hover:bg-[#334155] border border-[#334155] disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                >
+                  <span className="material-symbols-outlined text-lg" aria-hidden>
+                    download
+                  </span>
+                  다운로드
+                </button>
+              </div>
             ) : undefined
           }
         />
