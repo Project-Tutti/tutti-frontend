@@ -1,149 +1,163 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import MusicPlayer from "@/components/music/MusicPlayer";
 import Sidebar from "@/components/common/Sidebar";
 import Header from "@/components/common/Header";
 import Footer from "@/components/common/Footer";
+import { Spinner } from "@/components/common/Spinner";
+import { useProjectScoreQuery } from "@api/project/hooks/queries/useProjectScoreQuery";
 
-export default function PlayerPage() {
-  const [xmlData, setXmlData] = useState<string | ArrayBuffer | File | undefined>(undefined);
-  const [fileName, setFileName] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(false);
+/** TODO: `/player`만 열었을 때 기본 pid/vid 제거 — 개발용 */
+const DEV_PLAYER_PROJECT_ID = 14;
+const DEV_PLAYER_VERSION_ID = 14;
+
+function PlayerPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const rawProjectId = searchParams.get("projectId");
+  const rawVersionId = searchParams.get("versionId");
+
+  /** 쿼리가 없으면 임시로 14/14 악보 조회. 둘 중 하나만 있으면 API 호출 안 함. */
+  const useDevDefault = rawProjectId == null && rawVersionId == null;
+
+  const parsedProjectId =
+    rawProjectId == null ? NaN : Number(rawProjectId);
+  const parsedVersionId =
+    rawVersionId == null ? NaN : Number(rawVersionId);
+
+  const hasBothQueryParams =
+    rawProjectId != null && rawVersionId != null;
+  const hasValidBothQueryNumbers =
+    Number.isFinite(parsedProjectId) && Number.isFinite(parsedVersionId);
+
+  const fetchScoreFromApi =
+    useDevDefault || (hasBothQueryParams && hasValidBothQueryNumbers);
+
+  const projectId = useDevDefault ? DEV_PLAYER_PROJECT_ID : parsedProjectId;
+  const versionId = useDevDefault ? DEV_PLAYER_VERSION_ID : parsedVersionId;
+
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  
+
   const mainRef = useRef<HTMLElement>(null);
+
+  const {
+    data: scoreXml,
+    isPending: isScorePending,
+    isError: isScoreError,
+    error: scoreError,
+    refetch: refetchScore,
+  } = useProjectScoreQuery(projectId, versionId, fetchScoreFromApi);
+
+  const effectiveSubtitle = fetchScoreFromApi
+    ? `프로젝트 ${projectId} · 버전 ${versionId}`
+    : "프로젝트를 불러올 수 없습니다";
 
   // 새로운 악보 로드 시 스크롤 최상단으로 이동
   useEffect(() => {
-    if (xmlData && mainRef.current) {
-      mainRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    if (scoreXml && mainRef.current) {
+      mainRef.current.scrollTo({ top: 0, behavior: "smooth" });
     }
-  }, [xmlData]);
+  }, [scoreXml]);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.name.match(/\.(xml|musicxml|mxl)$/i)) {
-      alert("Please upload a valid MusicXML file (.xml, .musicxml, .mxl)");
-      return;
-    }
-
-    setIsLoading(true);
-    setFileName(file.name);
-
-    try {
-      setXmlData(file);
-    } finally {
-      setIsLoading(false);
-    }
+  const openDownloadModal = () => {
+    if (!fetchScoreFromApi || !Number.isFinite(projectId) || !Number.isFinite(versionId)) return;
+    const qs = new URLSearchParams({
+      projectId: String(projectId),
+      versionId: String(versionId),
+    });
+    router.push(`/player/download?${qs.toString()}`);
   };
 
-  const handleReset = () => {
-    setXmlData(undefined);
-    setFileName("");
-  };
-
-  const handleLoadSample = async (filename: string) => {
-    setIsLoading(true);
-    setFileName(filename);
-
-    try {
-      const response = await fetch(`/music/${filename}`);
-      if (!response.ok) throw new Error("Failed to fetch file");
-      const blob = await response.blob();
-      const file = new File([blob], filename, {
-        type: filename.endsWith(".xml") ? "application/xml" : "application/vnd.recordare.musicxml",
-      });
-      setXmlData(file);
-    } catch (e) {
-      console.error(e);
-      alert("Failed to load sample file");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const showInvalidParams = !fetchScoreFromApi;
+  const showScoreLoading = fetchScoreFromApi && isScorePending;
+  const showScoreError =
+    fetchScoreFromApi && isScoreError && !isScorePending;
 
   return (
-    // ✅ 화면 전체를 고정 높이로 잡고, 스크롤은 main에서만 나게(= sticky 안정화)
     <div className="h-screen flex flex-row overflow-hidden">
       <Sidebar
         isCollapsed={isSidebarCollapsed}
         onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
 
-      {/* ✅ flex 자식 스크롤을 위해 min-h-0 필수 */}
       <div className="grow flex flex-col min-h-0">
         <Header
           onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           isSidebarCollapsed={isSidebarCollapsed}
           title="Music Player"
-          subtitle={fileName || "Upload a MusicXML file"}
+          subtitle={effectiveSubtitle}
+          rightContent={
+            fetchScoreFromApi ? (
+              <button
+                type="button"
+                onClick={() => openDownloadModal()}
+                disabled={isScorePending}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold bg-[#1e293b] text-gray-200 hover:bg-[#334155] border border-[#334155] disabled:opacity-50 disabled:pointer-events-none transition-colors"
+              >
+                <span className="material-symbols-outlined text-lg" aria-hidden>
+                  download
+                </span>
+                다운로드
+              </button>
+            ) : undefined
+          }
         />
 
-        {/* ✅ main이 실제 스크롤 컨테이너가 되도록 min-h-0 + overflow-y-auto */}
-        <main ref={mainRef} className="grow min-h-0 flex flex-col bg-[#05070a] pt-0 px-4 pb-4 md:px-8 md:pb-8 overflow-y-auto">
+        <main
+          ref={mainRef}
+          className="grow min-h-0 flex flex-col bg-[#05070a] pt-0 px-4 pb-4 md:px-8 md:pb-8 overflow-y-auto"
+        >
           <div className="max-w-7xl mx-auto space-y-6 w-full">
-            {!xmlData && (
-              <div className="max-w-2xl mx-auto">
-                <label
-                  htmlFor="file-upload"
-                  className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-[#1e293b] rounded-xl cursor-pointer bg-[#0f1218] hover:bg-[#0f1218]/60 transition-all group"
-                >
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <span className="material-symbols-outlined text-6xl text-gray-500 group-hover:text-[#3b82f6] transition-colors mb-4">
-                      {isLoading ? "progress_activity" : "upload_file"}
-                    </span>
-                    <p className="mb-2 text-lg font-semibold text-gray-300">
-                      {isLoading ? "Loading..." : "Click to upload or drag and drop"}
-                    </p>
-                    <p className="text-sm text-gray-500">MusicXML (.xml, .musicxml, .mxl)</p>
-                  </div>
-                  <input
-                    id="file-upload"
-                    type="file"
-                    className="hidden"
-                    accept=".xml,.musicxml,.mxl"
-                    onChange={handleFileUpload}
-                    disabled={isLoading}
-                  />
-                </label>
-
-                <div className="mt-6 p-4 bg-[#0f1218] border border-[#1e293b] rounded-xl">
-                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3">
-                    Or Try Sample Files
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => handleLoadSample("test-simple.xml")}
-                      disabled={isLoading}
-                      className="px-4 py-2 bg-[#3b82f6] hover:bg-blue-600 text-white text-xs font-semibold rounded-lg transition-all disabled:opacity-50"
-                    >
-                      Simple Test (XML)
-                    </button>
-                    <button
-                      onClick={() => handleLoadSample("test.mxl")}
-                      disabled={isLoading}
-                      className="px-4 py-2 bg-[#334155] hover:bg-[#475569] text-white text-xs font-semibold rounded-lg transition-all disabled:opacity-50"
-                    >
-                      Test 1 (MXL)
-                    </button>
-                    <button
-                      onClick={() => handleLoadSample("test2.mxl")}
-                      disabled={isLoading}
-                      className="px-4 py-2 bg-[#334155] hover:bg-[#475569] text-white text-xs font-semibold rounded-lg transition-all disabled:opacity-50"
-                    >
-                      Test 2 (MXL)
-                    </button>
-                  </div>
-                </div>
+            {showInvalidParams && (
+              <div className="max-w-xl mx-auto mt-16 p-8 rounded-xl border border-[#1e293b] bg-[#0f1218] text-center">
+                <p className="text-gray-300 text-sm">
+                  악보를 보려면{" "}
+                  <span className="text-[#93c5fd]">projectId</span>와{" "}
+                  <span className="text-[#93c5fd]">versionId</span> 쿼리가
+                  모두 필요합니다.
+                </p>
+                <p className="mt-3 text-xs text-gray-500">
+                  예:{" "}
+                  <code className="text-gray-400">
+                    /player?projectId=1&versionId=1
+                  </code>
+                </p>
               </div>
             )}
 
-            {xmlData && (
+            {showScoreLoading && (
+              <div className="flex flex-col items-center justify-center gap-3 py-24">
+                <Spinner size="md" />
+                <p className="text-gray-400 text-sm">악보를 불러오는 중…</p>
+              </div>
+            )}
+
+            {showScoreError && (
+              <div className="max-w-2xl mx-auto p-6 rounded-xl bg-[#0f1218] border border-red-900/50 text-center space-y-4">
+                <p className="text-red-400 text-sm">
+                  {scoreError instanceof Error
+                    ? scoreError.message
+                    : "악보를 불러오지 못했습니다."}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => void refetchScore()}
+                  className="px-4 py-2 bg-[#3b82f6] hover:bg-blue-600 text-white text-sm font-semibold rounded-lg"
+                >
+                  다시 시도
+                </button>
+              </div>
+            )}
+
+            {scoreXml && !showScoreLoading && fetchScoreFromApi && (
               <div>
-                <MusicPlayer xmlData={xmlData} autoPlay={false} onRequestChangeFile={handleReset} />
+                <MusicPlayer
+                  xmlData={scoreXml}
+                  autoPlay={false}
+                  onRequestChangeFile={undefined}
+                />
               </div>
             )}
           </div>
@@ -152,5 +166,20 @@ export default function PlayerPage() {
         <Footer />
       </div>
     </div>
+  );
+}
+
+export default function PlayerPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="h-screen flex flex-col items-center justify-center gap-3 bg-[#05070a]">
+          <Spinner size="md" />
+          <p className="text-gray-400 text-sm">불러오는 중…</p>
+        </div>
+      }
+    >
+      <PlayerPageContent />
+    </Suspense>
   );
 }
