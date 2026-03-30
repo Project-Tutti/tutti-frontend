@@ -10,8 +10,8 @@ import { Spinner } from "@/components/common/Spinner";
 import { useProjectScoreQuery } from "@api/project/hooks/queries/useProjectScoreQuery";
 
 /** TODO: `/player`만 열었을 때 기본 pid/vid 제거 — 개발용 */
-const DEV_PLAYER_PROJECT_ID = "14";
-const DEV_PLAYER_VERSION_ID = "14";
+const DEV_PLAYER_PROJECT_ID = 14;
+const DEV_PLAYER_VERSION_ID = 14;
 
 function PlayerPageContent() {
   const router = useRouter();
@@ -20,17 +20,23 @@ function PlayerPageContent() {
   const rawVersionId = searchParams.get("versionId");
 
   /** 쿼리가 없으면 임시로 14/14 악보 조회. 둘 중 하나만 있으면 API 호출 안 함. */
-  const useDevDefault =
-    rawProjectId == null && rawVersionId == null;
+  const useDevDefault = rawProjectId == null && rawVersionId == null;
+
+  const parsedProjectId =
+    rawProjectId == null ? NaN : Number(rawProjectId);
+  const parsedVersionId =
+    rawVersionId == null ? NaN : Number(rawVersionId);
+
+  const hasBothQueryParams =
+    rawProjectId != null && rawVersionId != null;
+  const hasValidBothQueryNumbers =
+    Number.isFinite(parsedProjectId) && Number.isFinite(parsedVersionId);
+
   const fetchScoreFromApi =
-    useDevDefault ||
-    (rawProjectId != null && rawVersionId != null);
-  const projectId = useDevDefault
-    ? DEV_PLAYER_PROJECT_ID
-    : (rawProjectId ?? "");
-  const versionId = useDevDefault
-    ? DEV_PLAYER_VERSION_ID
-    : (rawVersionId ?? "");
+    useDevDefault || (hasBothQueryParams && hasValidBothQueryNumbers);
+
+  const projectId = useDevDefault ? DEV_PLAYER_PROJECT_ID : parsedProjectId;
+  const versionId = useDevDefault ? DEV_PLAYER_VERSION_ID : parsedVersionId;
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
@@ -56,7 +62,7 @@ function PlayerPageContent() {
   }, [scoreXml]);
 
   const openDownloadModal = () => {
-    if (!fetchScoreFromApi || !projectId || !versionId) return;
+    if (!fetchScoreFromApi || !Number.isFinite(projectId) || !Number.isFinite(versionId)) return;
     const qs = new URLSearchParams({
       projectId: String(projectId),
       versionId: String(versionId),
