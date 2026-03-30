@@ -1,4 +1,4 @@
-/** GET …/download?type= 의 값 (midi / xml / pdf) */
+/** GET …/download?type= — midi | xml | pdf (200 시 바이너리) */
 export const PROJECT_DOWNLOAD_TYPE = {
   MIDI: "midi",
   XML: "xml",
@@ -12,7 +12,7 @@ export const PROJECT_API_ENDPOINTS = {
   detail: (projectId: number | string) => `/projects/${projectId}`,
   /** 재생성을 위해 해당 악보(프로젝트)의 MIDI 트랙 정보 조회 (생성된 악기는 제외) */
   tracks: (projectId: number | string) => `/projects/${projectId}/tracks`,
-  /** 다운로드 링크 발급 — 응답 JSON `result.downloadLink` */
+  /** 편곡 결과 다운로드 URL 발급 — JSON `result.downloadLink` */
   download: (
     projectId: number | string,
     versionId: number | string,

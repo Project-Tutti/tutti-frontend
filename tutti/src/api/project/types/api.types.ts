@@ -36,7 +36,7 @@ export interface GetProjectTracksResponseDto {
 
 /**
  * GET /api/projects/{projectId}/{versionId}/download?type= — `BaseResponseDto.result`
- * 편곡 결과 다운로드용 링크 발급 (실제 파일은 `downloadLink`로 접근)
+ * 편곡 결과 다운로드용 링크 발급
  */
 export interface GetProjectDownloadResponseDto {
   downloadLink: string;

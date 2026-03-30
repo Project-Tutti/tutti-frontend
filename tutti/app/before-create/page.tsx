@@ -17,6 +17,10 @@ import { ApiError } from "@/common/errors/ApiError";
 
 const TRACKS_PER_PAGE = 8;
 
+/** TODO: 생성 API가 projectId / versionId 를 주면 mutate 응답으로 교체 */
+const DEV_PLAYER_PROJECT_ID = 14;
+const DEV_PLAYER_VERSION_ID = 14;
+
 const BeforeCreatePage = () => {
   const router = useRouter();
   const { tracks, uploadedFile } = useMidiStore();
@@ -73,6 +77,9 @@ const BeforeCreatePage = () => {
 
     try {
       await createProjectMutation.mutateAsync();
+      router.push(
+        `/player?projectId=${encodeURIComponent(String(DEV_PLAYER_PROJECT_ID))}&versionId=${encodeURIComponent(String(DEV_PLAYER_VERSION_ID))}`,
+      );
     } catch (err) {
       if (err instanceof ApiError) {
         setCreateError(err.message);

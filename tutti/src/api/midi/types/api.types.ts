@@ -21,4 +21,9 @@ export interface CreateProjectRequestDto {
   request: CreateProjectRequestPayloadDto;
 }
 
-export type CreateProjectResponseDto = Record<string, unknown>;
+/** POST 프로젝트 생성 성공 시 `BaseResponseDto.result` */
+export interface CreateProjectResponseDto {
+  projectId: number;
+  versionId: number;
+  status: string;
+}
