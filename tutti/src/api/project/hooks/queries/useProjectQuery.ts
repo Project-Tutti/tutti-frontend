@@ -8,7 +8,10 @@ export const useProjectQuery = (
   projectId: number | string | null | undefined,
   enabled = true,
 ) => {
-  const id = projectId ?? "";
+  const id =
+    projectId === null || projectId === undefined || projectId === ""
+      ? ""
+      : String(projectId);
   const canFetch = enabled && id !== "";
 
   return useQuery({

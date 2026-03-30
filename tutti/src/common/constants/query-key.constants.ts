@@ -24,7 +24,8 @@ const queryKeys = createQueryKeyStore({
   },
   project: {
     all: null,
-    detail: (projectId: number | string) => ['project', 'detail', projectId],
+    /** 캐시 키 충돌 방지: 항상 string으로 통일 */
+    detail: (projectId: string) => ['project', 'detail', projectId],
   },
 });
 

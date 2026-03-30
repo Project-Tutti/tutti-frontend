@@ -1,5 +1,3 @@
-"use client";
-
 type SpinnerSize = "xs" | "sm" | "md";
 
 const sizeClass: Record<SpinnerSize, string> = {

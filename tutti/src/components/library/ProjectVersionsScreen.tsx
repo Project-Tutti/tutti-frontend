@@ -123,7 +123,7 @@ const ProjectVersionsScreen = () => {
                 <Spinner size="md" label="불러오는 중…" />
               </div>
             )}
-            {isError && !isPending && (
+            {isError && (
               <p className="text-xs text-red-400/90 py-8">
                 프로젝트를 불러오지 못했습니다.
               </p>
