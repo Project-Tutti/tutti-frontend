@@ -15,7 +15,7 @@ export interface FetcherConfig {
 /** fetcher 내부에서 plain object는 JSON.stringify 처리 */
 export interface RequestOptions extends Omit<RequestInit, "body"> {
   auth?: boolean;
-  body?: RequestInit["body"] | Record<string, unknown> | null;
+  body?: RequestInit["body"] | object | null;
 }
 
 function joinURL(base: string, path: string): string {

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Sidebar from "@/components/common/Sidebar";
 import { Spinner } from "@/components/common/Spinner";
 import Header from "@/components/common/Header";
@@ -14,6 +14,8 @@ import { useMidiStore } from "@features/midi-create/stores/midi-store";
 import { Track } from "@/types/track";
 import { useCreateProjectMutation } from "@api/midi/hooks/mutations/useCreateProjectMutation";
 import { ApiError } from "@/common/errors/ApiError";
+import { useRegenerateProjectMutation } from "@api/project/hooks/mutations/useRegenerateProjectMutation";
+import { useProjectQuery } from "@api/project/hooks/queries/useProjectQuery";
 
 const TRACKS_PER_PAGE = 8;
 
@@ -23,7 +25,17 @@ const DEV_PLAYER_VERSION_ID = 14;
 
 const BeforeCreatePage = () => {
   const router = useRouter();
-  const { tracks, uploadedFile } = useMidiStore();
+  const searchParams = useSearchParams();
+  const { tracks, uploadedFile, trackMappings } = useMidiStore();
+
+  const mode = searchParams.get("mode");
+  const isRegenerateMode = mode === "regenerate";
+  const regenerateProjectId = searchParams.get("projectId");
+  const parsedRegenerateProjectId = useMemo(() => {
+    if (!isRegenerateMode) return null;
+    const n = regenerateProjectId == null ? NaN : Number(regenerateProjectId);
+    return Number.isFinite(n) ? n : null;
+  }, [isRegenerateMode, regenerateProjectId]);
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
@@ -33,6 +45,30 @@ const BeforeCreatePage = () => {
   const [createError, setCreateError] = useState<string | null>(null);
 
   const createProjectMutation = useCreateProjectMutation();
+  const regenerateMutation = useRegenerateProjectMutation();
+  const projectQuery = useProjectQuery(parsedRegenerateProjectId, isRegenerateMode);
+
+  const nextVersionName = useMemo(() => {
+    if (!isRegenerateMode) return "v1";
+    const versions = projectQuery.data?.result?.versions ?? [];
+    let maxN = 0;
+    for (const v of versions) {
+      const m = /^v(\d+)$/i.exec(String(v.name ?? "").trim());
+      if (m) {
+        const n = Number(m[1]);
+        if (Number.isFinite(n)) maxN = Math.max(maxN, n);
+      }
+    }
+    const fallback = versions.length;
+    const next = Math.max(maxN, fallback) + 1;
+    return `v${next}`;
+  }, [isRegenerateMode, projectQuery.data?.result?.versions]);
+
+  useEffect(() => {
+    if (!isRegenerateMode) return;
+    if (!projectQuery.isError) return;
+    setCreateError("버전 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
+  }, [isRegenerateMode, projectQuery.isError]);
 
   // persist 재수화 전에는 tracks가 비어 있어 오인하지 않도록 대기
   useEffect(() => {
@@ -76,6 +112,45 @@ const BeforeCreatePage = () => {
     setCreateError(null);
 
     try {
+      if (isRegenerateMode) {
+        if (parsedRegenerateProjectId == null) {
+          throw new Error("projectId가 올바르지 않습니다.");
+        }
+        if (projectQuery.isPending) {
+          throw new Error("버전 정보를 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
+        }
+        if (projectQuery.isError) {
+          throw new Error("버전 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
+        }
+
+        const mappings = tracks.map((track, index) => {
+          const fromId = /^track-(\d+)$/.exec(track.id);
+          const trackIndex = fromId ? Number(fromId[1]) : index;
+          return {
+            trackIndex,
+            targetInstrumentId:
+              trackMappings[track.id] ?? track.sourceInstrumentId,
+          };
+        });
+
+        const res = await regenerateMutation.mutateAsync({
+          projectId: parsedRegenerateProjectId,
+          body: {
+            versionName: nextVersionName,
+            mappings,
+          },
+        });
+
+        if (!res.isSuccess) {
+          throw new Error(res.message ?? "재생성 실패");
+        }
+
+        router.push(
+          `/player?projectId=${encodeURIComponent(String(res.result.projectId))}&versionId=${encodeURIComponent(String(res.result.versionId))}`,
+        );
+        return;
+      }
+
       await createProjectMutation.mutateAsync();
       router.push(
         `/player?projectId=${encodeURIComponent(String(DEV_PLAYER_PROJECT_ID))}&versionId=${encodeURIComponent(String(DEV_PLAYER_VERSION_ID))}`,
@@ -143,7 +218,16 @@ const BeforeCreatePage = () => {
             onGenerate={() => {
               void handleGenerate();
             }}
-            isPending={createProjectMutation.isPending}
+            isPending={
+              isRegenerateMode
+                ? regenerateMutation.isPending ||
+                  projectQuery.isPending ||
+                  projectQuery.isError
+                : createProjectMutation.isPending
+            }
+            label={isRegenerateMode ? "Regenerate" : "Generate"}
+            pendingLabel={isRegenerateMode ? "Regenerating..." : "Generating..."}
+            icon={isRegenerateMode ? "autorenew" : "auto_fix_high"}
           />
 
           {createError && (

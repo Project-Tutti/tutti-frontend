@@ -41,3 +41,19 @@ export interface GetProjectTracksResponseDto {
 export interface GetProjectDownloadResponseDto {
   downloadLink: string;
 }
+
+/** 요청/응답에서 공통으로 쓰이는 매핑 형태 */
+export type RegenerateProjectMappingDto = ProjectVersionMappingResponseDto;
+
+/** POST /api/projects/{projectId}/regenerate body */
+export interface RegenerateProjectRequestDto {
+  versionName: string;
+  mappings: RegenerateProjectMappingDto[];
+}
+
+/** POST /api/projects/{projectId}/regenerate — `BaseResponseDto.result` */
+export interface RegenerateProjectResponseDto {
+  projectId: number;
+  versionId: number;
+  status: string;
+}
