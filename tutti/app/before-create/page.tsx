@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/common/Sidebar";
+import { Spinner } from "@/components/common/Spinner";
 import Header from "@/components/common/Header";
 import Footer from "@/components/common/Footer";
 import TrackGrid from "@/components/before-create/TrackGrid";
@@ -26,7 +27,6 @@ const BeforeCreatePage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [hasHydrated, setHasHydrated] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
-  const [createResult, setCreateResult] = useState<Record<string, unknown> | null>(null);
 
   const createProjectMutation = useCreateProjectMutation();
 
@@ -70,11 +70,9 @@ const BeforeCreatePage = () => {
 
   const handleGenerate = async () => {
     setCreateError(null);
-    setCreateResult(null);
 
     try {
-      const res = await createProjectMutation.mutateAsync();
-      setCreateResult(res);
+      await createProjectMutation.mutateAsync();
     } catch (err) {
       if (err instanceof ApiError) {
         setCreateError(err.message);
@@ -88,8 +86,9 @@ const BeforeCreatePage = () => {
 
   if (!hasHydrated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#05070a] text-gray-400 text-sm">
-        불러오는 중…
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#05070a]">
+        <Spinner size="md" />
+        <p className="text-gray-400 text-sm">불러오는 중…</p>
       </div>
     );
   }
@@ -148,12 +147,6 @@ const BeforeCreatePage = () => {
             <p className="mt-4 text-sm text-red-400 text-center">
               {createError}
             </p>
-          )}
-
-          {createResult && (
-            <pre className="mt-4 p-4 text-xs text-gray-300 bg-[#0f1218] border border-[#1e293b] rounded-md overflow-x-auto">
-              {JSON.stringify(createResult, null, 2)}
-            </pre>
           )}
         </main>
 
