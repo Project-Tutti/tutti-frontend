@@ -22,6 +22,10 @@ const queryKeys = createQueryKeyStore({
       params,
     ],
   },
+  project: {
+    all: null,
+    detail: (projectId: number | string) => ['project', 'detail', projectId],
+  },
 });
 
 export default queryKeys;
