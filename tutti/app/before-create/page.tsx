@@ -81,13 +81,9 @@ const BeforeCreatePage = () => {
         `/player?projectId=${encodeURIComponent(String(DEV_PLAYER_PROJECT_ID))}&versionId=${encodeURIComponent(String(DEV_PLAYER_VERSION_ID))}`,
       );
     } catch (err) {
-      if (err instanceof ApiError) {
-        setCreateError(err.message);
-      } else if (err instanceof Error) {
-        setCreateError(err.message);
-      } else {
-        setCreateError("프로젝트 생성 실패");
-      }
+      setCreateError(
+        err instanceof Error ? err.message : "프로젝트 생성 실패",
+      );
     }
   };
 

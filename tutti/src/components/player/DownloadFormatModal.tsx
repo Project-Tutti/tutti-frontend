@@ -23,19 +23,19 @@ const OPTIONS: {
   {
     type: PROJECT_DOWNLOAD_TYPE.MIDI,
     label: "MIDI 다운로드",
-    sub: "type=midi",
+    sub: "원본 MIDI 파일 (.mid)",
     icon: "piano",
   },
   {
     type: PROJECT_DOWNLOAD_TYPE.XML,
     label: "MusicXML 다운로드",
-    sub: "type=xml",
+    sub: "악보 데이터 (MusicXML .xml)",
     icon: "code",
   },
   {
     type: PROJECT_DOWNLOAD_TYPE.PDF,
     label: "PDF 다운로드",
-    sub: "type=pdf",
+    sub: "악보 PDF 파일 (.pdf)",
     icon: "picture_as_pdf",
   },
 ];
@@ -71,14 +71,14 @@ export default function DownloadFormatModal({
 
   return (
     <div
-      className="fixed inset-0 z-200 flex items-center justify-center p-4 bg-[#05070a]/80 backdrop-blur-sm"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-[#05070a]/80 backdrop-blur-sm"
       role="presentation"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
-        className="relative w-full max-w-md rounded-2xl border border-[#1e293b] bg-[#0f1218] text-gray-100 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.55),0_0_48px_-14px_rgba(59,130,246,0.16)]"
+        className="relative z-[10000] w-full max-w-md rounded-2xl border border-[#1e293b] bg-[#0f1218] text-gray-100 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.55),0_0_48px_-14px_rgba(59,130,246,0.16)]"
         role="dialog"
         aria-modal="true"
         aria-labelledby="download-format-title"
