@@ -9,7 +9,7 @@ export interface CreateProjectMappingDto {
 }
 
 export interface CreateProjectRequestPayloadDto {
-  name: string;
+  name: string; // 프로젝트 이름
   versionName: string;
   instrumentId: number; // 내가 생성하고자 하는 악기 ID
   tracks: CreateProjectTrackDto[]; // 원래 midi 에 존재하던 트랙 ID
