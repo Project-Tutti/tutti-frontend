@@ -6,6 +6,8 @@ import { useEffect, useMemo, useRef } from "react";
 import { useLibraryListInfiniteQuery } from "@api/library/hooks/queries/useLibraryListInfiniteQuery";
 import { useUser } from "@features/auth/hooks/useAuthStore";
 
+import { Spinner } from "@/components/common/Spinner";
+
 interface SidebarProps {
   isCollapsed: boolean;
   onToggle: () => void;
@@ -122,7 +124,9 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
           </div>
 
           {isPending && (
-            <p className="text-[11px] text-gray-500 px-2 py-2">불러오는 중…</p>
+            <div className="px-2 py-2">
+              <Spinner size="sm" label="불러오는 중…" />
+            </div>
           )}
           {isError && (
             <p className="text-[11px] text-red-400/90 px-2 py-2">
@@ -139,16 +143,16 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
             {projects.map((item) => (
               <Link
                 key={item.projectId}
-                href={`/home?projectId=${item.projectId}`}
+                href={`/library/${item.projectId}?name=${encodeURIComponent(item.name)}`}
                 className="sidebar-item block w-full text-left px-2 py-2 rounded-lg text-[13px] leading-snug text-gray-300 hover:text-white hover:bg-white/5 transition-colors truncate"
               >
                 {item.name}
               </Link>
             ))}
             {isFetchingNextPage && (
-              <p className="text-[10px] text-gray-500 px-2 py-1.5">
-                더 불러오는 중…
-              </p>
+              <div className="px-2 py-1.5">
+                <Spinner size="xs" label="더 불러오는 중…" />
+              </div>
             )}
             <div
               ref={sentinelRef}

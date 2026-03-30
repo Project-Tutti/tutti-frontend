@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/common/Sidebar";
+import { Spinner } from "@/components/common/Spinner";
 import Header from "@/components/common/Header";
 import Footer from "@/components/common/Footer";
 import TrackGrid from "@/components/before-create/TrackGrid";
@@ -88,8 +89,9 @@ const BeforeCreatePage = () => {
 
   if (!hasHydrated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#05070a] text-gray-400 text-sm">
-        불러오는 중…
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#05070a]">
+        <Spinner size="md" />
+        <p className="text-gray-400 text-sm">불러오는 중…</p>
       </div>
     );
   }
