@@ -1,6 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { getProjectDownload } from "@api/project/apis/get/get-project-download";
+import { GetProjectDownloadResponseDto } from "@api/project/types/api.types";
+
+import { BaseResponseDto } from "@common/types/api.common.types";
 import {
   PROJECT_DOWNLOAD_TYPE,
   type ProjectDownloadType,
@@ -9,8 +12,7 @@ import {
 import queryKeys from "@common/constants/query-key.constants";
 
 /**
- * 다운로드 링크 발급 (`getProjectDownload`).
- * 링크가 짧게 만료될 수 있어 캐시는 기본값보다 짧게 둔다.
+ * 다운로드 URL 발급 (`getProjectDownload` → `result.downloadLink`).
  * `type`이 없을 때는 요청하지 않으며, 쿼리 키용으로만 `midi` 플레이스홀더를 쓴다.
  */
 export const useProjectDownloadQuery = (
@@ -29,7 +31,7 @@ export const useProjectDownloadQuery = (
       : String(versionId);
   const canFetch = enabled && pid !== "" && vid !== "" && type != null;
 
-  return useQuery({
+  return useQuery<BaseResponseDto<GetProjectDownloadResponseDto>, Error>({
     ...queryKeys.project.download(
       pid,
       vid,
