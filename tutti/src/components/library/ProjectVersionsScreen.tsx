@@ -5,6 +5,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { useProjectQuery } from "@api/project/hooks/queries/useProjectQuery";
+import type { ProjectVersionResponseDto } from "@api/project/types/api.types";
 
 import Header from "@/components/common/Header";
 import Sidebar from "@/components/common/Sidebar";
@@ -33,7 +34,7 @@ function formatVersionTime(iso: string): string {
 
 function mapVersionsToRows(
   projectName: string,
-  versions: { versionId: number; name: string; createdAt: string }[],
+  versions: ProjectVersionResponseDto[],
 ): VersionRow[] {
   if (!versions.length) return [];
   const sorted = [...versions].sort(
@@ -136,21 +137,16 @@ const ProjectVersionsScreen = () => {
                 {rows.map((v) => {
                   const href = `/player?projectId=${encodeURIComponent(projectIdParam)}&versionId=${encodeURIComponent(v.id)}`;
                   return (
-                    <li
-                      key={v.id}
-                      className={[
-                        "flex items-stretch rounded-lg border transition-colors",
-                        v.isMaster
-                          ? "bg-[#0f1218] border-[#1e293b]"
-                          : "border-transparent",
-                      ].join(" ")}
-                    >
+                    <li key={v.id}>
                       <Link
                         href={href}
                         className={[
-                          "group flex flex-1 min-w-0 items-start gap-3 px-3 py-2.5 rounded-l-lg text-left",
-                          "outline-none transition-colors",
+                          "group flex w-full min-w-0 items-start gap-3 px-3 py-2.5 rounded-lg text-left border transition-colors",
+                          "outline-none",
                           "hover:bg-white/[0.06] focus-visible:ring-1 focus-visible:ring-[#3b82f6]/50 focus-visible:ring-inset",
+                          v.isMaster
+                            ? "bg-[#0f1218] border-[#1e293b]"
+                            : "border-transparent",
                         ].join(" ")}
                       >
                         <span
@@ -168,7 +164,7 @@ const ProjectVersionsScreen = () => {
                           </div>
                           {v.isMaster && (
                             <span className="inline-block mt-1 text-[9px] font-bold uppercase tracking-wider text-[#3b82f6]">
-                              현재 버전
+                              최신 버전
                             </span>
                           )}
                         </div>
@@ -177,18 +173,6 @@ const ProjectVersionsScreen = () => {
                           {v.savedAt}
                         </span>
                       </Link>
-
-                      <div className="flex items-center shrink-0 pr-1.5 border-l border-[#1e293b]/60">
-                        <button
-                          type="button"
-                          className="text-gray-500 hover:text-gray-300 hover:bg-white/[0.06] p-1.5 rounded-md transition-colors"
-                          aria-label="버전 메뉴"
-                        >
-                          <span className="material-symbols-outlined text-lg leading-none block">
-                            more_vert
-                          </span>
-                        </button>
-                      </div>
                     </li>
                   );
                 })}
