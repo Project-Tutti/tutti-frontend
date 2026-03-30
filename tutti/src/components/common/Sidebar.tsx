@@ -146,7 +146,15 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
       style={{ overflow: isCollapsed ? "hidden" : "visible" }}
     >
       <div className="p-3 border-b border-[#1e293b] flex items-center justify-between min-w-[240px]">
-        <div className="flex items-center gap-2">
+        <Link
+          href="/home"
+          className="flex items-center gap-2 focus:outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6]/60 rounded-lg"
+          aria-label="홈으로 이동"
+          onClick={() => {
+            closeMenus();
+            setRenamingProjectId(null);
+          }}
+        >
           <div className="bg-[#3b82f6] p-1 rounded-lg">
             <span className="material-symbols-outlined text-white text-lg">
               graphic_eq
@@ -155,7 +163,7 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
           <span className="text-base font-bold tracking-tight text-white">
             Harmonix
           </span>
-        </div>
+        </Link>
         <button
           onClick={onToggle}
           className="text-gray-500 hover:text-white transition-colors"

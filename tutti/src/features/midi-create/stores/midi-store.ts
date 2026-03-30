@@ -54,9 +54,17 @@ export const useMidiStore = create<MidiStore>()(
       // File은 직렬화 불가 — 트랙 메타만 유지해 새로고침 후에도 목록 유지
       partialize: (state) => ({
         tracks: state.tracks,
-        selectedInstrument: state.selectedInstrument,
         trackMappings: state.trackMappings,
       }),
+      // 악기 선택은 세션 UI 상태라 복원하지 않음 (기본 선택 방지)
+      merge: (persistedState, currentState) => {
+        const persisted = (persistedState ?? {}) as Partial<MidiStore>;
+        return {
+          ...currentState,
+          ...persisted,
+          selectedInstrument: null,
+        };
+      },
     },
   ),
 );
