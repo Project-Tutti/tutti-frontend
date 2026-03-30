@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 
-import { getProjectDownload } from "@api/project/apis/get/get-project-download";
 import {
   PROJECT_DOWNLOAD_TYPE,
   type ProjectDownloadType,
 } from "@api/project/constants/api-end-point.constants";
+import { useProjectDownloadMutation } from "@api/project/hooks/mutations/useProjectDownloadMutation";
 
 type DownloadFormatModalProps = {
   projectId: string;
@@ -49,14 +49,16 @@ export default function DownloadFormatModal({
     null,
   );
 
+  const downloadMutation = useProjectDownloadMutation();
+
   const handlePick = async (type: ProjectDownloadType) => {
     setPendingType(type);
     try {
-      const res = await getProjectDownload(projectId, versionId, type);
-      const url = res.result?.downloadLink;
-      if (!res.isSuccess || !url) {
-        throw new Error(res.message ?? "다운로드 링크를 받지 못했습니다.");
-      }
+      const url = await downloadMutation.mutateAsync({
+        projectId,
+        versionId,
+        type,
+      });
       window.open(url, "_blank", "noopener,noreferrer");
       onClose();
     } catch (e) {
