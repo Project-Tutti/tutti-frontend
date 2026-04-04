@@ -57,3 +57,28 @@ export interface RegenerateProjectResponseDto {
   versionId: number;
   status: string;
 }
+
+/** PATCH /api/projects/{projectId} body */
+export interface UpdateProjectNameRequestDto {
+  name: string;
+}
+
+/** PATCH /api/projects/{projectId} — `BaseResponseDto.result` */
+export interface UpdateProjectNameResponseDto {
+  id: number;
+  name: string;
+  updatedAt: string;
+}
+
+/** PATCH /api/projects/{projectId}/{versionId} body */
+export interface UpdateProjectVersionNameRequestDto {
+  name: string;
+}
+
+/** PATCH /api/projects/{projectId}/{versionId} — `BaseResponseDto.result` */
+export interface UpdateProjectVersionNameResponseDto {
+  projectId: number;
+  versionId: number;
+  name: string;
+  updatedAt: string;
+}

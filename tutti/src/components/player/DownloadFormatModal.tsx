@@ -59,7 +59,43 @@ export default function DownloadFormatModal({
         versionId,
         type,
       });
-      window.open(url, "_blank", "noopener,noreferrer");
+      const ext =
+        type === PROJECT_DOWNLOAD_TYPE.MIDI
+          ? "mid"
+          : type === PROJECT_DOWNLOAD_TYPE.XML
+            ? "xml"
+            : "pdf";
+      const filename = `project-${projectId}-v${versionId}.${ext}`;
+
+      // Supabase Storage signed URL에 download 파라미터를 주면 attachment로 내려줍니다.
+      const forced = new URL(url);
+      forced.searchParams.set("download", filename);
+
+      // 1) fetch → blob → objectURL 로 "페이지 이동 없이" 다운로드 (CORS 막히면 fallback)
+      try {
+        const res = await fetch(forced.toString(), { credentials: "omit" });
+        if (!res.ok) throw new Error(`download fetch failed: ${res.status}`);
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        // 브라우저가 다운로드를 시작하기 전에 revoke 하면 Safari/Firefox 등에서 실패할 수 있음
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10_000);
+      } catch {
+        // 2) fallback: direct link click
+        const a = document.createElement("a");
+        a.href = forced.toString();
+        a.rel = "noopener noreferrer";
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
       onClose();
     } catch (e) {
       console.error(e);

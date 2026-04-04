@@ -16,12 +16,10 @@ const queryKeys = createQueryKeyStore({
   },
   library: {
     all: null,
-    list: (params: GetLibraryListRequestDto) => ['library', 'list', params],
-    infiniteList: (params: GetLibraryListInfiniteRequestDto) => [
-      'library',
-      'infinite',
-      params,
-    ],
+    // query-key-factory가 앞에 ['library', keyName]를 자동으로 붙입니다.
+    // 여기서는 args만 반환해야 queryKey 중복이 생기지 않습니다.
+    list: (params: GetLibraryListRequestDto) => [params],
+    infiniteList: (params: GetLibraryListInfiniteRequestDto) => [params],
   },
   project: {
     all: null,

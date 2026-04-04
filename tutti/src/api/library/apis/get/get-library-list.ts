@@ -29,7 +29,10 @@ function buildQueryString(params: GetLibraryListRequestDto): string {
   return qs ? `?${qs}` : "";
 }
 
-export const getLibraryList = async (params: GetLibraryListRequestDto = {}) => {
+export const getLibraryList = async (
+  params: GetLibraryListRequestDto = {},
+  signal?: AbortSignal,
+) => {
   const endpoint = `${LIBRARY_API_ENDPOINTS.LIST}${buildQueryString(params)}`;
 
   const response = await defaultApi<BaseResponseDto<GetLibraryListResponseDto>>(
@@ -37,6 +40,7 @@ export const getLibraryList = async (params: GetLibraryListRequestDto = {}) => {
     {
       method: "GET",
       auth: true,
+      signal,
     },
   );
 

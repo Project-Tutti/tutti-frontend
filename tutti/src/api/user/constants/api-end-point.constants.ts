@@ -3,6 +3,7 @@ export const AUTH_API_ENDPOINTS = {
   CHECK_EMAIL_DUPLICATION: "/auth/check-email",
   REFRESH_TOKEN: "/auth/refresh",
   GET_USER_INFO: "/users/me",
+  DELETE_USER_ME: "/users/me",
   LOGIN: "/auth/login",
   LOGOUT: "/auth/logout",
 } as const;

@@ -14,6 +14,16 @@ export const PROJECT_API_ENDPOINTS = {
   tracks: (projectId: number | string) => `/projects/${projectId}/tracks`,
   /** 기존 프로젝트로 새 버전 편곡 생성 */
   regenerate: (projectId: number | string) => `/projects/${projectId}/regenerate`,
+  /** 프로젝트 삭제 (프로젝트 관련 모든 버전/파일 삭제) */
+  delete: (projectId: number | string) => `/projects/${projectId}`,
+  /** 특정 버전 삭제 */
+  deleteVersion: (projectId: number | string, versionId: number | string) =>
+    `/projects/${projectId}/${versionId}`,
+  /** 프로젝트 이름 수정 */
+  update: (projectId: number | string) => `/projects/${projectId}`,
+  /** 버전 이름 수정 */
+  updateVersion: (projectId: number | string, versionId: number | string) =>
+    `/projects/${projectId}/${versionId}`,
   /** 편곡 결과 다운로드 URL 발급 — JSON `result.downloadLink` */
   download: (
     projectId: number | string,

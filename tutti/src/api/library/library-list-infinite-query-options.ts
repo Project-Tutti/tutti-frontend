@@ -25,8 +25,8 @@ export function getLibraryListInfiniteQueryOptions(
 
   return {
     ...queryKeys.library.infiniteList(merged),
-    queryFn: ({ pageParam }: { pageParam: number }) =>
-      getLibraryList({ ...merged, page: pageParam }),
+    queryFn: ({ pageParam, signal }: { pageParam: number; signal: AbortSignal }) =>
+      getLibraryList({ ...merged, page: pageParam }, signal),
     initialPageParam: 0,
     getNextPageParam: (lastPage: BaseResponseDto<GetLibraryListResponseDto>) => {
       const result = lastPage.result;
