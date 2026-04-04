@@ -42,9 +42,10 @@ export const usePatchProjectNameMutation = () => {
           q.queryKey[0] === "library" && q.queryKey[1] === "infiniteList",
       });
 
-      const prevProject = queryClient.getQueryData<
-        BaseResponseDto<GetProjectResponseDto>
-      >(projectDetailKey);
+      const prevProject =
+        queryClient.getQueryData<BaseResponseDto<GetProjectResponseDto>>(
+          projectDetailKey,
+        );
 
       // 3) 낙관적 업데이트: library infinite pages (즉시 반영)
       queryClient.setQueriesData<
@@ -55,19 +56,19 @@ export const usePatchProjectNameMutation = () => {
             q.queryKey[0] === "library" && q.queryKey[1] === "infiniteList",
         },
         (data) => {
-        if (!data) return data;
-        return {
-          ...data,
-          pages: data.pages.map((page) => ({
-            ...page,
-            result: {
-              ...page.result,
-              projects: (page.result?.projects ?? []).map((p) =>
-                String(p.projectId) === pid ? { ...p, name: vars.name } : p,
-              ),
-            },
-          })),
-        };
+          if (!data) return data;
+          return {
+            ...data,
+            pages: data.pages.map((page) => ({
+              ...page,
+              result: {
+                ...page.result,
+                projects: (page.result?.projects ?? []).map((p) =>
+                  String(p.projectId) === pid ? { ...p, name: vars.name } : p,
+                ),
+              },
+            })),
+          };
         },
       );
 
@@ -110,4 +111,3 @@ export const usePatchProjectNameMutation = () => {
     },
   });
 };
-

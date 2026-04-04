@@ -84,7 +84,8 @@ export default function DownloadFormatModal({
         document.body.appendChild(a);
         a.click();
         a.remove();
-        URL.revokeObjectURL(blobUrl);
+        // 브라우저가 다운로드를 시작하기 전에 revoke 하면 Safari/Firefox 등에서 실패할 수 있음
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10_000);
       } catch {
         // 2) fallback: direct link click
         const a = document.createElement("a");

@@ -306,7 +306,7 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
                 </button>
 
                 {openMenuProjectId === item.projectId && (
-                  <div className="absolute right-2 top-9 z-70 w-40 rounded-xl border border-[#1e293b] bg-[#0f1218] shadow-xl overflow-hidden">
+                  <div className="absolute right-2 top-9 z-[70] w-40 rounded-xl border border-[#1e293b] bg-[#0f1218] shadow-xl overflow-hidden">
                     <button
                       type="button"
                       onClick={(e) => {
