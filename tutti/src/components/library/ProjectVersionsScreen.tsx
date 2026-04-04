@@ -226,11 +226,24 @@ const ProjectVersionsScreen = () => {
                                   // 입력은 즉시 닫고(UX), mutation은 비동기로 처리
                                   setRenamingVersionId(null);
                                   setOpenMenuVersionId(null);
-                                  void patchVersionNameMutation.mutateAsync({
-                                    projectId: projectIdParam,
-                                    versionId: v.id,
-                                    name: next,
-                                  });
+                                  void (async () => {
+                                    try {
+                                      await patchVersionNameMutation.mutateAsync(
+                                        {
+                                          projectId: projectIdParam,
+                                          versionId: v.id,
+                                          name: next,
+                                        },
+                                      );
+                                    } catch (e) {
+                                      console.error(e);
+                                      alert(
+                                        e instanceof Error
+                                          ? e.message
+                                          : "버전 이름 변경에 실패했습니다.",
+                                      );
+                                    }
+                                  })();
                                 }}
                                 autoFocus
                                 className={[
@@ -363,13 +376,24 @@ const ProjectVersionsScreen = () => {
             type="button"
             disabled={deleteVersionMutation.isPending}
             onClick={() => {
-              if (!deleteTarget) return;
-              const targetVersionId = deleteTarget.versionId;
-              setDeleteTarget(null);
-              void deleteVersionMutation.mutateAsync({
-                projectId: projectIdParam,
-                versionId: targetVersionId,
-              });
+              void (async () => {
+                if (!deleteTarget) return;
+                const targetVersionId = deleteTarget.versionId;
+                try {
+                  await deleteVersionMutation.mutateAsync({
+                    projectId: projectIdParam,
+                    versionId: targetVersionId,
+                  });
+                  setDeleteTarget(null);
+                } catch (e) {
+                  console.error(e);
+                  alert(
+                    e instanceof Error
+                      ? e.message
+                      : "버전 삭제에 실패했습니다.",
+                  );
+                }
+              })();
             }}
             className={[
               "px-3 py-2 rounded-lg text-sm font-semibold transition-colors",

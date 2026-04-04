@@ -104,11 +104,16 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
   const runDelete = async () => {
     if (!deleteConfirmProject) return;
     const { projectId } = deleteConfirmProject;
-    await deleteProjectMutation.mutateAsync(projectId);
-    setDeleteConfirmProject(null);
+    try {
+      await deleteProjectMutation.mutateAsync(projectId);
+      setDeleteConfirmProject(null);
 
-    if (pathname.startsWith(`/library/${projectId}`)) {
-      router.push("/home");
+      if (pathname.startsWith(`/library/${projectId}`)) {
+        router.push("/home");
+      }
+    } catch (e) {
+      console.error(e);
+      alert(e instanceof Error ? e.message : "삭제에 실패했습니다.");
     }
   };
 
