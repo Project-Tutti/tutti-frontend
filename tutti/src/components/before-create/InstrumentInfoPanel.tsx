@@ -4,15 +4,7 @@ import { useEffect, useMemo, useCallback } from "react";
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
 import { useGeneratableInstrumentCategoriesQuery } from "@api/instruments/hooks/queries/useGeneratableInstrumentCategoriesQuery";
 import { INSTRUMENT_GROUP_ICON } from "@features/midi-create/constants/instrument-grouping";
-
-function midiToNoteName(midi: number): string {
-  const names = [
-    "C", "C#", "D", "D#", "E", "F",
-    "F#", "G", "G#", "A", "A#", "B",
-  ];
-  const octave = Math.floor(midi / 12) - 1;
-  return `${names[midi % 12]}${octave}`;
-}
+import { midiToNoteName } from "@common/utils/midi-utils";
 
 const MIDI_MIN = 0;
 const MIDI_MAX = 127;
@@ -22,13 +14,11 @@ const InstrumentInfoPanel = () => {
   const { data: categories } = useGeneratableInstrumentCategoriesQuery();
 
   const instrumentInfo = useMemo(() => {
-    if (!selectedInstrument || !categories) return null;
-    const program = Number(selectedInstrument);
-    if (!Number.isFinite(program)) return null;
+    if (selectedInstrument == null || !categories) return null;
 
     for (const cat of categories) {
       for (const inst of cat.instruments ?? []) {
-        if (inst.midiProgram === program) {
+        if (inst.midiProgram === selectedInstrument) {
           return {
             name: inst.name,
             category: cat.name,

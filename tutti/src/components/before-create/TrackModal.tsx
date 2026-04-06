@@ -10,6 +10,7 @@ import { Track } from "@/types/track";
 import { INSTRUMENT_OPTIONS } from "@features/midi-create/constants/instrument-options";
 import { flattenInstrumentCategoriesToMappingOptions } from "@features/midi-create/utils/instrument-category-mapping-options";
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
+import { DROP_CATEGORY_PROGRAM } from "@common/utils/midi-utils";
 
 interface TrackModalProps {
   isOpen: boolean;
@@ -21,7 +22,6 @@ const TrackModal = ({ isOpen, track, onClose }: TrackModalProps) => {
   const { trackMappings, setTrackMapping } = useMidiStore();
   const [searchText, setSearchText] = useState("");
   const [inputValue, setInputValue] = useState("");
-  const DROP_CATEGORY_PROGRAM = 129;
   const trackId = track?.id ?? "";
   const sourceInstrumentId = track?.sourceInstrumentId ?? 0;
 
@@ -213,7 +213,7 @@ const TrackModal = ({ isOpen, track, onClose }: TrackModalProps) => {
               htmlFor="custom-instrument-id"
               className="text-[10px] text-gray-400"
             >
-              직접 악기번호 입력 (0~128)
+              직접 악기번호 입력 (0~129)
             </label>
             <input
               id="custom-instrument-id"

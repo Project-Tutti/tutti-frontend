@@ -15,8 +15,8 @@ const ORBIT_RADIUS_PCT = 40;
 const START_ANGLE = -(Math.PI * 3) / 4;
 
 interface InstrumentSelectorProps {
-  selectedInstrument: string | null;
-  onInstrumentSelect: (midiProgram: string) => void;
+  selectedInstrument: number | null;
+  onInstrumentSelect: (midiProgram: number) => void;
   onFileUpload: (file: File) => void;
   isFileUploaded: boolean;
 }
@@ -36,11 +36,10 @@ const InstrumentSelector = ({
   const safeCategories = categories ?? [];
 
   const selectedInfo = useMemo(() => {
-    if (!selectedInstrument) return null;
-    const midiProg = Number(selectedInstrument);
+    if (selectedInstrument == null) return null;
     for (const cat of safeCategories) {
       for (const inst of cat.instruments) {
-        if (inst.midiProgram === midiProg) {
+        if (inst.midiProgram === selectedInstrument) {
           return { categoryName: cat.name, instrumentName: inst.name };
         }
       }
@@ -138,11 +137,9 @@ const InstrumentSelector = ({
           safeCategories[expandedCategoryIdx] && (
             <InstrumentDetailOverlay
               category={safeCategories[expandedCategoryIdx]}
-              currentSelection={
-                selectedInstrument ? Number(selectedInstrument) : null
-              }
+              currentSelection={selectedInstrument}
               onSelect={(midiProgram) => {
-                onInstrumentSelect(String(midiProgram));
+                onInstrumentSelect(midiProgram);
                 setExpandedCategoryIdx(null);
               }}
               onClose={() => setExpandedCategoryIdx(null)}

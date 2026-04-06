@@ -2,8 +2,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
 import { Track } from "@/types/track";
-
-const DROP_CATEGORY_PROGRAM = 129;
+import { DROP_CATEGORY_PROGRAM } from "@common/utils/midi-utils";
 
 interface NoteRange {
   min: number;
@@ -12,12 +11,12 @@ interface NoteRange {
 
 interface MidiStore {
   tracks: Track[];
-  selectedInstrument: string | null;
+  selectedInstrument: number | null;
   uploadedFile: File | null;
   trackMappings: Record<string, number>;
   noteRange: NoteRange | null;
   setTracks: (tracks: Track[]) => void;
-  setSelectedInstrument: (id: string | null) => void;
+  setSelectedInstrument: (id: number | null) => void;
   setUploadedFile: (file: File | null) => void;
   setTrackMapping: (trackId: string, targetInstrumentId: number) => void;
   setNoteRange: (range: NoteRange | null) => void;

@@ -29,11 +29,10 @@ const HomePage = () => {
   const [parseError, setParseError] = useState<string | null>(null);
 
   const selectedInstrumentName = useMemo(() => {
-    if (!selectedInstrument || !categories) return null;
-    const midiProg = Number(selectedInstrument);
+    if (selectedInstrument == null || !categories) return null;
     for (const cat of categories) {
       for (const inst of cat.instruments) {
-        if (inst.midiProgram === midiProg) return inst.name;
+        if (inst.midiProgram === selectedInstrument) return inst.name;
       }
     }
     return null;
@@ -43,7 +42,7 @@ const HomePage = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
   };
 
-  const handleInstrumentSelect = (midiProgram: string) => {
+  const handleInstrumentSelect = (midiProgram: number) => {
     setSelectedInstrument(
       selectedInstrument === midiProgram ? null : midiProgram,
     );
@@ -55,7 +54,7 @@ const HomePage = () => {
   };
 
   const handleGenerate = async () => {
-    if (!uploadedFile || !selectedInstrument) return;
+    if (!uploadedFile || selectedInstrument == null) return;
 
     try {
       setIsParsing(true);
@@ -87,8 +86,8 @@ const HomePage = () => {
   const steps = [
     {
       label: "Instrument Selection",
-      icon: selectedInstrument ? "check" : "music_note",
-      isActive: !!selectedInstrument,
+      icon: selectedInstrument != null ? "check" : "music_note",
+      isActive: selectedInstrument != null,
     },
     {
       label: "File Upload",
@@ -97,7 +96,7 @@ const HomePage = () => {
     },
   ];
 
-  const canGenerate = !!selectedInstrument && !!uploadedFile && !isParsing;
+  const canGenerate = selectedInstrument != null && !!uploadedFile && !isParsing;
 
   return (
     <div className="h-screen flex flex-row overflow-hidden">
