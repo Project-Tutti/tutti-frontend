@@ -89,10 +89,15 @@ const InstrumentInfoPanel = () => {
         </button>
       </div>
 
-      {/* 음역대 라벨 */}
-      <p className="text-[9px] text-gray-500 uppercase tracking-wider mb-1.5">
-        Note Range
-      </p>
+      {/* 음역대 라벨 + 현재 범위 */}
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-[9px] text-gray-500 uppercase tracking-wider">
+          Note Range
+        </span>
+        <span className="text-[11px] text-gray-300 font-medium tabular-nums">
+          {midiToNoteName(noteRange.min)} – {midiToNoteName(noteRange.max)}
+        </span>
+      </div>
 
       {/* 음역대 시각화 바 */}
       <div className="relative h-1.5 bg-[#1e293b] rounded-full mb-3">
@@ -124,42 +129,43 @@ const InstrumentInfoPanel = () => {
         />
       </div>
 
-      {/* Min / Max 숫자 입력 */}
+      {/* Min / Max 입력 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">
           <label className="text-[9px] text-gray-500 uppercase tracking-wider">
             Min
           </label>
+          <span className="text-[11px] text-white font-medium">
+            {midiToNoteName(noteRange.min)}
+          </span>
           <input
             type="number"
             min={MIDI_MIN}
             max={noteRange.max - 1}
             value={noteRange.min}
             onChange={(e) => handleMinChange(Number(e.target.value))}
-            className="w-12 bg-[#05070a] border border-[#1e293b] rounded px-1.5 py-0.5 text-[11px] text-gray-100 text-center focus:outline-none focus:border-[#3b82f6]"
+            className="w-10 bg-[#05070a] border border-[#1e293b] rounded px-1 py-0.5 text-[10px] text-gray-500 text-center focus:outline-none focus:border-[#3b82f6]"
           />
-          <span className="text-[10px] text-gray-400">
-            {midiToNoteName(noteRange.min)}
-          </span>
         </div>
 
         <p className="text-[9px] text-gray-600">
-          기본: {midiToNoteName(instrumentInfo.defaultMin)} ~ {midiToNoteName(instrumentInfo.defaultMax)}
-          {" "}({instrumentInfo.defaultMin}-{instrumentInfo.defaultMax})
+          기본: {midiToNoteName(instrumentInfo.defaultMin)} ({instrumentInfo.defaultMin})
+          {" ~ "}
+          {midiToNoteName(instrumentInfo.defaultMax)} ({instrumentInfo.defaultMax})
         </p>
 
         <div className="flex items-center gap-1.5">
-          <span className="text-[10px] text-gray-400">
-            {midiToNoteName(noteRange.max)}
-          </span>
           <input
             type="number"
             min={noteRange.min + 1}
             max={MIDI_MAX}
             value={noteRange.max}
             onChange={(e) => handleMaxChange(Number(e.target.value))}
-            className="w-12 bg-[#05070a] border border-[#1e293b] rounded px-1.5 py-0.5 text-[11px] text-gray-100 text-center focus:outline-none focus:border-[#3b82f6]"
+            className="w-10 bg-[#05070a] border border-[#1e293b] rounded px-1 py-0.5 text-[10px] text-gray-500 text-center focus:outline-none focus:border-[#3b82f6]"
           />
+          <span className="text-[11px] text-white font-medium">
+            {midiToNoteName(noteRange.max)}
+          </span>
           <label className="text-[9px] text-gray-500 uppercase tracking-wider">
             Max
           </label>
