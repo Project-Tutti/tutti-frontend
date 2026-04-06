@@ -27,7 +27,7 @@ const InstrumentSelector = ({
   onFileUpload,
   isFileUploaded,
 }: InstrumentSelectorProps) => {
-  const { data: categories, isFetching, isPending } =
+  const { data: categories, isPending } =
     useGeneratableInstrumentCategoriesQuery();
   const [expandedCategoryIdx, setExpandedCategoryIdx] = useState<
     number | null
