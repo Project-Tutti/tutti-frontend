@@ -7,12 +7,12 @@ import { useSocialLoginMutation } from "@api/user/hooks/mutations/useSocialLogin
 
 import { safeInternalRedirectPath } from "@common/utils/safe-internal-path.utils";
 import {
+  clearGoogleOAuthSessionStorage,
   getGoogleOAuthRedirectUri,
   GOOGLE_OAUTH_REDIRECT_KEY,
   GOOGLE_OAUTH_STATE_KEY,
+  OAUTH_INFLIGHT_KEY,
 } from "@common/utils/google-oauth.utils";
-
-const OAUTH_INFLIGHT_KEY = "tutti-google-oauth-inflight";
 
 export default function AuthCallbackClient() {
   const router = useRouter();
@@ -29,6 +29,7 @@ export default function AuthCallbackClient() {
 
   useEffect(() => {
     if (urlError) {
+      clearGoogleOAuthSessionStorage();
       router.replace(
         `/login?error=oauth_denied&message=${encodeURIComponent(errorDescription ?? urlError)}`,
       );
@@ -40,6 +41,7 @@ export default function AuthCallbackClient() {
     const redirectTo = safeInternalRedirectPath(rawRedirect);
 
     if (!code || !state || !storedState || state !== storedState) {
+      clearGoogleOAuthSessionStorage();
       router.replace("/login?error=oauth_invalid");
       return;
     }
@@ -51,24 +53,20 @@ export default function AuthCallbackClient() {
 
     const redirectUri = getGoogleOAuthRedirectUri();
     if (!redirectUri) {
-      sessionStorage.removeItem(OAUTH_INFLIGHT_KEY);
+      clearGoogleOAuthSessionStorage();
       router.replace("/login?error=oauth_invalid");
       return;
     }
 
-    void exchangeRef.current({ code, redirectUri, redirectTo })
+    void exchangeRef
+      .current({ code, redirectUri, redirectTo })
       .then(() => {
-        sessionStorage.removeItem(GOOGLE_OAUTH_STATE_KEY);
-        sessionStorage.removeItem(GOOGLE_OAUTH_REDIRECT_KEY);
+        clearGoogleOAuthSessionStorage();
       })
       .catch(() => {
-        setMessage("");
+        clearGoogleOAuthSessionStorage();
+        setMessage("로그인에 실패했습니다. 로그인 화면으로 이동합니다…");
         router.replace("/login?error=oauth_failed");
-      })
-      .finally(() => {
-        if (sessionStorage.getItem(OAUTH_INFLIGHT_KEY) === code) {
-          sessionStorage.removeItem(OAUTH_INFLIGHT_KEY);
-        }
       });
     // mutateAsync 참조 불안정 → ref로 호출, 의존성에는 넣지 않음
   }, [router, urlError, errorDescription, code, state]);

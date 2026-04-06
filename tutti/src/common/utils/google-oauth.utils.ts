@@ -2,6 +2,15 @@
 export const GOOGLE_OAUTH_STATE_KEY = "tutti-google-oauth-state";
 /** sessionStorage: 로그인 성공 후 이동할 경로 */
 export const GOOGLE_OAUTH_REDIRECT_KEY = "tutti-google-oauth-redirect";
+/** sessionStorage: 동일 code로 콜백 effect 중복 실행 방지 */
+export const OAUTH_INFLIGHT_KEY = "tutti-google-oauth-inflight";
+
+export function clearGoogleOAuthSessionStorage(): void {
+  if (typeof sessionStorage === "undefined") return;
+  sessionStorage.removeItem(GOOGLE_OAUTH_STATE_KEY);
+  sessionStorage.removeItem(GOOGLE_OAUTH_REDIRECT_KEY);
+  sessionStorage.removeItem(OAUTH_INFLIGHT_KEY);
+}
 
 /**
  * Google 콘솔·백엔드 `/auth/social`의 redirectUri와 인가 요청의 redirect_uri가 동일해야 함.
@@ -27,5 +36,6 @@ export function buildGoogleOAuthAuthorizeUrl(
   u.searchParams.set("response_type", "code");
   u.searchParams.set("scope", "openid email profile");
   u.searchParams.set("state", state);
+  u.searchParams.set("prompt", "select_account");
   return u.toString();
 }
