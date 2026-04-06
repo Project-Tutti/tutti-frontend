@@ -160,9 +160,7 @@ const HomePage = () => {
             {/* 에러 메시지 */}
             {parseError && (
               <p className="text-red-400 text-[11px] md:text-xs flex items-center gap-1">
-                <span className="material-symbols-outlined text-xs">
-                  error
-                </span>
+                <span className="material-symbols-outlined text-xs">error</span>
                 {parseError}
               </p>
             )}

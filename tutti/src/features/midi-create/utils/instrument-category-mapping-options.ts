@@ -7,7 +7,9 @@ export interface InstrumentMappingOption {
 
 const MAX_MIDI_PROGRAM_FOR_UI = 129;
 
-function parseNestedInstrument(raw: unknown): { id: number; label: string } | null {
+function parseNestedInstrument(
+  raw: unknown,
+): { id: number; label: string } | null {
   if (!raw || typeof raw !== "object") return null;
   const o = raw as Record<string, unknown>;
   const id =
@@ -24,7 +26,12 @@ function parseNestedInstrument(raw: unknown): { id: number; label: string } | nu
       : typeof o.label === "string"
         ? o.label
         : null;
-  if (id == null || !Number.isFinite(id) || id < 0 || id > MAX_MIDI_PROGRAM_FOR_UI)
+  if (
+    id == null ||
+    !Number.isFinite(id) ||
+    id < 0 ||
+    id > MAX_MIDI_PROGRAM_FOR_UI
+  )
     return null;
   return { id, label: name ?? `General MIDI ${id}` };
 }

@@ -6,7 +6,7 @@ interface AnalysisInfoProps {
   icon?: string;
 }
 
-const AnalysisInfo = ({ 
+const AnalysisInfo = ({
   onGenerate,
   isPending,
   label = "Generate",
@@ -16,7 +16,6 @@ const AnalysisInfo = ({
   return (
     <div className="mt-auto pt-5 md:pt-6 max-w-3xl mx-auto w-full">
       <div className="flex flex-col items-center gap-3 md:gap-4">
-
         {/* Generate 버튼 */}
         <button
           onClick={onGenerate}

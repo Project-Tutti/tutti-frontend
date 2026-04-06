@@ -55,7 +55,9 @@ const TrackModal = ({ isOpen, track, onClose }: TrackModalProps) => {
     if (!track) return;
     const initialId =
       trackMappings[track.id] ??
-      (track.isDropListProgram ? DROP_CATEGORY_PROGRAM : track.sourceInstrumentId);
+      (track.isDropListProgram
+        ? DROP_CATEGORY_PROGRAM
+        : track.sourceInstrumentId);
     setInputValue(String(initialId));
     setSearchText("");
   }, [trackId, isOpen, track]);
@@ -125,8 +127,8 @@ const TrackModal = ({ isOpen, track, onClose }: TrackModalProps) => {
                 <span className="text-amber-300/95 font-medium">Drop</span>
               </p>
               <p className="text-[10px] text-gray-500 leading-relaxed">
-                자동 변환에서 제외되는 악기군입니다. 아래에서 원하는 악기로 매핑할
-                수 있습니다.
+                자동 변환에서 제외되는 악기군입니다. 아래에서 원하는 악기로
+                매핑할 수 있습니다.
               </p>
             </>
           ) : (
@@ -144,8 +146,8 @@ const TrackModal = ({ isOpen, track, onClose }: TrackModalProps) => {
             ) : (
               <>
                 Target Instrument ID:{" "}
-                <span className="text-white">{currentMappedInstrumentId}</span> (
-                {mappedOptionLabel})
+                <span className="text-white">{currentMappedInstrumentId}</span>{" "}
+                ({mappedOptionLabel})
               </>
             )}
           </p>
