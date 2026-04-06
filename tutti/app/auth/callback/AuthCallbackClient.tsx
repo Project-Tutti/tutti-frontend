@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { useSocialLoginMutation } from "@api/user/hooks/mutations/useSocialLoginMutation";
@@ -17,8 +17,9 @@ const OAUTH_INFLIGHT_KEY = "tutti-google-oauth-inflight";
 export default function AuthCallbackClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  /** mutation 객체 전체는 isPending 등으로 매 렌더마다 바뀌어 effect가 재실행될 수 있음 → mutateAsync만 사용 */
-  const { mutateAsync: exchangeSocialLogin } = useSocialLoginMutation();
+  const { mutateAsync } = useSocialLoginMutation();
+  const exchangeRef = useRef(mutateAsync);
+  exchangeRef.current = mutateAsync;
   const [message, setMessage] = useState("로그인 처리 중…");
 
   const urlError = searchParams.get("error");
@@ -55,7 +56,7 @@ export default function AuthCallbackClient() {
       return;
     }
 
-    void exchangeSocialLogin({ code, redirectUri, redirectTo })
+    void exchangeRef.current({ code, redirectUri, redirectTo })
       .then(() => {
         sessionStorage.removeItem(GOOGLE_OAUTH_STATE_KEY);
         sessionStorage.removeItem(GOOGLE_OAUTH_REDIRECT_KEY);
@@ -69,8 +70,8 @@ export default function AuthCallbackClient() {
           sessionStorage.removeItem(OAUTH_INFLIGHT_KEY);
         }
       });
-    // searchParams 객체는 참조가 자주 바뀔 수 있어 primitive만 의존성에 둠
-  }, [router, urlError, errorDescription, code, state, exchangeSocialLogin]);
+    // mutateAsync 참조 불안정 → ref로 호출, 의존성에는 넣지 않음
+  }, [router, urlError, errorDescription, code, state]);
 
   return (
     <div className="min-h-screen bg-[#05070a] flex flex-col items-center justify-center gap-3 px-4">

@@ -3,9 +3,12 @@ export const GOOGLE_OAUTH_STATE_KEY = "tutti-google-oauth-state";
 /** sessionStorage: 로그인 성공 후 이동할 경로 */
 export const GOOGLE_OAUTH_REDIRECT_KEY = "tutti-google-oauth-redirect";
 
-/** Google 콘솔·백엔드 `/auth/social`에 넘기는 값과 인가 요청의 redirect_uri가 동일해야 함 */
-export function getGoogleOAuthRedirectUri(): string {
-  if (typeof window === "undefined") return "";
+/**
+ * Google 콘솔·백엔드 `/auth/social`의 redirectUri와 인가 요청의 redirect_uri가 동일해야 함.
+ * SSR 환경(window 없음)에서는 `null` — 클라이언트에서만 호출할 것.
+ */
+export function getGoogleOAuthRedirectUri(): string | null {
+  if (typeof window === "undefined") return null;
   return `${window.location.origin}/auth/callback`;
 }
 

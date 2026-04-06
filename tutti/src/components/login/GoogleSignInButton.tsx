@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import {
   buildGoogleOAuthAuthorizeUrl,
   getGoogleOAuthRedirectUri,
@@ -18,7 +20,10 @@ const GoogleSignInButton = ({
   text = "Sign in with Google",
   postAuthRedirect = "/home",
 }: GoogleSignInButtonProps) => {
+  const [startError, setStartError] = useState<string | null>(null);
+
   const handleClick = () => {
+    setStartError(null);
     try {
       const state = crypto.randomUUID();
       const redirectPath = safeInternalRedirectPath(postAuthRedirect);
@@ -26,10 +31,15 @@ const GoogleSignInButton = ({
       sessionStorage.setItem(GOOGLE_OAUTH_REDIRECT_KEY, redirectPath);
 
       const redirectUri = getGoogleOAuthRedirectUri();
+      if (!redirectUri) {
+        throw new Error("브라우저에서만 Google 로그인을 시작할 수 있습니다.");
+      }
       window.location.href = buildGoogleOAuthAuthorizeUrl(redirectUri, state);
     } catch (e) {
-      console.error(e);
-      alert(
+      if (process.env.NODE_ENV === "development") {
+        console.error(e);
+      }
+      setStartError(
         e instanceof Error
           ? e.message
           : "Google 로그인을 시작할 수 없습니다.",
@@ -38,9 +48,10 @@ const GoogleSignInButton = ({
   };
 
   return (
+    <div className="w-full space-y-2">
     <button
       type="button"
-      onClick={() => handleClick()}
+      onClick={handleClick}
       className="w-full flex items-center justify-center gap-3 bg-[#0f1218] border border-[#1e293b] hover:border-gray-500 py-3 rounded-xl transition-all"
     >
       <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden>
@@ -63,6 +74,12 @@ const GoogleSignInButton = ({
       </svg>
       <span className="text-sm font-semibold text-gray-300">{text}</span>
     </button>
+    {startError ? (
+      <p className="text-sm text-red-400 text-center" role="alert">
+        {startError}
+      </p>
+    ) : null}
+    </div>
   );
 };
 
