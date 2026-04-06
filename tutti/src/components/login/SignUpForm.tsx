@@ -261,7 +261,7 @@ const SignUpForm = () => {
       </div>
 
       {/* Google 회원가입 */}
-      <GoogleSignInButton text="Sign up with Google" />
+      <GoogleSignInButton text="Sign up with Google" postAuthRedirect="/home" />
 
       {/* 로그인 링크 */}
       <p className="text-center text-sm text-gray-500 pt-2">

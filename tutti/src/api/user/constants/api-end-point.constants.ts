@@ -6,4 +6,5 @@ export const AUTH_API_ENDPOINTS = {
   DELETE_USER_ME: "/users/me",
   LOGIN: "/auth/login",
   LOGOUT: "/auth/logout",
+  SOCIAL: "/auth/social",
 } as const;

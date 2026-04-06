@@ -1,12 +1,15 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import FormInput from "./FormInput";
 import GoogleSignInButton from "./GoogleSignInButton";
 import { loginSchema, LoginFormData } from "@/schemas/authSchema";
 import { useLoginMutation } from "@api/user/hooks/mutations/useLoginMutation";
 import { ZodError } from "zod";
+
+import { safeInternalRedirectPath } from "@common/utils/safe-internal-path.utils";
 
 const getErrorMessage = (error: unknown) =>
   typeof (error as { message?: unknown })?.message === "string"
@@ -14,6 +17,7 @@ const getErrorMessage = (error: unknown) =>
     : null;
 
 const LoginForm = () => {
+  const searchParams = useSearchParams();
   const [formData, setFormData] = useState<LoginFormData>({
     email: "",
     password: "",
@@ -23,6 +27,22 @@ const LoginForm = () => {
   >({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const { mutateAsync: loginMutation, isPending } = useLoginMutation();
+
+  const oauthBanner = useMemo(() => {
+    const err = searchParams.get("error");
+    const detail = searchParams.get("message");
+    if (!err) return null;
+    if (err === "oauth_failed") {
+      return "Google 로그인에 실패했습니다. 다시 시도해 주세요.";
+    }
+    if (err === "oauth_invalid") {
+      return "로그인 요청이 유효하지 않습니다. 다시 시도해 주세요.";
+    }
+    if (err === "oauth_denied") {
+      return detail ?? "Google 로그인이 취소되었습니다.";
+    }
+    return null;
+  }, [searchParams]);
 
   const handleChange =
     (field: keyof LoginFormData) =>
@@ -160,6 +180,9 @@ const LoginForm = () => {
         {submitError ? (
           <p className="text-sm text-red-400">{submitError}</p>
         ) : null}
+        {oauthBanner ? (
+          <p className="text-sm text-red-400">{oauthBanner}</p>
+        ) : null}
       </form>
 
       {/* 구분선 */}
@@ -175,7 +198,11 @@ const LoginForm = () => {
       </div>
 
       {/* Google 로그인 */}
-      <GoogleSignInButton />
+      <GoogleSignInButton
+        postAuthRedirect={safeInternalRedirectPath(
+          searchParams.get("redirect"),
+        )}
+      />
 
       {/* 회원가입 링크 */}
       <p className="text-center text-sm text-gray-500 pt-4">
