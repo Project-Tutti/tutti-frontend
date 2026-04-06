@@ -21,27 +21,28 @@ const INITIAL_VERSION_NAME = "v1";
  */
 
 export const useCreateProjectMutation = () => {
-  const { tracks, uploadedFile, selectedInstrument, trackMappings } = useMidiStore();
+  const { tracks, uploadedFile, selectedInstrument, trackMappings, noteRange } = useMidiStore();
+  const DROP_CATEGORY_PROGRAM = 129;
 
   const instrumentId = useMemo(() => {
     if (!selectedInstrument) return null;
 
-    // InstrumentOrbit은 id를 문자열로 보관하고, INSTRUMENT_OPTIONS는 id(숫자 프로그램 ID)를 보관합니다.
-    // 현재 UI의 orbit id: violin | oboe | flute
-    //
-    // TODO: 악기 옵션(INSTRUMENT_OPTIONS)은 나중에 API로 받게 되면,
-    // selectedInstrument와 옵션 간 매핑 로직도 API 응답 기준으로 교체할 예정입니다.
+    // 홈 궤도: 카테고리 API의 representativeProgram을 문자열 id로 저장
+    const n = Number(selectedInstrument);
+    if (Number.isFinite(n) && selectedInstrument.trim() !== "") {
+      return n;
+    }
+
+    // 구버전/로컬스토리지: violin | oboe | flute
     const orbitToInstrumentId: Record<string, number> = {
       violin: 40,
       oboe: 68,
       flute: 73,
     };
-
     if (orbitToInstrumentId[selectedInstrument] != null) {
       return orbitToInstrumentId[selectedInstrument];
     }
 
-    // 혹시 UI 값이 label과 직접 매칭되는 경우를 위해 fallback
     const matchedByLabel = INSTRUMENT_OPTIONS.find(
       (opt) => opt.label.toLowerCase() === selectedInstrument.toLowerCase(),
     );
@@ -66,6 +67,7 @@ export const useCreateProjectMutation = () => {
         name: fileBaseName || "project",
         versionName: INITIAL_VERSION_NAME,
         instrumentId,
+        ...(noteRange && { minNote: noteRange.min, maxNote: noteRange.max }),
         tracks: tracks.map((track, index) => ({
           trackIndex: index,
           sourceInstrumentId: track.sourceInstrumentId,
@@ -73,7 +75,10 @@ export const useCreateProjectMutation = () => {
         mappings: tracks.map((track, index) => ({
           trackIndex: index,
           targetInstrumentId:
-            trackMappings[track.id] ?? track.sourceInstrumentId,
+            trackMappings[track.id] ??
+            (track.isDropListProgram
+              ? DROP_CATEGORY_PROGRAM
+              : track.sourceInstrumentId),
         })),
       };
 

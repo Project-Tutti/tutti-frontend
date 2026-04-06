@@ -10,12 +10,14 @@ import TrackGrid from "@/components/before-create/TrackGrid";
 import TrackModal from "@/components/before-create/TrackModal";
 import AnalysisInfo from "@/components/before-create/AnalysisInfo";
 import HeaderContent from "@/components/before-create/HeaderContent";
+import InstrumentInfoPanel from "@/components/before-create/InstrumentInfoPanel";
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
 import { Track } from "@/types/track";
 import { useCreateProjectMutation } from "@api/midi/hooks/mutations/useCreateProjectMutation";
 import { ApiError } from "@/common/errors/ApiError";
 import { useRegenerateProjectMutation } from "@api/project/hooks/mutations/useRegenerateProjectMutation";
 import { useProjectQuery } from "@api/project/hooks/queries/useProjectQuery";
+import { useInstrumentCategoriesQuery } from "@api/instruments/hooks/queries/useInstrumentCategoriesQuery";
 
 const TRACKS_PER_PAGE = 8;
 
@@ -47,6 +49,10 @@ const BeforeCreatePage = () => {
   const createProjectMutation = useCreateProjectMutation();
   const regenerateMutation = useRegenerateProjectMutation();
   const projectQuery = useProjectQuery(parsedRegenerateProjectId, isRegenerateMode);
+
+  const shouldPrefetchInstrumentCategories =
+    hasHydrated && tracks.length > 0;
+  useInstrumentCategoriesQuery(shouldPrefetchInstrumentCategories);
 
   const nextVersionName = useMemo(() => {
     if (!isRegenerateMode) return "v1";
@@ -164,9 +170,9 @@ const BeforeCreatePage = () => {
 
   if (!hasHydrated) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#05070a]">
-        <Spinner size="md" />
-        <p className="text-gray-400 text-sm">불러오는 중…</p>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-2 bg-[#05070a]">
+        <Spinner size="sm" />
+        <p className="text-gray-400 text-xs">불러오는 중…</p>
       </div>
     );
   }
@@ -174,13 +180,13 @@ const BeforeCreatePage = () => {
   if (tracks.length === 0) return null;
 
   return (
-    <div className="min-h-screen flex flex-row overflow-x-hidden">
+    <div className="h-screen flex flex-row overflow-hidden">
       <Sidebar
         isCollapsed={isSidebarCollapsed}
         onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
 
-      <div className="grow flex flex-col min-h-screen">
+      <div className="grow flex flex-col h-screen overflow-hidden">
         <Header
           onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           isSidebarCollapsed={isSidebarCollapsed}
@@ -189,17 +195,15 @@ const BeforeCreatePage = () => {
           rightContent={<HeaderContent trackCount={tracks.length} />}
         />
 
-        <main className="grow flex flex-col bg-[#05070a] p-4 md:p-8 overflow-y-auto">
-          {/* 타이틀 */}
-          <div className="max-w-5xl mx-auto w-full mb-8 md:mb-10 text-center">
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3 text-white">
-              Identified Tracks
-            </h1>
-            <p className="text-gray-400 text-sm md:text-base max-w-lg mx-auto">
+        <main className="grow flex flex-col bg-[#05070a] p-3 md:p-6 overflow-hidden">
+          {/* 상단: 파일명 안내 + 악기/음역대 패널 */}
+          <div className="max-w-3xl mx-auto w-full mb-3 md:mb-4 space-y-2.5">
+            <p className="text-gray-500 text-[10px] md:text-[11px] text-center">
               {uploadedFile
-                ? `"${uploadedFile.name}" 분석이 완료되었습니다. 발견된 트랙들을 확인하세요.`
-                : "파일 분석이 완료되었습니다. 발견된 트랙들을 확인하세요."}
+                ? `"${uploadedFile.name}" 분석 완료 · ${tracks.length} tracks`
+                : `분석 완료 · ${tracks.length} tracks`}
             </p>
+            <InstrumentInfoPanel />
           </div>
 
           {/* 트랙 그리드 */}
@@ -231,7 +235,7 @@ const BeforeCreatePage = () => {
           />
 
           {createError && (
-            <p className="mt-4 text-sm text-red-400 text-center">
+            <p className="mt-3 text-xs text-red-400 text-center">
               {createError}
             </p>
           )}
