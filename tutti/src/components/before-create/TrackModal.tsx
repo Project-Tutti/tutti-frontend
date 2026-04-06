@@ -60,7 +60,7 @@ const TrackModal = ({ isOpen, track, onClose }: TrackModalProps) => {
         : track.sourceInstrumentId);
     setInputValue(String(initialId));
     setSearchText("");
-  }, [trackId, isOpen, track]);
+  }, [track, isOpen]);
 
   const filteredOptions = useMemo(() => {
     const query = searchText.trim().toLowerCase();

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 
 import type { GeneratableInstrumentCategoryDto } from "@api/instruments/types/api.types";
@@ -34,7 +35,7 @@ const InstrumentDetailOverlay = ({
 
   const icon = INSTRUMENT_GROUP_ICON[category.name] ?? "music_note";
 
-  return (
+  return createPortal(
     <motion.div
       className="fixed inset-0 z-50 flex items-center justify-center px-4"
       initial={{ opacity: 0 }}
@@ -145,7 +146,8 @@ const InstrumentDetailOverlay = ({
         {/* bottom padding */}
         <div className="h-1" />
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    document.body,
   );
 };
 

@@ -27,7 +27,7 @@ const InstrumentSelector = ({
   onFileUpload,
   isFileUploaded,
 }: InstrumentSelectorProps) => {
-  const { data: categories, isPending } =
+  const { data: categories, isFetching, isPending } =
     useGeneratableInstrumentCategoriesQuery();
   const [expandedCategoryIdx, setExpandedCategoryIdx] = useState<
     number | null
@@ -98,7 +98,7 @@ const InstrumentSelector = ({
       <UploadCenter onFileUpload={onFileUpload} isUploaded={isFileUploaded} />
 
       {/* category cards — 대각선(◇) 배치, 궤도 위에 위치 */}
-      {isPending ? (
+      {isPending && !categories ? (
         <div className="absolute top-4 left-1/2 -translate-x-1/2">
           <Spinner size="sm" label="악기 불러오는 중…" />
         </div>
