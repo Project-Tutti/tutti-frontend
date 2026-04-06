@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Modal from "@/components/common/Modal";
 
 import { useLibraryListInfiniteQuery } from "@api/library/hooks/queries/useLibraryListInfiniteQuery";
+import { useGeneratableInstrumentCategoriesQuery } from "@api/instruments/hooks/queries/useGeneratableInstrumentCategoriesQuery";
 import { useDeleteProjectMutation } from "@api/project/hooks/mutations/useDeleteProjectMutation";
 import { usePatchProjectNameMutation } from "@api/project/hooks/mutations/usePatchProjectNameMutation";
 import { useUser } from "@features/auth/hooks/useAuthStore";
@@ -28,6 +29,8 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
 
   const deleteProjectMutation = useDeleteProjectMutation();
   const patchProjectNameMutation = usePatchProjectNameMutation();
+
+  useGeneratableInstrumentCategoriesQuery();
 
   const [openMenuProjectId, setOpenMenuProjectId] = useState<number | null>(
     null,
@@ -144,13 +147,14 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
   return (
     <aside
       className={`
-        bg-[#0a0c10] border-r border-[#1e293b] flex flex-col h-screen sticky top-0 
+        bg-[#0a0c10] border-r border-[#1e293b] flex flex-col
+        h-screen max-h-screen sticky top-0 shrink-0
         transition-all duration-300 ease-in-out z-60
-        ${isCollapsed ? "w-0 border-r-0" : "w-60"}
+        ${isCollapsed ? "w-0 border-r-0" : "w-52"}
       `}
       style={{ overflow: isCollapsed ? "hidden" : "visible" }}
     >
-      <div className="p-3 border-b border-[#1e293b] flex items-center justify-between min-w-[240px]">
+      <div className="p-2.5 border-b border-[#1e293b] flex items-center justify-between min-w-[208px]">
         <Link
           href="/home"
           className="flex items-center gap-2 focus:outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6]/60 rounded-lg"
@@ -160,12 +164,12 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
             setRenamingProjectId(null);
           }}
         >
-          <div className="bg-[#3b82f6] p-1 rounded-lg">
-            <span className="material-symbols-outlined text-white text-lg">
+          <div className="bg-[#3b82f6] p-0.5 rounded-md">
+            <span className="material-symbols-outlined text-white text-sm">
               graphic_eq
             </span>
           </div>
-          <span className="text-base font-bold tracking-tight text-white">
+          <span className="text-sm font-bold tracking-tight text-white">
             Harmonix
           </span>
         </Link>
@@ -174,7 +178,7 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
           className="text-gray-500 hover:text-white transition-colors"
           aria-label="Toggle sidebar"
         >
-          <span className="material-symbols-outlined text-lg">
+          <span className="material-symbols-outlined text-base">
             side_navigation
           </span>
         </button>
@@ -182,7 +186,7 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
 
       <div
         ref={scrollRef}
-        className="grow flex flex-col p-3 space-y-5 overflow-y-auto min-w-[240px] min-h-0"
+        className="grow flex flex-col p-2.5 space-y-4 overflow-y-auto min-w-[208px] min-h-0"
       >
         <Modal
           isOpen={deleteConfirmProject != null}
@@ -190,21 +194,21 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
           title="프로젝트 삭제"
         >
           <div className="space-y-4">
-            <p className="text-sm text-gray-300">
+            <p className="text-xs text-gray-300">
               정말로{" "}
               <span className="text-white font-semibold">
                 {deleteConfirmProject?.name ?? ""}
               </span>
               을(를) 삭제할까요?
             </p>
-            <p className="text-xs text-gray-500">
+            <p className="text-[11px] text-gray-500">
               삭제하면 프로젝트의 모든 버전과 파일이 함께 삭제됩니다.
             </p>
             <div className="flex justify-end gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setDeleteConfirmProject(null)}
-                className="px-4 py-2 rounded-lg text-sm font-semibold bg-[#1e293b] text-gray-200 hover:bg-[#334155] transition-colors"
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#1e293b] text-gray-200 hover:bg-[#334155] transition-colors"
                 disabled={deleteProjectMutation.isPending}
               >
                 취소
@@ -212,7 +216,7 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
               <button
                 type="button"
                 onClick={() => void runDelete()}
-                className="px-4 py-2 rounded-lg text-sm font-semibold bg-red-600 text-white hover:bg-red-500 transition-colors disabled:opacity-50"
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-600 text-white hover:bg-red-500 transition-colors disabled:opacity-50"
                 disabled={deleteProjectMutation.isPending}
               >
                 {deleteProjectMutation.isPending ? "삭제 중…" : "삭제"}
@@ -231,7 +235,7 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
               className="text-gray-500 hover:text-[#3b82f6] transition-colors"
               aria-label="새 프로젝트"
             >
-              <span className="material-symbols-outlined text-base">
+              <span className="material-symbols-outlined text-sm">
                 add_circle
               </span>
             </Link>
@@ -257,7 +261,7 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
             {projects.map((item) => (
               <div
                 key={item.projectId}
-                className="group relative flex items-center gap-2 px-2 py-2 rounded-lg sidebar-item hover:bg-white/5 transition-colors"
+                className="group relative flex items-center gap-1.5 px-2 py-1.5 rounded-lg sidebar-item hover:bg-white/5 transition-colors"
                 onMouseLeave={() => {
                   if (openMenuProjectId === item.projectId) closeMenus();
                 }}
@@ -276,13 +280,13 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
                       }
                     }}
                     onBlur={() => setRenamingProjectId(null)}
-                    className="w-full bg-[#05070a] border border-[#1e293b] rounded-md px-2 py-1 text-[13px] text-gray-100 focus:outline-none focus:border-[#3b82f6]"
+                    className="w-full bg-[#05070a] border border-[#1e293b] rounded-md px-1.5 py-0.5 text-[11px] text-gray-100 focus:outline-none focus:border-[#3b82f6]"
                     disabled={patchProjectNameMutation.isPending}
                   />
                 ) : (
                   <Link
                     href={`/library/${item.projectId}?name=${encodeURIComponent(item.name)}`}
-                    className="block min-w-0 flex-1 text-left text-[13px] leading-snug text-gray-300 hover:text-white transition-colors truncate"
+                    className="block min-w-0 flex-1 text-left text-[11px] leading-snug text-gray-300 hover:text-white transition-colors truncate"
                   >
                     {item.name}
                   </Link>
@@ -300,13 +304,13 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
                   }}
                   className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-white"
                 >
-                  <span className="material-symbols-outlined text-lg">
+                  <span className="material-symbols-outlined text-sm">
                     more_horiz
                   </span>
                 </button>
 
                 {openMenuProjectId === item.projectId && (
-                  <div className="absolute right-2 top-9 z-[70] w-40 rounded-xl border border-[#1e293b] bg-[#0f1218] shadow-xl overflow-hidden">
+                  <div className="absolute right-2 top-8 z-70 w-36 rounded-xl border border-[#1e293b] bg-[#0f1218] shadow-xl overflow-hidden">
                     <button
                       type="button"
                       onClick={(e) => {
@@ -314,9 +318,9 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
                         e.stopPropagation();
                         startRename(item.projectId, item.name);
                       }}
-                      className="w-full text-left px-3 py-2 text-xs text-gray-200 hover:bg-white/5 transition-colors flex items-center gap-2"
+                      className="w-full text-left px-2.5 py-1.5 text-[11px] text-gray-200 hover:bg-white/5 transition-colors flex items-center gap-1.5"
                     >
-                      <span className="material-symbols-outlined text-base">
+                      <span className="material-symbols-outlined text-sm">
                         edit
                       </span>
                       이름 바꾸기
@@ -328,9 +332,9 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
                         e.stopPropagation();
                         confirmDelete(item.projectId, item.name);
                       }}
-                      className="w-full text-left px-3 py-2 text-xs text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-2"
+                      className="w-full text-left px-2.5 py-1.5 text-[11px] text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-1.5"
                     >
-                      <span className="material-symbols-outlined text-base">
+                      <span className="material-symbols-outlined text-sm">
                         delete
                       </span>
                       삭제
@@ -353,38 +357,38 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
         </div>
       </div>
 
-      <div className="p-3 border-t border-[#1e293b] space-y-0.5 min-w-[240px]">
+      <div className="p-2.5 border-t border-[#1e293b] space-y-0.5 min-w-[208px]">
         <a
           href="#"
-          className="sidebar-item flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs text-gray-400 hover:text-white transition-colors hover:bg-white/5"
+          className="sidebar-item flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] text-gray-400 hover:text-white transition-colors hover:bg-white/5"
         >
-          <span className="material-symbols-outlined text-base">help</span>
+          <span className="material-symbols-outlined text-sm">help</span>
           <span>Help &amp; Support</span>
         </a>
         <a
           href="#"
-          className="sidebar-item flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs text-gray-400 hover:text-white transition-colors hover:bg-white/5"
+          className="sidebar-item flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] text-gray-400 hover:text-white transition-colors hover:bg-white/5"
         >
-          <span className="material-symbols-outlined text-base">settings</span>
+          <span className="material-symbols-outlined text-sm">settings</span>
           <span>Settings</span>
         </a>
 
-        <div className="mt-3 flex items-center gap-2 px-2 py-1.5 min-w-0">
+        <div className="mt-2 flex items-center gap-1.5 px-2 py-1 min-w-0">
           {user?.avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={user.avatarUrl}
               alt=""
-              className="h-7 w-7 rounded-full border border-white/20 object-cover shrink-0"
+              className="h-6 w-6 rounded-full border border-white/20 object-cover shrink-0"
             />
           ) : (
-            <div className="h-7 w-7 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 border border-white/20 shrink-0" />
+            <div className="h-6 w-6 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 border border-white/20 shrink-0" />
           )}
           <div className="flex flex-col min-w-0">
-            <span className="text-xs font-medium text-white truncate">
+            <span className="text-[11px] font-medium text-white truncate">
               {user?.name ?? "—"}
             </span>
-            <span className="text-[9px] text-gray-500 font-bold tracking-tighter truncate">
+            <span className="text-[8px] text-gray-500 font-bold tracking-tighter truncate">
               {user?.email ?? ""}
             </span>
           </div>
