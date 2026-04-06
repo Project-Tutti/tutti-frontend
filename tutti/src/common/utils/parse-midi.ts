@@ -1,7 +1,11 @@
 import { Midi } from "@tonejs/midi";
 import { Track } from "@/types/track";
+import {
+  INSTRUMENT_GROUP_ICON,
+  resolveInstrumentForTrack,
+} from "@features/midi-create/constants/instrument-grouping";
 
-// GM(General MIDI) 악기 번호 → Material Symbol 아이콘 매핑
+// GM(General MIDI) 악기 패밀리 → Material Symbol 아이콘 (그룹 미매칭 시)
 const getIconByFamily = (family: string): string => {
   const familyMap: Record<string, string> = {
     piano: "piano",
@@ -35,31 +39,65 @@ export const parseMidiFile = async (file: File): Promise<Track[]> => {
 
   const tempo = midi.header.tempos?.[0]?.bpm ?? 120;
 
-  return midi.tracks
-    .filter((track) => track.notes.length > 0)
-    .map((track, index) => {
-      // GM 표준 드럼 채널은 MIDI 1-based 10번 = @tonejs/midi 의 0-based 채널 9
-      const isDrumChannel = track.channel === 9;
-      const instrumentName = isDrumChannel
-        ? "Drum Kit"
-        : track.instrument.name || "Unknown";
-      const instrumentFamily = isDrumChannel
-        ? "percussive"
-        : track.instrument.family || "unknown";
-      const sourceInstrumentId = isDrumChannel ? 128 : track.instrument.number;
+  const tracksWithNotes = midi.tracks.filter((track) => track.notes.length > 0);
 
-      const tags: string[] = [];
-      if (tempo) tags.push(`${Math.round(tempo)} BPM`);
+  const result: Track[] = [];
+  let outIndex = 0;
 
-      return {
-        id: `track-${index}`,
-        name: track.name || `Track ${index + 1}`,
-        icon: isDrumChannel ? "album" : getIconByFamily(instrumentFamily),
-        instrumentType: formatInstrumentType(instrumentName),
-        sourceInstrumentId,
-        channel: track.channel ?? index,
+  for (const track of tracksWithNotes) {
+    const isDrumChannel = track.channel === 9;
+    const rawProgram = track.instrument.number;
+    const midiName = track.instrument.name || undefined;
+
+    const resolved = resolveInstrumentForTrack(
+      rawProgram,
+      isDrumChannel,
+      midiName,
+    );
+
+    const instrumentFamily = isDrumChannel
+      ? "percussive"
+      : track.instrument.family || "unknown";
+
+    const tags: string[] = [];
+    if (tempo) tags.push(`${Math.round(tempo)} BPM`);
+
+    if (resolved.kind === "drop") {
+      result.push({
+        id: `track-${outIndex}`,
+        name: track.name || `Track ${outIndex + 1}`,
+        icon: "block",
+        instrumentType: "Drop",
+        sourceInstrumentId: resolved.rawProgram,
+        isDropListProgram: true,
+        channel: track.channel ?? outIndex,
         tags,
         noteCount: track.notes.length,
-      } satisfies Track;
+      });
+      outIndex += 1;
+      continue;
+    }
+
+    const sourceInstrumentId = resolved.representative;
+    const instrumentType = formatInstrumentType(resolved.displayName);
+
+    const icon =
+      resolved.kind === "grouped"
+        ? (INSTRUMENT_GROUP_ICON[resolved.groupKey] ?? "music_note")
+        : getIconByFamily(instrumentFamily);
+
+    result.push({
+      id: `track-${outIndex}`,
+      name: track.name || `Track ${outIndex + 1}`,
+      icon,
+      instrumentType,
+      sourceInstrumentId,
+      channel: track.channel ?? outIndex,
+      tags,
+      noteCount: track.notes.length,
     });
+    outIndex += 1;
+  }
+
+  return result;
 };

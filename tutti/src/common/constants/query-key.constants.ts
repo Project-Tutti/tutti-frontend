@@ -21,6 +21,12 @@ const queryKeys = createQueryKeyStore({
     list: (params: GetLibraryListRequestDto) => [params],
     infiniteList: (params: GetLibraryListInfiniteRequestDto) => [params],
   },
+  instruments: {
+    all: null,
+    /** query-key-factory는 최소 1개의 key segment가 필요함 */
+    categories: () => ["list"],
+    generatableCategories: () => ["generatable"],
+  },
   project: {
     all: null,
     /** 캐시 키 충돌 방지: 항상 string으로 통일 */
