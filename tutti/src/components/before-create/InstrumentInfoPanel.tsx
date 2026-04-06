@@ -34,9 +34,8 @@ const InstrumentInfoPanel = () => {
 
   useEffect(() => {
     if (!instrumentInfo) return;
-    if (noteRange != null) return;
     setNoteRange({ min: instrumentInfo.defaultMin, max: instrumentInfo.defaultMax });
-  }, [instrumentInfo, noteRange, setNoteRange]);
+  }, [instrumentInfo, setNoteRange]);
 
   const handleMinChange = useCallback(
     (v: number) => {
