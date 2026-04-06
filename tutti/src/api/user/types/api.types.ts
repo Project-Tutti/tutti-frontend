@@ -39,6 +39,13 @@ export interface LoginRequestDto {
   password: string;
 }
 
+export interface SocialLoginRequestDto {
+  provider: "google";
+  code: string;
+  /** Google 인가 요청에 사용한 redirect_uri와 동일해야 토큰 교환이 성공함 */
+  redirectUri: string;
+}
+
 export type GetUserInfoResponseDto = AuthUserResponseDto;
 
 export type SignupResponseDto = LoginResponseDto;

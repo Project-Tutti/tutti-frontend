@@ -1,14 +1,60 @@
+"use client";
+
+import { useState } from "react";
+
+import {
+  buildGoogleOAuthAuthorizeUrl,
+  getGoogleOAuthRedirectUri,
+  GOOGLE_OAUTH_REDIRECT_KEY,
+  GOOGLE_OAUTH_STATE_KEY,
+} from "@common/utils/google-oauth.utils";
+import { safeInternalRedirectPath } from "@common/utils/safe-internal-path.utils";
+
 interface GoogleSignInButtonProps {
   text?: string;
+  /** 로그인 성공 후 이동할 내부 경로 (예: /home, ?redirect= 연동) */
+  postAuthRedirect?: string;
 }
 
-const GoogleSignInButton = ({ text = 'Sign in with Google' }: GoogleSignInButtonProps) => {
+const GoogleSignInButton = ({
+  text = "Sign in with Google",
+  postAuthRedirect = "/home",
+}: GoogleSignInButtonProps) => {
+  const [startError, setStartError] = useState<string | null>(null);
+
+  const handleClick = () => {
+    setStartError(null);
+    try {
+      const state = crypto.randomUUID();
+      const redirectPath = safeInternalRedirectPath(postAuthRedirect);
+      sessionStorage.setItem(GOOGLE_OAUTH_STATE_KEY, state);
+      sessionStorage.setItem(GOOGLE_OAUTH_REDIRECT_KEY, redirectPath);
+
+      const redirectUri = getGoogleOAuthRedirectUri();
+      if (!redirectUri) {
+        throw new Error("브라우저에서만 Google 로그인을 시작할 수 있습니다.");
+      }
+      window.location.href = buildGoogleOAuthAuthorizeUrl(redirectUri, state);
+    } catch (e) {
+      if (process.env.NODE_ENV === "development") {
+        console.error(e);
+      }
+      setStartError(
+        e instanceof Error
+          ? e.message
+          : "Google 로그인을 시작할 수 없습니다.",
+      );
+    }
+  };
+
   return (
+    <div className="w-full space-y-2">
     <button
       type="button"
+      onClick={handleClick}
       className="w-full flex items-center justify-center gap-3 bg-[#0f1218] border border-[#1e293b] hover:border-gray-500 py-3 rounded-xl transition-all"
     >
-      <svg className="w-5 h-5" viewBox="0 0 24 24">
+      <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden>
         <path
           d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
           fill="#4285F4"
@@ -28,6 +74,12 @@ const GoogleSignInButton = ({ text = 'Sign in with Google' }: GoogleSignInButton
       </svg>
       <span className="text-sm font-semibold text-gray-300">{text}</span>
     </button>
+    {startError ? (
+      <p className="text-sm text-red-400 text-center" role="alert">
+        {startError}
+      </p>
+    ) : null}
+    </div>
   );
 };
 
