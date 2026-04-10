@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Modal from "@/components/common/Modal";
+import TuttiIcon from "@/assets/Icon/TUTTI_180px.webp";
 
 import { useLibraryListInfiniteQuery } from "@api/library/hooks/queries/useLibraryListInfiniteQuery";
 import { useGeneratableInstrumentCategoriesQuery } from "@api/instruments/hooks/queries/useGeneratableInstrumentCategoriesQuery";
@@ -157,21 +159,23 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
       <div className="p-2.5 border-b border-[#1e293b] flex items-center justify-between min-w-[208px]">
         <Link
           href="/home"
-          className="flex items-center gap-2 focus:outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6]/60 rounded-lg"
+          className="flex items-center justify-start focus:outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6]/60 rounded-lg"
           aria-label="홈으로 이동"
           onClick={() => {
             closeMenus();
             setRenamingProjectId(null);
           }}
         >
-          <div className="bg-[#3b82f6] p-0.5 rounded-md">
-            <span className="material-symbols-outlined text-white text-sm">
-              graphic_eq
-            </span>
+          <div className="relative h-9 w-[100px] ml-1">
+            <Image
+              src={TuttiIcon}
+              alt="tutti"
+              fill
+              sizes="100px"
+              className="object-contain object-left"
+              priority
+            />
           </div>
-          <span className="text-sm font-bold tracking-tight text-white">
-            Harmonix
-          </span>
         </Link>
         <button
           onClick={onToggle}
