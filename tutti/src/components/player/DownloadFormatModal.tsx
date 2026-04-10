@@ -134,8 +134,8 @@ export default function DownloadFormatModal({
             id="download-format-title"
             className="text-base font-semibold tracking-tight text-white"
           >
-            다운로드 파일{" "}
-            <span className="text-[#93c5fd]/95">형식 선택</span>하기
+            다운로드 파일 <span className="text-[#93c5fd]/95">형식 선택</span>
+            하기
           </h2>
           <p className="mt-2 text-sm text-gray-500">
             다운로드하고자 하시는 파일의 형식을{" "}

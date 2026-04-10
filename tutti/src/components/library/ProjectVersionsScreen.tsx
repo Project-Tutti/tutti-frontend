@@ -44,8 +44,7 @@ function mapVersionsToRows(
 ): VersionRow[] {
   if (!versions.length) return [];
   const sorted = [...versions].sort(
-    (a, b) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
   const masterId = sorted[0]?.versionId;
   const n = sorted.length;
@@ -366,9 +365,7 @@ const ProjectVersionsScreen = () => {
         onClose={() => setDeleteTarget(null)}
         title="버전 삭제"
       >
-        <p className="text-sm text-gray-200 mb-2">
-          정말 이 버전을 삭제할까요?
-        </p>
+        <p className="text-sm text-gray-200 mb-2">정말 이 버전을 삭제할까요?</p>
         <p className="text-xs text-gray-500 mb-6 truncate">
           {deleteTarget?.versionLabel}
         </p>

@@ -32,9 +32,7 @@ function PlayerDownloadEntryInner({ mode }: { mode: PlayerDownloadEntryMode }) {
   }
 
   const onClose =
-    mode === "intercept"
-      ? () => router.back()
-      : () => router.push("/player");
+    mode === "intercept" ? () => router.back() : () => router.push("/player");
 
   const modal = (
     <DownloadFormatModal
@@ -66,7 +64,11 @@ const suspenseFallback = (mode: PlayerDownloadEntryMode) =>
     </div>
   );
 
-export function PlayerDownloadEntry({ mode }: { mode: PlayerDownloadEntryMode }) {
+export function PlayerDownloadEntry({
+  mode,
+}: {
+  mode: PlayerDownloadEntryMode;
+}) {
   return (
     <Suspense fallback={suspenseFallback(mode)}>
       <PlayerDownloadEntryInner mode={mode} />
