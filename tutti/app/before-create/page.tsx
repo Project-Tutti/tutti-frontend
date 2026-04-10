@@ -215,10 +215,6 @@ const BeforeCreatePage = () => {
     [sseReset],
   );
 
-  const handleRetrySSE = useCallback(() => {
-    sseRetry();
-  }, [sseRetry]);
-
   const handleCancelSSE = useCallback(() => {
     sseReset();
     setSseProjectId(null);
@@ -387,7 +383,7 @@ const BeforeCreatePage = () => {
       {/* 생성 진행률 오버레이 */}
       <GenerationProgressOverlay
         state={sseOverlayState}
-        onRetry={handleRetrySSE}
+        onRetry={sseRetry}
         onCancel={handleCancelSSE}
       />
     </div>

@@ -130,6 +130,8 @@ export function useProjectStatusSSE(
     abortRef.current = controller;
 
     (async () => {
+      let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
+
       try {
         const res = await fetchSSE(url, controller.signal);
 
@@ -142,7 +144,7 @@ export function useProjectStatusSSE(
           return;
         }
 
-        const reader = res.body?.getReader();
+        reader = res.body?.getReader() ?? null;
         if (!reader) {
           setState((prev) => ({
             ...prev,
@@ -156,14 +158,7 @@ export function useProjectStatusSSE(
         let buffer = "";
         let currentEventType = "";
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = parseSseLines(buffer);
-          buffer = lines.pop() ?? "";
-
+        const processLines = (lines: string[]): boolean => {
           for (const line of lines) {
             if (line === "") {
               currentEventType = "";
@@ -195,7 +190,7 @@ export function useProjectStatusSSE(
                   isFailed: true,
                 }));
                 close();
-                return;
+                return true;
               }
 
               const { status, progress } = parsed.result;
@@ -210,14 +205,36 @@ export function useProjectStatusSSE(
 
               if (status === "complete" || status === "failed") {
                 close();
-                return;
+                return true;
               }
             } catch {
               // malformed JSON — skip
             }
           }
+          return false;
+        };
+
+        while (true) {
+          const { done, value } = await reader.read();
+
+          if (value) {
+            buffer += decoder.decode(value, { stream: true });
+            const lines = parseSseLines(buffer);
+            buffer = lines.pop() ?? "";
+            if (processLines(lines)) return;
+          }
+
+          if (done) {
+            buffer += decoder.decode(undefined, { stream: false });
+            const tailLines = parseSseLines(buffer);
+            if (processLines(tailLines)) return;
+            break;
+          }
         }
       } catch (err: unknown) {
+        if (reader) {
+          void reader.cancel().catch(() => {});
+        }
         if (err instanceof DOMException && err.name === "AbortError") return;
 
         const message =
