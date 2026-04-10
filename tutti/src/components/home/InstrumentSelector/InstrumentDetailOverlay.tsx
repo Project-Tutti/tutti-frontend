@@ -11,7 +11,7 @@ import { midiToNoteName } from "@common/utils/midi-utils";
 interface InstrumentDetailOverlayProps {
   category: GeneratableInstrumentCategoryDto;
   currentSelection: number | null;
-  onSelect: (midiProgram: number) => void;
+  onSelect: (midiProgram: number, name: string) => void;
   onClose: () => void;
 }
 
@@ -102,7 +102,7 @@ const InstrumentDetailOverlay = ({
             return (
               <motion.button
                 key={inst.midiProgram}
-                onClick={() => onSelect(inst.midiProgram)}
+                onClick={() => onSelect(inst.midiProgram, inst.name)}
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{

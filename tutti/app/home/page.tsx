@@ -1,16 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/common/Sidebar";
 import Header from "@/components/common/Header";
 import StepProgress from "@/components/home/upload/StepProgress";
 import InstrumentSelector from "@/components/home/InstrumentSelector/InstrumentSelector";
 import Footer from "@/components/common/Footer";
-import { COMMON_STYLES } from "@/constants/styles";
 import { parseMidiFile } from "@common/utils/parse-midi";
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
-import { useGeneratableInstrumentCategoriesQuery } from "@api/instruments/hooks/queries/useGeneratableInstrumentCategoriesQuery";
 
 const HomePage = () => {
   const router = useRouter();
@@ -21,31 +19,20 @@ const HomePage = () => {
     setUploadedFile: setStoreFile,
   } = useMidiStore();
 
-  const { data: categories } = useGeneratableInstrumentCategoriesQuery();
-
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
-
-  const selectedInstrumentName = useMemo(() => {
-    if (selectedInstrument == null || !categories) return null;
-    for (const cat of categories) {
-      for (const inst of cat.instruments) {
-        if (inst.midiProgram === selectedInstrument) return inst.name;
-      }
-    }
-    return null;
-  }, [selectedInstrument, categories]);
+  const [selectedInstrumentName, setSelectedInstrumentName] = useState<string | null>(null);
 
   const handleToggleSidebar = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
   };
 
-  const handleInstrumentSelect = (midiProgram: number) => {
-    setSelectedInstrument(
-      selectedInstrument === midiProgram ? null : midiProgram,
-    );
+  const handleInstrumentSelect = (midiProgram: number, name: string) => {
+    const isDeselect = selectedInstrument === midiProgram;
+    setSelectedInstrument(isDeselect ? null : midiProgram);
+    setSelectedInstrumentName(isDeselect ? null : name);
   };
 
   const handleFileUpload = (file: File) => {

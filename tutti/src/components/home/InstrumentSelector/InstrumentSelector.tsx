@@ -16,7 +16,7 @@ const START_ANGLE = -(Math.PI * 3) / 4;
 
 interface InstrumentSelectorProps {
   selectedInstrument: number | null;
-  onInstrumentSelect: (midiProgram: number) => void;
+  onInstrumentSelect: (midiProgram: number, name: string) => void;
   onFileUpload: (file: File) => void;
   isFileUploaded: boolean;
 }
@@ -78,13 +78,13 @@ const InstrumentSelector = ({
 
         {/* 각 카드 위치에 작은 점(노드) */}
         {count > 0 &&
-          safeCategories.map((_, idx) => {
+          safeCategories.map((cat, idx) => {
             const angle = (idx / count) * Math.PI * 2 + START_ANGLE;
             const cx = 50 + Math.cos(angle) * ORBIT_RADIUS_PCT;
             const cy = 50 + Math.sin(angle) * ORBIT_RADIUS_PCT;
             return (
               <circle
-                key={idx}
+                key={cat.representativeProgram ?? idx}
                 cx={cx}
                 cy={cy}
                 r="1"
@@ -138,8 +138,8 @@ const InstrumentSelector = ({
             <InstrumentDetailOverlay
               category={safeCategories[expandedCategoryIdx]}
               currentSelection={selectedInstrument}
-              onSelect={(midiProgram) => {
-                onInstrumentSelect(midiProgram);
+              onSelect={(midiProgram, name) => {
+                onInstrumentSelect(midiProgram, name);
                 setExpandedCategoryIdx(null);
               }}
               onClose={() => setExpandedCategoryIdx(null)}
