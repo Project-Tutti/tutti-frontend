@@ -19,6 +19,9 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-inter)", "Inter", "sans-serif"],
       },
+      zIndex: {
+        100: "100",
+      },
       boxShadow: {
         glow: "0 0 20px rgba(59, 130, 246, 0.5)",
         "glow-lg": "0 0 30px rgba(59, 130, 246, 0.4)",

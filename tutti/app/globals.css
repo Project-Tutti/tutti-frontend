@@ -14,6 +14,8 @@
   --color-background: var(--bg-deep);
   --color-foreground: #f8fafc;
   --font-sans: var(--font-inter);
+  /* 모달·진행 오버레이가 헤더/사이드바 위에 오도록 */
+  --z-100: 100;
 }
 
 body {

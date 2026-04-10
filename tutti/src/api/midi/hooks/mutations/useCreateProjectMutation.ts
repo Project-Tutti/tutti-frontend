@@ -19,8 +19,15 @@ const INITIAL_VERSION_NAME = "v1";
  */
 
 export const useCreateProjectMutation = () => {
-  const { tracks, uploadedFile, selectedInstrument, trackMappings, noteRange, genre, freedom } =
-    useMidiStore();
+  const {
+    tracks,
+    uploadedFile,
+    selectedInstrument,
+    trackMappings,
+    noteRange,
+    genre,
+    freedom,
+  } = useMidiStore();
 
   return useMutation<CreateProjectResponseDto, Error, void>({
     mutationFn: async () => {
@@ -43,26 +50,26 @@ export const useCreateProjectMutation = () => {
       const temperature = freedom ?? 1.0;
 
       const requestPayload: CreateProjectRequestPayloadDto = {
-          instrumentId: selectedInstrument,
-          genre,
-          versionName: INITIAL_VERSION_NAME,
-          minNote,
-          maxNote,
-          mappings: tracks.map((track, index) => ({
-            trackIndex: index,
-            targetInstrumentId:
-              trackMappings[track.id] ??
-              (track.isDropListProgram
-                ? DROP_CATEGORY_PROGRAM
-                : track.sourceInstrumentId),
-          })),
-          tracks: tracks.map((track, index) => ({
-            trackIndex: index,
-            sourceInstrumentId: track.sourceInstrumentId,
-          })),
-          name: fileBaseName || "project",
-          temperature,
-        };
+        instrumentId: selectedInstrument,
+        genre,
+        versionName: INITIAL_VERSION_NAME,
+        minNote,
+        maxNote,
+        mappings: tracks.map((track, index) => ({
+          trackIndex: index,
+          targetInstrumentId:
+            trackMappings[track.id] ??
+            (track.isDropListProgram
+              ? DROP_CATEGORY_PROGRAM
+              : track.sourceInstrumentId),
+        })),
+        tracks: tracks.map((track, index) => ({
+          trackIndex: index,
+          sourceInstrumentId: track.sourceInstrumentId,
+        })),
+        name: fileBaseName || "project",
+        temperature,
+      };
 
       return createProject({
         file: uploadedFile,

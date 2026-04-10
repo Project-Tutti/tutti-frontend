@@ -67,7 +67,25 @@ const BeforeCreatePage = () => {
 
   const createProjectMutation = useCreateProjectMutation();
   const regenerateMutation = useRegenerateProjectMutation();
-  const sseState = useProjectStatusSSE(sseProjectId, sseVersionId);
+  const {
+    reset: sseReset,
+    retry: sseRetry,
+    status: sseStatus,
+    progress: sseProgress,
+    message: sseMessage,
+    error: sseError,
+    isComplete: sseIsComplete,
+    isFailed: sseIsFailed,
+  } = useProjectStatusSSE(sseProjectId, sseVersionId);
+
+  const sseOverlayState = {
+    status: sseStatus,
+    progress: sseProgress,
+    message: sseMessage,
+    error: sseError,
+    isComplete: sseIsComplete,
+    isFailed: sseIsFailed,
+  };
   const hasNavigatedRef = useRef(false);
   const projectQuery = useProjectQuery(parsedRegenerateProjectId, isRegenerateMode);
 
@@ -140,14 +158,14 @@ const BeforeCreatePage = () => {
 
   // SSE complete → player 페이지로 이동
   useEffect(() => {
-    if (!sseState.isComplete) return;
+    if (!sseIsComplete) return;
     if (sseProjectId == null || sseVersionId == null) return;
     if (hasNavigatedRef.current) return;
     hasNavigatedRef.current = true;
     router.push(
       `/player?projectId=${encodeURIComponent(String(sseProjectId))}&versionId=${encodeURIComponent(String(sseVersionId))}`,
     );
-  }, [sseState.isComplete, sseProjectId, sseVersionId, router]);
+  }, [sseIsComplete, sseProjectId, sseVersionId, router]);
 
   // persist 재수화 전에는 tracks가 비어 있어 오인하지 않도록 대기
   useEffect(() => {
@@ -190,22 +208,22 @@ const BeforeCreatePage = () => {
   const startSSE = useCallback(
     (projectId: number, versionId: number) => {
       hasNavigatedRef.current = false;
-      sseState.reset();
+      sseReset();
       setSseProjectId(projectId);
       setSseVersionId(versionId);
     },
-    [sseState],
+    [sseReset],
   );
 
   const handleRetrySSE = useCallback(() => {
-    sseState.retry();
-  }, [sseState]);
+    sseRetry();
+  }, [sseRetry]);
 
   const handleCancelSSE = useCallback(() => {
-    sseState.reset();
+    sseReset();
     setSseProjectId(null);
     setSseVersionId(null);
-  }, [sseState]);
+  }, [sseReset]);
 
   const handleGenerate = async () => {
     setCreateError(null);
@@ -368,7 +386,7 @@ const BeforeCreatePage = () => {
 
       {/* 생성 진행률 오버레이 */}
       <GenerationProgressOverlay
-        state={sseState}
+        state={sseOverlayState}
         onRetry={handleRetrySSE}
         onCancel={handleCancelSSE}
       />

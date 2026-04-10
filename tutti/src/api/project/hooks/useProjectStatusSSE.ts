@@ -9,13 +9,11 @@ import type {
   ProjectStatusType,
 } from "@api/project/types/api.types";
 
-function resolveBaseURL(): string {
-  return (
-    process.env.NEXT_PUBLIC_API_BASE_URL ??
-    process.env.NEXT_PUBLIC_SERVER_API_BASE_URL ??
-    ""
-  );
-}
+const BASE_URL = (
+  process.env.NEXT_PUBLIC_API_BASE_URL ??
+  process.env.NEXT_PUBLIC_SERVER_API_BASE_URL ??
+  ""
+).replace(/\/+$/, "");
 
 export interface ProjectStatusState {
   status: ProjectStatusType | null;
@@ -125,9 +123,8 @@ export function useProjectStatusSSE(
     close();
     setState({ ...INITIAL_STATE, status: "pending", message: "연결 중..." });
 
-    const base = resolveBaseURL().replace(/\/+$/, "");
     const path = PROJECT_API_ENDPOINTS.status(projectId, versionId);
-    const url = `${base}${path}`;
+    const url = `${BASE_URL}${path}`;
 
     const controller = new AbortController();
     abortRef.current = controller;
