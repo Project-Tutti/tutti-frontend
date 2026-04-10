@@ -34,4 +34,7 @@ export const PROJECT_API_ENDPOINTS = {
   /** 특정 버전 악보 MusicXML 본문 (응답은 XML 문자열, JSON 래퍼 없음) */
   score: (projectId: number | string, versionId: number | string) =>
     `/projects/${projectId}/${versionId}/score`,
+  /** SSE 진행률 조회 (`text/event-stream`) */
+  status: (projectId: number | string, versionId: number | string) =>
+    `/projects/${projectId}/${versionId}/status`,
 } as const;

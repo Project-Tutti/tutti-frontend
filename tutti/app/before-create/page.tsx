@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Sidebar from "@/components/common/Sidebar";
 import { Spinner } from "@/components/common/Spinner";
@@ -10,32 +10,50 @@ import TrackGrid from "@/components/before-create/TrackGrid";
 import TrackModal from "@/components/before-create/TrackModal";
 import AnalysisInfo from "@/components/before-create/AnalysisInfo";
 import HeaderContent from "@/components/before-create/HeaderContent";
+import InstrumentInfoPanel from "@/components/before-create/InstrumentInfoPanel";
+import InstrumentSettingsModal from "@/components/before-create/InstrumentSettingsModal";
+import GenerationProgressOverlay from "@/components/before-create/GenerationProgressOverlay";
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
 import { Track } from "@/types/track";
 import { useCreateProjectMutation } from "@api/midi/hooks/mutations/useCreateProjectMutation";
-import { ApiError } from "@/common/errors/ApiError";
 import { useRegenerateProjectMutation } from "@api/project/hooks/mutations/useRegenerateProjectMutation";
 import { useProjectQuery } from "@api/project/hooks/queries/useProjectQuery";
+import { useInstrumentCategoriesQuery } from "@api/instruments/hooks/queries/useInstrumentCategoriesQuery";
+import { useProjectStatusSSE } from "@api/project/hooks/useProjectStatusSSE";
 
 const TRACKS_PER_PAGE = 8;
-
-/** TODO: 생성 API가 projectId / versionId 를 주면 mutate 응답으로 교체 */
-const DEV_PLAYER_PROJECT_ID = 14;
-const DEV_PLAYER_VERSION_ID = 14;
 
 const BeforeCreatePage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { tracks, uploadedFile, trackMappings } = useMidiStore();
+  const {
+    tracks,
+    uploadedFile,
+    trackMappings,
+    genre,
+    selectedInstrument,
+    noteRange,
+    freedom,
+    setSelectedInstrument,
+    setNoteRange,
+    setGenre,
+    setFreedom,
+  } = useMidiStore();
 
   const mode = searchParams.get("mode");
   const isRegenerateMode = mode === "regenerate";
   const regenerateProjectId = searchParams.get("projectId");
+  const regenerateVersionId = searchParams.get("versionId");
   const parsedRegenerateProjectId = useMemo(() => {
     if (!isRegenerateMode) return null;
     const n = regenerateProjectId == null ? NaN : Number(regenerateProjectId);
     return Number.isFinite(n) ? n : null;
   }, [isRegenerateMode, regenerateProjectId]);
+  const parsedRegenerateVersionId = useMemo(() => {
+    if (!isRegenerateMode) return null;
+    const n = regenerateVersionId == null ? NaN : Number(regenerateVersionId);
+    return Number.isFinite(n) ? n : null;
+  }, [isRegenerateMode, regenerateVersionId]);
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
@@ -43,10 +61,37 @@ const BeforeCreatePage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [hasHydrated, setHasHydrated] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [sseProjectId, setSseProjectId] = useState<number | null>(null);
+  const [sseVersionId, setSseVersionId] = useState<number | null>(null);
 
   const createProjectMutation = useCreateProjectMutation();
   const regenerateMutation = useRegenerateProjectMutation();
+  const {
+    reset: sseReset,
+    retry: sseRetry,
+    status: sseStatus,
+    progress: sseProgress,
+    message: sseMessage,
+    error: sseError,
+    isComplete: sseIsComplete,
+    isFailed: sseIsFailed,
+  } = useProjectStatusSSE(sseProjectId, sseVersionId);
+
+  const sseOverlayState = {
+    status: sseStatus,
+    progress: sseProgress,
+    message: sseMessage,
+    error: sseError,
+    isComplete: sseIsComplete,
+    isFailed: sseIsFailed,
+  };
+  const hasNavigatedRef = useRef(false);
   const projectQuery = useProjectQuery(parsedRegenerateProjectId, isRegenerateMode);
+
+  const shouldPrefetchInstrumentCategories =
+    hasHydrated && tracks.length > 0;
+  useInstrumentCategoriesQuery(shouldPrefetchInstrumentCategories);
 
   const nextVersionName = useMemo(() => {
     if (!isRegenerateMode) return "v1";
@@ -69,6 +114,58 @@ const BeforeCreatePage = () => {
     if (!projectQuery.isError) return;
     setCreateError("버전 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
   }, [isRegenerateMode, projectQuery.isError]);
+
+  // 재생성 모드: (versionId가 있으면 해당 버전, 없으면 최신 버전) 설정을 기본값으로 채움
+  useEffect(() => {
+    if (!isRegenerateMode) return;
+    if (!hasHydrated) return;
+    const versions = projectQuery.data?.result?.versions ?? [];
+    if (!versions.length) return;
+
+    const byId =
+      parsedRegenerateVersionId == null
+        ? null
+        : versions.find((v) => v.versionId === parsedRegenerateVersionId) ?? null;
+
+    const latest =
+      byId ??
+      [...versions].sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )[0] ??
+      null;
+    if (!latest) return;
+
+    if (selectedInstrument == null) setSelectedInstrument(latest.instrumentId);
+    if (!genre) setGenre(latest.genre);
+    if (noteRange == null)
+      setNoteRange({ min: latest.minNote, max: latest.maxNote });
+    if (freedom == null) setFreedom(latest.temperature);
+  }, [
+    isRegenerateMode,
+    hasHydrated,
+    projectQuery.data?.result?.versions,
+    parsedRegenerateVersionId,
+    selectedInstrument,
+    genre,
+    noteRange,
+    freedom,
+    setSelectedInstrument,
+    setGenre,
+    setNoteRange,
+    setFreedom,
+  ]);
+
+  // SSE complete → player 페이지로 이동
+  useEffect(() => {
+    if (!sseIsComplete) return;
+    if (sseProjectId == null || sseVersionId == null) return;
+    if (hasNavigatedRef.current) return;
+    hasNavigatedRef.current = true;
+    router.push(
+      `/player?projectId=${encodeURIComponent(String(sseProjectId))}&versionId=${encodeURIComponent(String(sseVersionId))}`,
+    );
+  }, [sseIsComplete, sseProjectId, sseVersionId, router]);
 
   // persist 재수화 전에는 tracks가 비어 있어 오인하지 않도록 대기
   useEffect(() => {
@@ -108,6 +205,22 @@ const BeforeCreatePage = () => {
     if (currentPage > 0) setCurrentPage(currentPage - 1);
   };
 
+  const startSSE = useCallback(
+    (projectId: number, versionId: number) => {
+      hasNavigatedRef.current = false;
+      sseReset();
+      setSseProjectId(projectId);
+      setSseVersionId(versionId);
+    },
+    [sseReset],
+  );
+
+  const handleCancelSSE = useCallback(() => {
+    sseReset();
+    setSseProjectId(null);
+    setSseVersionId(null);
+  }, [sseReset]);
+
   const handleGenerate = async () => {
     setCreateError(null);
 
@@ -121,6 +234,12 @@ const BeforeCreatePage = () => {
         }
         if (projectQuery.isError) {
           throw new Error("버전 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
+        }
+        if (!genre) {
+          throw new Error("장르를 선택해주세요.");
+        }
+        if (selectedInstrument == null) {
+          throw new Error("선택된 악기(instrumentId)가 없습니다.");
         }
 
         const mappings = tracks.map((track, index) => {
@@ -137,6 +256,11 @@ const BeforeCreatePage = () => {
           projectId: parsedRegenerateProjectId,
           body: {
             versionName: nextVersionName,
+            instrumentId: selectedInstrument,
+            minNote: noteRange?.min ?? 0,
+            maxNote: noteRange?.max ?? 127,
+            genre,
+            temperature: freedom ?? 1.0,
             mappings,
           },
         });
@@ -145,16 +269,12 @@ const BeforeCreatePage = () => {
           throw new Error(res.message ?? "재생성 실패");
         }
 
-        router.push(
-          `/player?projectId=${encodeURIComponent(String(res.result.projectId))}&versionId=${encodeURIComponent(String(res.result.versionId))}`,
-        );
+        startSSE(res.result.projectId, res.result.versionId);
         return;
       }
 
-      await createProjectMutation.mutateAsync();
-      router.push(
-        `/player?projectId=${encodeURIComponent(String(DEV_PLAYER_PROJECT_ID))}&versionId=${encodeURIComponent(String(DEV_PLAYER_VERSION_ID))}`,
-      );
+      const result = await createProjectMutation.mutateAsync();
+      startSSE(result.projectId, result.versionId);
     } catch (err) {
       setCreateError(
         err instanceof Error ? err.message : "프로젝트 생성 실패",
@@ -164,9 +284,9 @@ const BeforeCreatePage = () => {
 
   if (!hasHydrated) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#05070a]">
-        <Spinner size="md" />
-        <p className="text-gray-400 text-sm">불러오는 중…</p>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-2 bg-[#05070a]">
+        <Spinner size="sm" />
+        <p className="text-gray-400 text-xs">불러오는 중…</p>
       </div>
     );
   }
@@ -174,13 +294,13 @@ const BeforeCreatePage = () => {
   if (tracks.length === 0) return null;
 
   return (
-    <div className="min-h-screen flex flex-row overflow-x-hidden">
+    <div className="h-screen flex flex-row overflow-hidden">
       <Sidebar
         isCollapsed={isSidebarCollapsed}
         onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
 
-      <div className="grow flex flex-col min-h-screen">
+      <div className="grow flex flex-col h-screen overflow-hidden">
         <Header
           onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           isSidebarCollapsed={isSidebarCollapsed}
@@ -189,17 +309,15 @@ const BeforeCreatePage = () => {
           rightContent={<HeaderContent trackCount={tracks.length} />}
         />
 
-        <main className="grow flex flex-col bg-[#05070a] p-4 md:p-8 overflow-y-auto">
-          {/* 타이틀 */}
-          <div className="max-w-5xl mx-auto w-full mb-8 md:mb-10 text-center">
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3 text-white">
-              Identified Tracks
-            </h1>
-            <p className="text-gray-400 text-sm md:text-base max-w-lg mx-auto">
+        <main className="grow flex flex-col bg-[#05070a] p-3 md:p-6 overflow-hidden">
+          {/* 상단: 파일명 안내 + 악기/음역대 패널 */}
+          <div className="max-w-3xl mx-auto w-full mb-3 md:mb-4 space-y-2.5">
+            <p className="text-gray-500 text-[10px] md:text-[11px] text-center">
               {uploadedFile
-                ? `"${uploadedFile.name}" 분석이 완료되었습니다. 발견된 트랙들을 확인하세요.`
-                : "파일 분석이 완료되었습니다. 발견된 트랙들을 확인하세요."}
+                ? `"${uploadedFile.name}" 분석 완료 · ${tracks.length} tracks`
+                : `분석 완료 · ${tracks.length} tracks`}
             </p>
+            <InstrumentInfoPanel onOpenSettings={() => setIsSettingsModalOpen(true)} />
           </div>
 
           {/* 트랙 그리드 */}
@@ -219,11 +337,20 @@ const BeforeCreatePage = () => {
               void handleGenerate();
             }}
             isPending={
-              isRegenerateMode
+              sseProjectId != null ||
+              (isRegenerateMode
                 ? regenerateMutation.isPending ||
                   projectQuery.isPending ||
                   projectQuery.isError
-                : createProjectMutation.isPending
+                : createProjectMutation.isPending)
+            }
+            disabled={!genre || selectedInstrument == null}
+            disabledReason={
+              !genre
+                ? "장르를 선택해주세요"
+                : selectedInstrument == null
+                  ? "생성 악기를 선택해주세요"
+                  : undefined
             }
             label={isRegenerateMode ? "Regenerate" : "Generate"}
             pendingLabel={isRegenerateMode ? "Regenerating..." : "Generating..."}
@@ -231,7 +358,7 @@ const BeforeCreatePage = () => {
           />
 
           {createError && (
-            <p className="mt-4 text-sm text-red-400 text-center">
+            <p className="mt-3 text-xs text-red-400 text-center">
               {createError}
             </p>
           )}
@@ -240,11 +367,24 @@ const BeforeCreatePage = () => {
         <Footer />
       </div>
 
-      {/* 모달 */}
+      {/* 트랙 모달 */}
       <TrackModal
         isOpen={isModalOpen}
         track={selectedTrack}
         onClose={() => setIsModalOpen(false)}
+      />
+
+      {/* 생성 설정 모달 (음역대 / 장르 / 자유도) */}
+      <InstrumentSettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+      />
+
+      {/* 생성 진행률 오버레이 */}
+      <GenerationProgressOverlay
+        state={sseOverlayState}
+        onRetry={sseRetry}
+        onCancel={handleCancelSSE}
       />
     </div>
   );

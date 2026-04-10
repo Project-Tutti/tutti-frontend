@@ -21,6 +21,8 @@ interface VersionRow {
   versionLabel: string;
   savedAt: string;
   isMaster: boolean;
+  genre: string;
+  temperature: number;
 }
 
 function formatVersionTime(iso: string): string {
@@ -54,6 +56,8 @@ function mapVersionsToRows(
     versionLabel: `${projectName} - ${v.name}`,
     savedAt: formatVersionTime(v.createdAt),
     isMaster: v.versionId === masterId,
+    genre: v.genre,
+    temperature: v.temperature,
   }));
 }
 
@@ -188,9 +192,14 @@ const ProjectVersionsScreen = () => {
 
                         <div className="min-w-0 flex-1 pr-2">
                           {!isRenaming ? (
-                            <div className="text-[13px] text-gray-200 group-hover:text-white leading-snug truncate transition-colors">
-                              {v.versionLabel}
-                            </div>
+                            <>
+                              <div className="text-[13px] text-gray-200 group-hover:text-white leading-snug truncate transition-colors">
+                                {v.versionLabel}
+                              </div>
+                              <p className="mt-0.5 text-[10px] text-gray-500 truncate">
+                                {v.genre} · 자유도 {v.temperature}
+                              </p>
+                            </>
                           ) : (
                             <div className="flex min-w-0 items-center gap-1 text-[13px] leading-snug">
                               <span className="text-gray-400 shrink-0">

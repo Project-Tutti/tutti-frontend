@@ -52,7 +52,7 @@ const GoogleSignInButton = ({
     <button
       type="button"
       onClick={handleClick}
-      className="w-full flex items-center justify-center gap-3 bg-[#0f1218] border border-[#1e293b] hover:border-gray-500 py-3 rounded-xl transition-all"
+      className="w-full flex items-center justify-center gap-2.5 bg-[#0f1218] border border-[#1e293b] hover:border-gray-500 py-2.5 rounded-xl transition-all"
     >
       <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden>
         <path
@@ -72,10 +72,10 @@ const GoogleSignInButton = ({
           fill="#EA4335"
         ></path>
       </svg>
-      <span className="text-sm font-semibold text-gray-300">{text}</span>
+      <span className="text-[13px] font-semibold text-gray-300">{text}</span>
     </button>
     {startError ? (
-      <p className="text-sm text-red-400 text-center" role="alert">
+      <p className="text-[13px] text-red-400 text-center" role="alert">
         {startError}
       </p>
     ) : null}

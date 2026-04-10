@@ -18,37 +18,44 @@ const Header = ({
   rightContent 
 }: HeaderProps) => {
   return (
-    <nav className="w-full bg-[#0f1218]/80 backdrop-blur-md border-b border-[#1e293b] px-4 md:px-6 py-3 flex justify-between items-center z-50 sticky top-0">
-      <div className="flex items-center gap-4 md:gap-6">
+    <nav className="w-full h-12 md:h-14 bg-[#0f1218]/80 backdrop-blur-md border-b border-[#1e293b] px-3 md:px-5 flex justify-between items-center z-50 sticky top-0">
+      {/* Left */}
+      <div className="flex items-center gap-3 md:gap-5 min-w-0 h-full">
         {isSidebarCollapsed && onToggleSidebar && (
           <button
             onClick={onToggleSidebar}
             className="text-gray-400 hover:text-white transition-colors"
             aria-label="Open sidebar"
           >
-            <span className="material-symbols-outlined">menu</span>
+            <span className="material-symbols-outlined text-lg">menu</span>
           </button>
         )}
-        <div>
-          <span className="text-xs text-gray-500 uppercase tracking-widest font-semibold block">
-            {title}
-          </span>
-          {subtitle && (
-            <span className="text-[10px] text-gray-600 block mt-0.5">
+        {subtitle ? (
+          <div className="flex flex-col justify-center min-w-0 h-full">
+            <span className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold leading-tight truncate">
+              {title}
+            </span>
+            <span className="text-[9px] text-gray-600 leading-tight mt-0.5 truncate">
               {subtitle}
             </span>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="flex items-center min-w-0 h-full">
+            <span className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold leading-tight truncate">
+              {title}
+            </span>
+          </div>
+        )}
       </div>
 
-      <div className="flex items-center gap-4 md:gap-6">
+      {/* Right */}
+      <div className="flex items-center gap-3 md:gap-4 shrink-0 h-full">
         {rightContent || (
           <>
-            <button className={COMMON_STYLES.button.icon}>
-              <span className="material-symbols-outlined">search</span>
+            <div className="h-px w-5 bg-[#1e293b] rotate-90 hidden md:block"></div>
+            <button className="px-3 py-1 rounded-full bg-white/5 border border-[#1e293b] text-[11px] font-semibold text-gray-300 hover:bg-white/10 transition-colors">
+              New Project
             </button>
-            <div className="h-px w-6 bg-[#1e293b] rotate-90 hidden md:block"></div>
-            <button className={COMMON_STYLES.button.secondary}>New Project</button>
           </>
         )}
       </div>

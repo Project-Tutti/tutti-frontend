@@ -8,12 +8,21 @@ export interface CreateProjectMappingDto {
   targetInstrumentId: number;
 }
 
+/**
+ * POST 프로젝트 생성 — multipart `request` JSON 본문
+ * (OpenAPI 예시 필드 순서: instrumentId, genre, versionName, minNote, mappings, tracks, name, temperature, maxNote)
+ */
 export interface CreateProjectRequestPayloadDto {
-  name: string; // 프로젝트 이름
+  instrumentId: number;
+  genre: string;
   versionName: string;
-  instrumentId: number; // 내가 생성하고자 하는 악기 ID
-  tracks: CreateProjectTrackDto[]; // 원래 midi 에 존재하던 트랙 ID
-  mappings: CreateProjectMappingDto[]; // 원래 midi에 존재하던 트랙을 내가 원하는 악기로 맵핑 ( 피아노 -> 기타로 인식 ) 할 수 있게
+  minNote: number;
+  maxNote: number;
+  mappings: CreateProjectMappingDto[];
+  tracks: CreateProjectTrackDto[];
+  name: string;
+  /** 자유도(조회 응답 `ProjectVersionResponseDto.temperature`와 동일) */
+  temperature: number;
 }
 
 export interface CreateProjectRequestDto {

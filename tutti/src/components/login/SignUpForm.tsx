@@ -160,31 +160,31 @@ const SignUpForm = () => {
   };
 
   return (
-    <div className="w-full max-w-md space-y-8 py-8">
+    <div className="w-full max-w-md space-y-6 py-6">
       {/* 모바일 로고 */}
-      <div className="lg:hidden flex items-center gap-3 mb-8">
+      <div className="lg:hidden flex items-center gap-3 mb-6">
         <div className="bg-[#3b82f6] p-1.5 rounded-lg">
-          <span className="material-symbols-outlined text-white text-xl">
+          <span className="material-symbols-outlined text-white text-lg">
             graphic_eq
           </span>
         </div>
-        <span className="text-2xl font-bold tracking-tight text-white">
+        <span className="text-xl font-bold tracking-tight text-white">
           Tutti
         </span>
       </div>
 
       {/* 타이틀 */}
       <div>
-        <h1 className="text-3xl font-bold text-white tracking-tight">
+        <h1 className="text-[26px] font-bold text-white tracking-tight">
           Create Account
         </h1>
-        <p className="text-gray-400 mt-2">
+        <p className="text-gray-400 mt-1.5 text-[13px]">
           Join the future of orchestral composition
         </p>
       </div>
 
       {/* 회원가입 폼 */}
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-4.5">
         {/* 이름 */}
         <FormInput
           id="name"
@@ -211,7 +211,7 @@ const SignUpForm = () => {
               type="button"
               onClick={handleCheckEmailDuplication}
               disabled={isCheckingEmail}
-              className="text-xs font-semibold text-[#3b82f6] hover:text-blue-400 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="text-[11px] font-semibold text-[#3b82f6] hover:text-blue-400 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isCheckingEmail ? "확인 중..." : "중복 확인"}
             </button>
@@ -219,7 +219,7 @@ const SignUpForm = () => {
           error={errors.email}
         />
         {isEmailAvailable && !errors.email ? (
-          <p className="-mt-3 text-xs text-emerald-400">
+          <p className="-mt-3 text-[11px] text-emerald-400">
             사용 가능한 이메일입니다
           </p>
         ) : null}
@@ -253,7 +253,7 @@ const SignUpForm = () => {
           type="submit"
           disabled={isPending}
           className={`
-            w-full bg-[#3b82f6] hover:bg-blue-600 text-white font-bold py-4 rounded-xl 
+            w-full bg-[#3b82f6] hover:bg-blue-600 text-white font-bold py-3 rounded-xl text-[13px]
             shadow-lg transition-all hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] 
             transform hover:-translate-y-0.5 mt-2
             ${isPending ? "opacity-50 cursor-not-allowed" : ""}
@@ -263,16 +263,16 @@ const SignUpForm = () => {
         </button>
 
         {submitError ? (
-          <p className="text-sm text-red-400">{submitError}</p>
+          <p className="text-[13px] text-red-400">{submitError}</p>
         ) : null}
       </form>
 
       {/* 구분선 */}
-      <div className="relative py-2">
+      <div className="relative py-2.5">
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-[#1e293b]"></div>
         </div>
-        <div className="relative flex justify-center text-xs uppercase tracking-widest font-bold">
+        <div className="relative flex justify-center text-[11px] uppercase tracking-widest font-bold">
           <span className="bg-[#05070a] px-4 text-gray-500">
             Or continue with
           </span>
@@ -283,7 +283,7 @@ const SignUpForm = () => {
       <GoogleSignInButton text="Sign up with Google" postAuthRedirect="/home" />
 
       {/* 로그인 링크 */}
-      <p className="text-center text-sm text-gray-500 pt-2">
+      <p className="text-center text-[13px] text-gray-500 pt-2">
         Already have an account?{" "}
         <Link
           href="/login"

@@ -1,16 +1,14 @@
-import { useMemo } from "react";
-
 import { useMutation } from "@tanstack/react-query";
 
 import { createProject } from "@api/midi/apis/post/create-project";
-import {
+import type {
+  CreateProjectRequestPayloadDto,
   CreateProjectResponseDto,
 } from "@api/midi/types/api.types";
 
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
-import { INSTRUMENT_OPTIONS } from "@features/midi-create/constants/instrument-options";
+import { DROP_CATEGORY_PROGRAM } from "@common/utils/midi-utils";
 
-// 최초 생성은 v1로 고정 (재생성 API가 분리되어 있기 때문)
 const INITIAL_VERSION_NAME = "v1";
 
 /**
@@ -21,32 +19,15 @@ const INITIAL_VERSION_NAME = "v1";
  */
 
 export const useCreateProjectMutation = () => {
-  const { tracks, uploadedFile, selectedInstrument, trackMappings } = useMidiStore();
-
-  const instrumentId = useMemo(() => {
-    if (!selectedInstrument) return null;
-
-    // InstrumentOrbit은 id를 문자열로 보관하고, INSTRUMENT_OPTIONS는 id(숫자 프로그램 ID)를 보관합니다.
-    // 현재 UI의 orbit id: violin | oboe | flute
-    //
-    // TODO: 악기 옵션(INSTRUMENT_OPTIONS)은 나중에 API로 받게 되면,
-    // selectedInstrument와 옵션 간 매핑 로직도 API 응답 기준으로 교체할 예정입니다.
-    const orbitToInstrumentId: Record<string, number> = {
-      violin: 40,
-      oboe: 68,
-      flute: 73,
-    };
-
-    if (orbitToInstrumentId[selectedInstrument] != null) {
-      return orbitToInstrumentId[selectedInstrument];
-    }
-
-    // 혹시 UI 값이 label과 직접 매칭되는 경우를 위해 fallback
-    const matchedByLabel = INSTRUMENT_OPTIONS.find(
-      (opt) => opt.label.toLowerCase() === selectedInstrument.toLowerCase(),
-    );
-    return matchedByLabel?.id ?? null;
-  }, [selectedInstrument]);
+  const {
+    tracks,
+    uploadedFile,
+    selectedInstrument,
+    trackMappings,
+    noteRange,
+    genre,
+    freedom,
+  } = useMidiStore();
 
   return useMutation<CreateProjectResponseDto, Error, void>({
     mutationFn: async () => {
@@ -56,25 +37,38 @@ export const useCreateProjectMutation = () => {
       if (tracks.length === 0) {
         throw new Error("분석된 tracks가 없습니다.");
       }
-      if (instrumentId == null) {
+      if (selectedInstrument == null) {
         throw new Error("선택된 악기(instrumentId)가 없습니다.");
+      }
+      if (!genre) {
+        throw new Error("장르를 선택해주세요.");
       }
 
       const fileBaseName = uploadedFile.name.replace(/\.[^.]+$/, "");
+      const minNote = noteRange?.min ?? 0;
+      const maxNote = noteRange?.max ?? 127;
+      const temperature = freedom ?? 1.0;
 
-      const requestPayload = {
-        name: fileBaseName || "project",
+      const requestPayload: CreateProjectRequestPayloadDto = {
+        instrumentId: selectedInstrument,
+        genre,
         versionName: INITIAL_VERSION_NAME,
-        instrumentId,
+        minNote,
+        maxNote,
+        mappings: tracks.map((track, index) => ({
+          trackIndex: index,
+          targetInstrumentId:
+            trackMappings[track.id] ??
+            (track.isDropListProgram
+              ? DROP_CATEGORY_PROGRAM
+              : track.sourceInstrumentId),
+        })),
         tracks: tracks.map((track, index) => ({
           trackIndex: index,
           sourceInstrumentId: track.sourceInstrumentId,
         })),
-        mappings: tracks.map((track, index) => ({
-          trackIndex: index,
-          targetInstrumentId:
-            trackMappings[track.id] ?? track.sourceInstrumentId,
-        })),
+        name: fileBaseName || "project",
+        temperature,
       };
 
       return createProject({
@@ -84,4 +78,3 @@ export const useCreateProjectMutation = () => {
     },
   });
 };
-

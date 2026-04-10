@@ -26,7 +26,7 @@ const TrackGrid = ({
   onPageChange,
 }: TrackGridProps) => {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center max-w-6xl mx-auto w-full">
+    <div className="flex-1 flex flex-col items-center justify-center max-w-5xl mx-auto w-full">
       {/* 트랙 그리드 + 페이지네이션 버튼 */}
       <div className="relative w-full flex items-center justify-center">
         {/* 이전 버튼 */}
@@ -35,7 +35,7 @@ const TrackGrid = ({
             onClick={onPrevPage}
             disabled={currentPage === 0}
             className={`
-              absolute -left-4 md:-left-6 z-10 p-4 md:p-5 rounded-full 
+              absolute -left-3 md:-left-5 z-10 p-3 md:p-4 rounded-full 
               bg-[#0f1218] border border-[#1e293b] 
               shadow-lg transition-all
               ${currentPage === 0 
@@ -48,15 +48,15 @@ const TrackGrid = ({
             <Image 
               src={ChevronLeftIcon} 
               alt="Previous" 
-              width={20} 
-              height={20}
-              className="w-4 h-4 md:w-5 md:h-5"
+              width={16} 
+              height={16}
+              className="w-3 h-3 md:w-4 md:h-4"
             />
           </button>
         )}
 
         {/* 트랙 그리드 */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 w-full px-12 md:px-16">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 w-full px-10 md:px-12">
           {tracks.map((track) => (
             <TrackCard
               key={track.id}
@@ -72,7 +72,7 @@ const TrackGrid = ({
             onClick={onNextPage}
             disabled={currentPage === totalPages - 1}
             className={`
-              absolute -right-4 md:-right-6 z-10 p-4 md:p-5 rounded-full 
+              absolute -right-3 md:-right-5 z-10 p-3 md:p-4 rounded-full 
               bg-[#0f1218] border border-[#1e293b] 
               shadow-lg transition-all
               ${currentPage === totalPages - 1
@@ -85,9 +85,9 @@ const TrackGrid = ({
             <Image 
               src={ChevronRightIcon} 
               alt="Next" 
-              width={20} 
-              height={20}
-              className="w-4 h-4 md:w-5 md:h-5"
+              width={16} 
+              height={16}
+              className="w-3 h-3 md:w-4 md:h-4"
             />
           </button>
         )}
@@ -95,15 +95,15 @@ const TrackGrid = ({
 
       {/* 페이지 인디케이터 */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-6">
+        <div className="flex items-center justify-center gap-1.5 mt-4">
           {Array.from({ length: totalPages }).map((_, index) => (
             <button
               key={index}
               onClick={() => onPageChange(index)}
               className={`
-                w-2 h-2 rounded-full transition-all
+                w-1.5 h-1.5 rounded-full transition-all
                 ${currentPage === index 
-                  ? 'bg-[#3b82f6] w-6' 
+                  ? 'bg-[#3b82f6] w-5' 
                   : 'bg-gray-600 hover:bg-gray-500'
                 }
               `}

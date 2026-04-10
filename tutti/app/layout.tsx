@@ -10,7 +10,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Harmonix Studio | Instrument Setup",
+  title: "tutti | Instrument Setup",
   description: "Configure your ensemble and generate musical partials with AI",
   icons: {
     icon: '/favicon.ico',
