@@ -101,7 +101,7 @@ function PlayerPageContent() {
       );
 
       router.push(
-        `/before-create?mode=regenerate&projectId=${encodeURIComponent(String(projectId))}`,
+        `/before-create?mode=regenerate&projectId=${encodeURIComponent(String(projectId))}&versionId=${encodeURIComponent(String(versionId))}`,
       );
     } catch (e) {
       console.error(e);

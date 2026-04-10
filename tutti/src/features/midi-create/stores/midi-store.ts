@@ -15,11 +15,15 @@ interface MidiStore {
   uploadedFile: File | null;
   trackMappings: Record<string, number>;
   noteRange: NoteRange | null;
+  genre: string | null;
+  freedom: number | null;
   setTracks: (tracks: Track[]) => void;
   setSelectedInstrument: (id: number | null) => void;
   setUploadedFile: (file: File | null) => void;
   setTrackMapping: (trackId: string, targetInstrumentId: number) => void;
   setNoteRange: (range: NoteRange | null) => void;
+  setGenre: (genre: string | null) => void;
+  setFreedom: (freedom: number | null) => void;
   reset: () => void;
 }
 
@@ -31,6 +35,8 @@ export const useMidiStore = create<MidiStore>()(
       uploadedFile: null,
       trackMappings: {},
       noteRange: null,
+      genre: null,
+      freedom: 1.0,
       setTracks: (tracks) =>
         set(() => {
           const nextMappings: Record<string, number> = {};
@@ -39,7 +45,13 @@ export const useMidiStore = create<MidiStore>()(
               ? DROP_CATEGORY_PROGRAM
               : track.sourceInstrumentId;
           });
-          return { tracks, trackMappings: nextMappings };
+          return {
+            tracks,
+            trackMappings: nextMappings,
+            genre: null,
+            freedom: 1.0,
+            noteRange: null,
+          };
         }),
       setSelectedInstrument: (id) => set({ selectedInstrument: id }),
       setUploadedFile: (file) => set({ uploadedFile: file }),
@@ -51,6 +63,8 @@ export const useMidiStore = create<MidiStore>()(
           },
         })),
       setNoteRange: (range) => set({ noteRange: range }),
+      setGenre: (genre) => set({ genre }),
+      setFreedom: (freedom) => set({ freedom }),
       reset: () =>
         set({
           tracks: [],
@@ -58,6 +72,8 @@ export const useMidiStore = create<MidiStore>()(
           uploadedFile: null,
           trackMappings: {},
           noteRange: null,
+          genre: null,
+          freedom: 1.0,
         }),
     }),
     {
@@ -69,6 +85,8 @@ export const useMidiStore = create<MidiStore>()(
         trackMappings: state.trackMappings,
         selectedInstrument: state.selectedInstrument,
         noteRange: state.noteRange,
+        genre: state.genre,
+        freedom: state.freedom,
       }),
     },
   ),

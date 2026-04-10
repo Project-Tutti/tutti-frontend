@@ -1,6 +1,8 @@
 interface AnalysisInfoProps {
   onGenerate: () => void;
   isPending?: boolean;
+  disabled?: boolean;
+  disabledReason?: string;
   label?: string;
   pendingLabel?: string;
   icon?: string;
@@ -9,17 +11,21 @@ interface AnalysisInfoProps {
 const AnalysisInfo = ({
   onGenerate,
   isPending,
+  disabled,
+  disabledReason,
   label = "Generate",
   pendingLabel = "Generating...",
   icon = "auto_fix_high",
 }: AnalysisInfoProps) => {
+  const isDisabled = isPending || disabled;
+
   return (
     <div className="mt-auto pt-5 md:pt-6 max-w-3xl mx-auto w-full">
       <div className="flex flex-col items-center gap-3 md:gap-4">
         {/* Generate 버튼 */}
         <button
           onClick={onGenerate}
-          disabled={isPending}
+          disabled={isDisabled}
           className="
             w-full max-w-sm h-11 md:h-12 
             bg-[#3b82f6] hover:bg-blue-600 
@@ -36,6 +42,12 @@ const AnalysisInfo = ({
           </span>
           {isPending ? pendingLabel : label}
         </button>
+        {disabled && disabledReason && (
+          <p className="text-[10px] text-red-400 flex items-center gap-1">
+            <span className="material-symbols-outlined leading-none" style={{ fontSize: "15px" }}>error</span>
+            {disabledReason}
+          </p>
+        )}
       </div>
     </div>
   );

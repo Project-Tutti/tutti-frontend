@@ -1,7 +1,10 @@
 import { useMutation } from "@tanstack/react-query";
 
 import { createProject } from "@api/midi/apis/post/create-project";
-import { CreateProjectResponseDto } from "@api/midi/types/api.types";
+import type {
+  CreateProjectRequestPayloadDto,
+  CreateProjectResponseDto,
+} from "@api/midi/types/api.types";
 
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
 import { DROP_CATEGORY_PROGRAM } from "@common/utils/midi-utils";
@@ -16,7 +19,7 @@ const INITIAL_VERSION_NAME = "v1";
  */
 
 export const useCreateProjectMutation = () => {
-  const { tracks, uploadedFile, selectedInstrument, trackMappings, noteRange } =
+  const { tracks, uploadedFile, selectedInstrument, trackMappings, noteRange, genre, freedom } =
     useMidiStore();
 
   return useMutation<CreateProjectResponseDto, Error, void>({
@@ -30,27 +33,36 @@ export const useCreateProjectMutation = () => {
       if (selectedInstrument == null) {
         throw new Error("선택된 악기(instrumentId)가 없습니다.");
       }
+      if (!genre) {
+        throw new Error("장르를 선택해주세요.");
+      }
 
       const fileBaseName = uploadedFile.name.replace(/\.[^.]+$/, "");
+      const minNote = noteRange?.min ?? 0;
+      const maxNote = noteRange?.max ?? 127;
+      const temperature = freedom ?? 1.0;
 
-      const requestPayload = {
-        name: fileBaseName || "project",
-        versionName: INITIAL_VERSION_NAME,
-        instrumentId: selectedInstrument,
-        ...(noteRange && { minNote: noteRange.min, maxNote: noteRange.max }),
-        tracks: tracks.map((track, index) => ({
-          trackIndex: index,
-          sourceInstrumentId: track.sourceInstrumentId,
-        })),
-        mappings: tracks.map((track, index) => ({
-          trackIndex: index,
-          targetInstrumentId:
-            trackMappings[track.id] ??
-            (track.isDropListProgram
-              ? DROP_CATEGORY_PROGRAM
-              : track.sourceInstrumentId),
-        })),
-      };
+      const requestPayload: CreateProjectRequestPayloadDto = {
+          instrumentId: selectedInstrument,
+          genre,
+          versionName: INITIAL_VERSION_NAME,
+          minNote,
+          maxNote,
+          mappings: tracks.map((track, index) => ({
+            trackIndex: index,
+            targetInstrumentId:
+              trackMappings[track.id] ??
+              (track.isDropListProgram
+                ? DROP_CATEGORY_PROGRAM
+                : track.sourceInstrumentId),
+          })),
+          tracks: tracks.map((track, index) => ({
+            trackIndex: index,
+            sourceInstrumentId: track.sourceInstrumentId,
+          })),
+          name: fileBaseName || "project",
+          temperature,
+        };
 
       return createProject({
         file: uploadedFile,

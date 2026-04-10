@@ -75,3 +75,17 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--accent-blue);
 }
+
+/* 생성 진행 오버레이 — 프로그레스 바 쉬머 */
+@keyframes generation-progress-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.generation-progress-shimmer {
+  animation: generation-progress-shimmer 1.8s ease-in-out infinite;
+}
