@@ -100,6 +100,7 @@ function buildMusicXML(minNote: number, maxNote: number): string {
 const NoteRangeStaff = ({ minNote, maxNote }: NoteRangeStaffProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const osmdRef = useRef<InstanceType<typeof import("opensheetmusicdisplay").OpenSheetMusicDisplay> | null>(null);
+  const isRenderingRef = useRef(false);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -134,6 +135,8 @@ const NoteRangeStaff = ({ minNote, maxNote }: NoteRangeStaffProps) => {
     if (!ready || !osmdRef.current) return;
 
     const timer = setTimeout(async () => {
+      if (isRenderingRef.current) return;
+      isRenderingRef.current = true;
       try {
         const xml = buildMusicXML(minNote, maxNote);
         await osmdRef.current!.load(xml);
@@ -147,6 +150,8 @@ const NoteRangeStaff = ({ minNote, maxNote }: NoteRangeStaffProps) => {
         }
       } catch {
         /* ignore transient render errors during rapid slider updates */
+      } finally {
+        isRenderingRef.current = false;
       }
     }, 100);
 

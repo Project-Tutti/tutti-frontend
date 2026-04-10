@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
 import { useGeneratableInstrumentCategoriesQuery } from "@api/instruments/hooks/queries/useGeneratableInstrumentCategoriesQuery";
 import { INSTRUMENT_GROUP_ICON } from "@features/midi-create/constants/instrument-grouping";
@@ -34,13 +34,27 @@ const InstrumentInfoPanel = ({ onOpenSettings }: InstrumentInfoPanelProps) => {
     return null;
   }, [selectedInstrument, categories]);
 
+  const prevInstrumentRef = useRef<number | null>(null);
+
   useEffect(() => {
+    if (selectedInstrument == null) {
+      prevInstrumentRef.current = null;
+      return;
+    }
     if (!instrumentInfo) return;
+
+    const instrumentChanged = prevInstrumentRef.current !== selectedInstrument;
+    const needInitialRange = noteRange == null;
+
+    if (!instrumentChanged && !needInitialRange) return;
+
+    prevInstrumentRef.current = selectedInstrument;
+
     setNoteRange({
       min: instrumentInfo.defaultMin,
       max: instrumentInfo.defaultMax,
     });
-  }, [instrumentInfo, setNoteRange]);
+  }, [selectedInstrument, instrumentInfo, noteRange, setNoteRange]);
 
   if (!instrumentInfo) return null;
 
