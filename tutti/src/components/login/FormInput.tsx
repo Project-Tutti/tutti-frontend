@@ -23,7 +23,7 @@ const FormInput = ({
 }: FormInputProps) => {
   return (
     <div>
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-1.5">
         <label 
           className="block text-xs font-bold text-gray-500 uppercase tracking-widest" 
           htmlFor={id}
@@ -40,7 +40,7 @@ const FormInput = ({
         onChange={onChange}
         onBlur={onBlur}
         className={`
-          w-full bg-[#0f1218] border rounded-xl px-4 py-3 text-white 
+          w-full bg-[#0f1218] border rounded-xl px-3.5 py-2.5 text-[13px] text-white 
           focus:ring-2 focus:border-transparent transition-all placeholder-gray-600
           ${error 
             ? 'border-red-500 focus:ring-red-500' 
@@ -49,8 +49,8 @@ const FormInput = ({
         `}
       />
       {error && (
-        <p className="mt-1.5 text-xs text-red-400 flex items-center gap-1">
-          <span className="material-symbols-outlined text-sm">error</span>
+        <p className="mt-1 text-[11px] text-red-400 flex items-center gap-1">
+          <span className="material-symbols-outlined leading-none" style={{ fontSize: "15px" }}>error</span>
           {error}
         </p>
       )}

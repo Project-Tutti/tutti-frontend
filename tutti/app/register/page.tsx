@@ -8,7 +8,7 @@ const RegisterPage = () => {
       <LoginHero />
 
       {/* 오른쪽: 회원가입 폼 (75%) */}
-      <div className="w-full lg:w-[75%] flex items-center justify-center p-8 md:p-12 overflow-y-auto">
+      <div className="w-full lg:w-[75%] flex items-center justify-center p-6 md:p-10 overflow-y-auto">
         <SignUpForm />
       </div>
     </div>

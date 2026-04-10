@@ -94,31 +94,31 @@ const LoginForm = () => {
   };
 
   return (
-    <div className="w-full max-w-md space-y-8">
+    <div className="w-full max-w-md space-y-6">
       {/* 모바일 로고 */}
-      <div className="lg:hidden flex items-center gap-3 mb-12">
+      <div className="lg:hidden flex items-center gap-3 mb-9">
         <div className="bg-[#3b82f6] p-1.5 rounded-lg">
-          <span className="material-symbols-outlined text-white text-xl">
+          <span className="material-symbols-outlined text-white text-lg">
             graphic_eq
           </span>
         </div>
-        <span className="text-2xl font-bold tracking-tight text-white">
+        <span className="text-xl font-bold tracking-tight text-white">
           Tutti
         </span>
       </div>
 
       {/* 타이틀 */}
       <div>
-        <h1 className="text-3xl font-bold text-white tracking-tight">
+        <h1 className="text-[26px] font-bold text-white tracking-tight">
           Welcome Back
         </h1>
-        <p className="text-gray-400 mt-2">
+        <p className="text-gray-400 mt-1.5 text-[13px]">
           Sign in to your professional workspace
         </p>
       </div>
 
       {/* 로그인 폼 */}
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-5">
         {/* 이메일 */}
         <FormInput
           id="email"
@@ -144,7 +144,7 @@ const LoginForm = () => {
           rightLabel={
             <Link
               href="/forgot-password"
-              className="text-xs font-semibold text-[#3b82f6] hover:text-blue-400"
+              className="text-[11px] font-semibold text-[#3b82f6] hover:text-blue-400"
             >
               Forgot Password?
             </Link>
@@ -156,9 +156,9 @@ const LoginForm = () => {
           <input
             id="remember"
             type="checkbox"
-            className="w-4 h-4 bg-[#0f1218] border-[#1e293b] rounded text-[#3b82f6] focus:ring-[#3b82f6]"
+            className="w-3.5 h-3.5 bg-[#0f1218] border-[#1e293b] rounded text-[#3b82f6] focus:ring-[#3b82f6]"
           />
-          <label htmlFor="remember" className="ml-2 text-sm text-gray-400">
+          <label htmlFor="remember" className="ml-2 text-[13px] text-gray-400">
             Keep me signed in
           </label>
         </div>
@@ -168,7 +168,7 @@ const LoginForm = () => {
           type="submit"
           disabled={isPending}
           className={`
-            w-full bg-[#3b82f6] hover:bg-blue-600 text-white font-bold py-4 rounded-xl 
+            w-full bg-[#3b82f6] hover:bg-blue-600 text-white font-bold py-3 rounded-xl text-[13px]
             shadow-lg transition-all hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] 
             transform hover:-translate-y-0.5
             ${isPending ? "opacity-50 cursor-not-allowed" : ""}
@@ -178,19 +178,19 @@ const LoginForm = () => {
         </button>
 
         {submitError ? (
-          <p className="text-sm text-red-400">{submitError}</p>
+          <p className="text-[13px] text-red-400">{submitError}</p>
         ) : null}
         {oauthBanner ? (
-          <p className="text-sm text-red-400">{oauthBanner}</p>
+          <p className="text-[13px] text-red-400">{oauthBanner}</p>
         ) : null}
       </form>
 
       {/* 구분선 */}
-      <div className="relative py-4">
+      <div className="relative py-3">
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-[#1e293b]"></div>
         </div>
-        <div className="relative flex justify-center text-xs uppercase tracking-widest font-bold">
+        <div className="relative flex justify-center text-[11px] uppercase tracking-widest font-bold">
           <span className="bg-[#05070a] px-4 text-gray-500">
             Or continue with
           </span>
@@ -205,7 +205,7 @@ const LoginForm = () => {
       />
 
       {/* 회원가입 링크 */}
-      <p className="text-center text-sm text-gray-500 pt-4">
+      <p className="text-center text-[13px] text-gray-500 pt-3">
         Don&apos;t have an account?{" "}
         <Link
           href="/register"

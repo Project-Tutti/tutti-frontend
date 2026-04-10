@@ -9,7 +9,7 @@ const LoginPage = () => {
       <LoginHero />
 
       {/* 오른쪽: 로그인 폼 */}
-      <div className="w-full lg:w-[75%] flex items-center justify-center p-8 md:p-16">
+      <div className="w-full lg:w-[75%] flex items-center justify-center p-6 md:p-12">
         <Suspense fallback={null}>
           <LoginForm />
         </Suspense>

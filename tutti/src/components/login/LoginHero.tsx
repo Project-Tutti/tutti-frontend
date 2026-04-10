@@ -7,14 +7,14 @@ const LoginHero = () => {
       <Visualizer />
 
       {/* 브랜딩 텍스트 */}
-      <div className="relative z-10 text-center px-12">
-        <div className="flex items-center justify-center gap-3 mb-6">
-          <div className="bg-[#3b82f6] p-2 rounded-xl shadow-[0_0_20px_rgba(59,130,246,0.5)]">
-            <span className="material-symbols-outlined text-white text-3xl">graphic_eq</span>
+      <div className="relative z-10 text-center px-10">
+        <div className="flex items-center justify-center gap-3 mb-5">
+          <div className="bg-[#3b82f6] p-1.5 rounded-xl shadow-[0_0_18px_rgba(59,130,246,0.45)]">
+            <span className="material-symbols-outlined text-white text-[28px]">graphic_eq</span>
           </div>
-          <span className="text-4xl font-bold tracking-tighter text-white">Tutti</span>
+          <span className="text-3xl font-bold tracking-tighter text-white">Tutti</span>
         </div>
-        <h2 className="text-3xl font-light text-gray-300 tracking-wide leading-tight">
+        <h2 className="text-[26px] font-light text-gray-300 tracking-wide leading-tight">
           AI-Powered <span className="text-white font-semibold">Orchestration</span> for the Modern Composer.
         </h2>
       </div>
