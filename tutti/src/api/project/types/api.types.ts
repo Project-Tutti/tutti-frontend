@@ -9,6 +9,14 @@ export interface ProjectVersionResponseDto {
   status: string;
   mappings: ProjectVersionMappingResponseDto[];
   instrumentId: number;
+  /** 생성 시 설정한 음역대 하한 (MIDI note) */
+  minNote: number;
+  /** 생성 시 설정한 음역대 상한 (MIDI note) */
+  maxNote: number;
+  /** 생성 시 선택한 장르 (예: CLASSICAL) */
+  genre: string;
+  /** 생성 시 자유도(프론트 `freedom`에 대응, API 필드명은 temperature) */
+  temperature: number;
   createdAt: string;
 }
 
@@ -48,6 +56,11 @@ export type RegenerateProjectMappingDto = ProjectVersionMappingResponseDto;
 /** POST /api/projects/{projectId}/regenerate body */
 export interface RegenerateProjectRequestDto {
   versionName: string;
+  instrumentId: number;
+  minNote: number;
+  maxNote: number;
+  genre: string;
+  temperature: number;
   mappings: RegenerateProjectMappingDto[];
 }
 
@@ -56,6 +69,16 @@ export interface RegenerateProjectResponseDto {
   projectId: number;
   versionId: number;
   status: string;
+}
+
+/** SSE 진행률 이벤트 데이터 (event: progress) */
+export type ProjectStatusType = "pending" | "processing" | "complete" | "failed";
+
+export interface ProjectStatusEventDto {
+  projectId: number;
+  versionId: number;
+  status: ProjectStatusType;
+  progress: number;
 }
 
 /** PATCH /api/projects/{projectId} body */
