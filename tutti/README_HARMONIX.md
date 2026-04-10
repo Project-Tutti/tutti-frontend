@@ -83,11 +83,8 @@ const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 ## 🚀 실행 방법
 
 ```bash
-# 개발 서버 실행
-npm run dev
-# 또는
-yarn dev
-# 또는
+# 의존성 설치 후 개발 서버 (패키지 매니저: pnpm, lock: pnpm-lock.yaml)
+pnpm install
 pnpm dev
 
 # http://localhost:3000/home 접속
