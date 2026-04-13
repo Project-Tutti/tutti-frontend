@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  useCallback,
+  useRef,
+  Suspense,
+} from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Sidebar from "@/components/common/Sidebar";
 import { Spinner } from "@/components/common/Spinner";
@@ -23,7 +30,7 @@ import { useProjectStatusSSE } from "@api/project/hooks/useProjectStatusSSE";
 
 const TRACKS_PER_PAGE = 8;
 
-const BeforeCreatePage = () => {
+function BeforeCreatePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const {
@@ -87,10 +94,12 @@ const BeforeCreatePage = () => {
     isFailed: sseIsFailed,
   };
   const hasNavigatedRef = useRef(false);
-  const projectQuery = useProjectQuery(parsedRegenerateProjectId, isRegenerateMode);
+  const projectQuery = useProjectQuery(
+    parsedRegenerateProjectId,
+    isRegenerateMode,
+  );
 
-  const shouldPrefetchInstrumentCategories =
-    hasHydrated && tracks.length > 0;
+  const shouldPrefetchInstrumentCategories = hasHydrated && tracks.length > 0;
   useInstrumentCategoriesQuery(shouldPrefetchInstrumentCategories);
 
   const nextVersionName = useMemo(() => {
@@ -112,7 +121,9 @@ const BeforeCreatePage = () => {
   useEffect(() => {
     if (!isRegenerateMode) return;
     if (!projectQuery.isError) return;
-    setCreateError("버전 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
+    setCreateError(
+      "버전 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+    );
   }, [isRegenerateMode, projectQuery.isError]);
 
   // 재생성 모드: (versionId가 있으면 해당 버전, 없으면 최신 버전) 설정을 기본값으로 채움
@@ -125,7 +136,8 @@ const BeforeCreatePage = () => {
     const byId =
       parsedRegenerateVersionId == null
         ? null
-        : versions.find((v) => v.versionId === parsedRegenerateVersionId) ?? null;
+        : (versions.find((v) => v.versionId === parsedRegenerateVersionId) ??
+          null);
 
     const latest =
       byId ??
@@ -230,10 +242,14 @@ const BeforeCreatePage = () => {
           throw new Error("projectId가 올바르지 않습니다.");
         }
         if (projectQuery.isPending) {
-          throw new Error("버전 정보를 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
+          throw new Error(
+            "버전 정보를 불러오는 중입니다. 잠시 후 다시 시도해주세요.",
+          );
         }
         if (projectQuery.isError) {
-          throw new Error("버전 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
+          throw new Error(
+            "버전 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+          );
         }
         if (!genre) {
           throw new Error("장르를 선택해주세요.");
@@ -276,9 +292,7 @@ const BeforeCreatePage = () => {
       const result = await createProjectMutation.mutateAsync();
       startSSE(result.projectId, result.versionId);
     } catch (err) {
-      setCreateError(
-        err instanceof Error ? err.message : "프로젝트 생성 실패",
-      );
+      setCreateError(err instanceof Error ? err.message : "프로젝트 생성 실패");
     }
   };
 
@@ -317,7 +331,9 @@ const BeforeCreatePage = () => {
                 ? `"${uploadedFile.name}" 분석 완료 · ${tracks.length} tracks`
                 : `분석 완료 · ${tracks.length} tracks`}
             </p>
-            <InstrumentInfoPanel onOpenSettings={() => setIsSettingsModalOpen(true)} />
+            <InstrumentInfoPanel
+              onOpenSettings={() => setIsSettingsModalOpen(true)}
+            />
           </div>
 
           {/* 트랙 그리드 */}
@@ -353,7 +369,9 @@ const BeforeCreatePage = () => {
                   : undefined
             }
             label={isRegenerateMode ? "Regenerate" : "Generate"}
-            pendingLabel={isRegenerateMode ? "Regenerating..." : "Generating..."}
+            pendingLabel={
+              isRegenerateMode ? "Regenerating..." : "Generating..."
+            }
             icon={isRegenerateMode ? "autorenew" : "auto_fix_high"}
           />
 
@@ -388,6 +406,19 @@ const BeforeCreatePage = () => {
       />
     </div>
   );
-};
+}
 
-export default BeforeCreatePage;
+export default function BeforeCreatePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex flex-col items-center justify-center gap-2 bg-[#05070a]">
+          <Spinner size="sm" />
+          <p className="text-gray-400 text-xs">페이지 준비 중…</p>
+        </div>
+      }
+    >
+      <BeforeCreatePageContent />
+    </Suspense>
+  );
+}
