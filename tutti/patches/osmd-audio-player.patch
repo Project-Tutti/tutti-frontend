@@ -1,0 +1,133 @@
+diff --git a/dist/PlaybackEngine.js b/dist/PlaybackEngine.js
+index 4670ca08a07a8ec00c3a6ccf8acd6bac79c942f4..021edfe7fa94617ffdf3921da4117861baa74568 100644
+--- a/dist/PlaybackEngine.js
++++ b/dist/PlaybackEngine.js
+@@ -108,7 +108,13 @@ export default class PlaybackEngine {
+     }
+     play() {
+         return __awaiter(this, void 0, void 0, function* () {
++            if (!this.scheduler) return;
+             yield this.ac.resume();
++            if (this.state === PlaybackState.PAUSED) {
++                this.setState(PlaybackState.PLAYING);
++                this.scheduler.resume();
++                return;
++            }
+             if (this.state === PlaybackState.INIT || this.state === PlaybackState.STOPPED) {
+                 this.cursor.show();
+             }
+@@ -129,10 +135,10 @@ export default class PlaybackEngine {
+     }
+     pause() {
+         this.setState(PlaybackState.PAUSED);
++        if (!this.scheduler) return;
++        this.scheduler.pause();
+         this.ac.suspend();
+         this.stopPlayers();
+-        this.scheduler.setIterationStep(this.currentIterationStep);
+-        this.scheduler.pause();
+         this.clearTimeouts();
+     }
+     jumpToStep(step) {
+@@ -163,7 +169,24 @@ export default class PlaybackEngine {
+         let steps = 0;
+         while (!this.cursor.Iterator.EndReached) {
+             if (this.cursor.Iterator.CurrentVoiceEntries) {
+-                this.scheduler.loadNotes(this.cursor.Iterator.CurrentVoiceEntries);
++                let timeStampRealValue = null;
++                try {
++                    const iterator = this.cursor.Iterator;
++                    const timeStamp = iterator.CurrentTimeStamp || iterator.currentTimeStamp || null;
++                    if (timeStamp && typeof timeStamp.RealValue === "number") {
++                        timeStampRealValue = timeStamp.RealValue;
++                    }
++                    else if (timeStamp && typeof timeStamp.realValue === "number") {
++                        timeStampRealValue = timeStamp.realValue;
++                    }
++                    if (typeof timeStampRealValue === "number" && !Number.isFinite(timeStampRealValue)) {
++                        timeStampRealValue = null;
++                    }
++                }
++                catch (e) {
++                    timeStampRealValue = null;
++                }
++                this.scheduler.loadNotes(this.cursor.Iterator.CurrentVoiceEntries, timeStampRealValue);
+             }
+             this.cursor.next();
+             ++steps;
+diff --git a/dist/PlaybackScheduler.js b/dist/PlaybackScheduler.js
+index 0ec93e51bad2b63feac94addffdea110a995f81e..1ed880c6a18bf3efaf234ffd6569e053f8d20d75 100644
+--- a/dist/PlaybackScheduler.js
++++ b/dist/PlaybackScheduler.js
+@@ -8,6 +8,7 @@ export default class PlaybackScheduler {
+         this.currentTickTimestamp = 0;
+         this.audioContextStartTime = 0;
+         this.schedulerIntervalHandle = null;
++        this.schedulerIntervalHandles = new Set();
+         this.scheduleInterval = 200; // Milliseconds
+         this.schedulePeriod = 500;
+         this.tickDenominator = 1024;
+@@ -32,13 +33,17 @@ export default class PlaybackScheduler {
+         return this.currentTick + Math.round((this.audioContextTime - this.currentTickTimestamp) / this.tickDuration);
+     }
+     start() {
+-        this.playing = true;
+         this.stepQueue.sort();
+-        this.audioContextStartTime = this.audioContext.currentTime;
+-        this.currentTickTimestamp = this.audioContextTime;
+-        if (!this.schedulerIntervalHandle) {
++        if (this.schedulerIntervalHandle === null) {
++            this.playing = true;
++            this.audioContextStartTime = this.audioContext.currentTime;
++            this.currentTickTimestamp = this.audioContextTime;
+             this.schedulerIntervalHandle = window.setInterval(() => this.scheduleIterationStep(), this.scheduleInterval);
++            this.schedulerIntervalHandles.add(this.schedulerIntervalHandle);
++            return;
+         }
++        this.playing = true;
++        this.currentTickTimestamp = this.audioContextTime;
+     }
+     setIterationStep(step) {
+         step = Math.min(this.stepQueue.steps.length - 1, step);
+@@ -47,6 +52,7 @@ export default class PlaybackScheduler {
+     }
+     pause() {
+         this.playing = false;
++        this.scheduledTicks.clear();
+     }
+     resume() {
+         this.playing = true;
+@@ -57,19 +63,29 @@ export default class PlaybackScheduler {
+         this.currentTick = 0;
+         this.currentTickTimestamp = 0;
+         this.stepQueueIndex = 0;
+-        clearInterval(this.scheduleInterval);
++        this.audioContextStartTime = 0;
++        this.scheduledTicks.clear();
++        for (const handle of this.schedulerIntervalHandles) {
++            clearInterval(handle);
++        }
++        this.schedulerIntervalHandles.clear();
+         this.schedulerIntervalHandle = null;
+     }
+-    loadNotes(currentVoiceEntries) {
++    loadNotes(currentVoiceEntries, iteratorTimeStampRealValue) {
+         let thisTick = this.lastTickOffset;
+-        if (this.stepQueue.steps.length > 0) {
++        if (typeof iteratorTimeStampRealValue === "number" && Number.isFinite(iteratorTimeStampRealValue)) {
++            thisTick = this.lastTickOffset + Math.round(iteratorTimeStampRealValue * this.tickDenominator);
++        }
++        else if (this.stepQueue.steps.length > 0) {
+             thisTick = this.stepQueue.getFirstEmptyTick();
+         }
+         for (let entry of currentVoiceEntries) {
+             if (!entry.IsGrace) {
+                 for (let note of entry.Notes) {
+                     this.stepQueue.addNote(thisTick, note);
+-                    this.stepQueue.createStep(thisTick + note.Length.RealValue * this.tickDenominator);
++                    if (!(typeof iteratorTimeStampRealValue === "number" && Number.isFinite(iteratorTimeStampRealValue))) {
++                        this.stepQueue.createStep(thisTick + note.Length.RealValue * this.tickDenominator);
++                    }
+                 }
+             }
+         }

@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  osmd-audio-player:
+    hash: 203dac190f4dab7dfae7fadfe9299d3eaefcaa1673a637951078bfc31032bbbc
+    path: patches/osmd-audio-player.patch
+
 importers:
 
   .:
@@ -40,7 +45,7 @@ importers:
         version: 1.9.4
       osmd-audio-player:
         specifier: ^0.7.0
-        version: 0.7.0
+        version: 0.7.0(patch_hash=203dac190f4dab7dfae7fadfe9299d3eaefcaa1673a637951078bfc31032bbbc)
       react:
         specifier: 19.1.0
         version: 19.1.0
@@ -803,6 +808,7 @@ packages:
 
   audio-loader@0.5.0:
     resolution: {integrity: sha512-mEoYRjZhqkBSen/X9i2PNosqvafEsur8bI5MNoPr0wsJu9Nzlul3Yv1elYeMPsXxTxYhXLY8AZlScBvaK4mydg==}
+    deprecated: 'Deprecated: use native fetch() + decodeAudioData() instead. See https://github.com/audiojs/audio-loader#migration'
 
   automation-events@2.0.19:
     resolution: {integrity: sha512-6RUNmFkmTYXq/W+ovdwLdqqj44rGh9+dGjg4qLaktVHYT1+c+PdlYAkaCn/H2AaqprW9NZhK+jsXT4t8izPV+w==}
@@ -4368,7 +4374,7 @@ snapshots:
       type-check: 0.4.0
       word-wrap: 1.2.5
 
-  osmd-audio-player@0.7.0:
+  osmd-audio-player@0.7.0(patch_hash=203dac190f4dab7dfae7fadfe9299d3eaefcaa1673a637951078bfc31032bbbc):
     dependencies:
       opensheetmusicdisplay: 0.8.7
       soundfont-player: 0.12.0

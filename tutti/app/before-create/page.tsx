@@ -38,6 +38,7 @@ const BeforeCreatePage = () => {
     setNoteRange,
     setGenre,
     setFreedom,
+    setTrackMapping,
   } = useMidiStore();
 
   const mode = searchParams.get("mode");
@@ -87,6 +88,7 @@ const BeforeCreatePage = () => {
     isFailed: sseIsFailed,
   };
   const hasNavigatedRef = useRef(false);
+  const regenerateUiSeededRef = useRef<string | null>(null);
   const projectQuery = useProjectQuery(parsedRegenerateProjectId, isRegenerateMode);
 
   const shouldPrefetchInstrumentCategories =
@@ -115,10 +117,11 @@ const BeforeCreatePage = () => {
     setCreateError("버전 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
   }, [isRegenerateMode, projectQuery.isError]);
 
-  // 재생성 모드: (versionId가 있으면 해당 버전, 없으면 최신 버전) 설정을 기본값으로 채움
+  // 재생성 모드: URL의 버전(또는 최신)과 동일한 UI 값·트랙 매핑을 한 번 적용 (persist에 남은 이전 악기 덮어쓰기)
   useEffect(() => {
     if (!isRegenerateMode) return;
     if (!hasHydrated) return;
+    if (parsedRegenerateProjectId == null) return;
     const versions = projectQuery.data?.result?.versions ?? [];
     if (!versions.length) return;
 
@@ -136,24 +139,28 @@ const BeforeCreatePage = () => {
       null;
     if (!latest) return;
 
-    if (selectedInstrument == null) setSelectedInstrument(latest.instrumentId);
-    if (!genre) setGenre(latest.genre);
-    if (noteRange == null)
-      setNoteRange({ min: latest.minNote, max: latest.maxNote });
-    if (freedom == null) setFreedom(latest.temperature);
+    const seedKey = `${parsedRegenerateProjectId}-${latest.versionId}`;
+    if (regenerateUiSeededRef.current === seedKey) return;
+    regenerateUiSeededRef.current = seedKey;
+
+    setSelectedInstrument(latest.instrumentId);
+    setGenre(latest.genre);
+    setNoteRange({ min: latest.minNote, max: latest.maxNote });
+    setFreedom(latest.temperature);
+    for (const m of latest.mappings ?? []) {
+      setTrackMapping(`track-${m.trackIndex}`, m.targetInstrumentId);
+    }
   }, [
     isRegenerateMode,
     hasHydrated,
-    projectQuery.data?.result?.versions,
+    parsedRegenerateProjectId,
     parsedRegenerateVersionId,
-    selectedInstrument,
-    genre,
-    noteRange,
-    freedom,
+    projectQuery.data?.result?.versions,
     setSelectedInstrument,
     setGenre,
     setNoteRange,
     setFreedom,
+    setTrackMapping,
   ]);
 
   // SSE complete → player 페이지로 이동

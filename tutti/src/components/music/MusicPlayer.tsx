@@ -6,6 +6,7 @@ import type { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
 import AudioPlayer from "osmd-audio-player";
 import ScoreViewer, { ScoreViewerRef } from "./ScoreViewer";
 import PlaybackControl from "./PlaybackControl";
+import InstrumentMixer, { InstrumentInfo } from "./InstrumentMixer";
 import { buildMeasureIndex, getMeasureNumberFromCursor } from "./MeasureIndex";
 
 type UiState = "loading" | "idle" | "playing" | "paused";
@@ -47,6 +48,20 @@ export default function MusicPlayer({
   const [currentMeasure, setCurrentMeasure] = useState<number | null>(null);
   const [totalMeasures, setTotalMeasures] = useState<number>(0);
 
+  // ✅ 악기 믹서 상태
+  const [instruments, setInstruments] = useState<InstrumentInfo[]>([]);
+  const [mutedIndices, setMutedIndices] = useState<Set<number>>(new Set());
+
+  // ✅ 콜백에서 stale 방지용 ref
+  const instrumentsRef = useRef<InstrumentInfo[]>([]);
+  const mutedIndicesRef = useRef<Set<number>>(new Set());
+  useEffect(() => {
+    instrumentsRef.current = instruments;
+  }, [instruments]);
+  useEffect(() => {
+    mutedIndicesRef.current = mutedIndices;
+  }, [mutedIndices]);
+
   const cleanupPlayerEventsRef = useRef<(() => void) | null>(null);
   const lastHighlightedMeasureRef = useRef<number | null>(null);
 
@@ -74,21 +89,32 @@ export default function MusicPlayer({
     return "idle";
   };
 
+  // ============================================================
+  // ✅ 스크롤/커서 유틸 (기존 유지)
+  // ============================================================
+
   /** ✅ 커서 엘리먼트 */
   const getCursorElement = (): Element | null => {
     const c = scoreViewerRef.current?.getCursor?.();
     if (!c || typeof c !== "object") return null;
     const cc = c as { cursorElement?: unknown; CursorElement?: unknown };
-    return (cc.cursorElement as Element | undefined) ?? (cc.CursorElement as Element | undefined) ?? null;
+    return (
+      (cc.cursorElement as Element | undefined) ??
+      (cc.CursorElement as Element | undefined) ??
+      null
+    );
   };
 
-  /** ✅ 현재 active 하이라이트 rect (두번째 코드의 핵심 기준) */
+  /** ✅ 현재 active 하이라이트 rect */
   const getActiveHighlightElement = (): Element | null => {
     return document.querySelector(`.${ACTIVE_HIGHLIGHT_CLASS}`);
   };
 
   /** ✅ 스크롤 가능한 부모 찾기 */
-  const findScrollParent = (el: Element | null, axis: "y" | "x"): HTMLElement | null => {
+  const findScrollParent = (
+    el: Element | null,
+    axis: "y" | "x",
+  ): HTMLElement | null => {
     let cur: HTMLElement | null = el ? (el as unknown as HTMLElement) : null;
 
     while (cur && cur !== document.body) {
@@ -96,7 +122,9 @@ export default function MusicPlayer({
       const overflow = axis === "y" ? style.overflowY : style.overflowX;
 
       const canScroll =
-        (overflow === "auto" || overflow === "scroll" || overflow === "overlay") &&
+        (overflow === "auto" ||
+          overflow === "scroll" ||
+          overflow === "overlay") &&
         (axis === "y"
           ? (cur.scrollHeight ?? 0) > (cur.clientHeight ?? 0) + 1
           : (cur.scrollWidth ?? 0) > (cur.clientWidth ?? 0) + 1);
@@ -108,24 +136,25 @@ export default function MusicPlayer({
     return (document.scrollingElement as HTMLElement) ?? null;
   };
 
-  /** ✅ 커서가 속한 "페이지" DOM (없으면 svg로라도 잡기) */
+  /** ✅ 커서가 속한 "페이지" DOM */
   const getPageElement = (): Element | null => {
     const el = getCursorElement();
     if (!el) return null;
 
     return (
       (el as HTMLElement).closest?.(
-        ".osmdPage, .osmd-page, .page, .osmdPageContainer, .osmd-page-container, [id^='osmdPage'], [class*='osmdPage'], [data-osmd-page]"
+        ".osmdPage, .osmd-page, .page, .osmdPageContainer, .osmd-page-container, [id^='osmdPage'], [class*='osmdPage'], [data-osmd-page]",
       ) ??
       (el as HTMLElement).closest?.("svg") ??
       null
     );
   };
 
-  /** ✅ 커서가 화면 안에 충분히 보이면 scrollIntoView를 꺼서 툭 튐 방지 */
+  /** ✅ 커서가 화면 안에 충분히 보이면 scrollIntoView OFF */
   const shouldUseScrollIntoView = (): boolean => {
     const el = getCursorElement();
-    if (!el || typeof (el as Element).getBoundingClientRect !== "function") return true;
+    if (!el || typeof (el as Element).getBoundingClientRect !== "function")
+      return true;
 
     const rect = el.getBoundingClientRect();
     const topSafe = getTopSafe();
@@ -137,17 +166,13 @@ export default function MusicPlayer({
     return !visibleEnough;
   };
 
-  /**
-   * ✅ (추가) 하이라이트 rect 기준 세로 보정 (두번째 코드의 핵심)
-   * - 중앙 정렬 X
-   * - 안전영역(topSafe~bottomSafe) 밖일 때만 "필요한 만큼만" 이동
-   * - return: 실제로 스크롤했는지 여부
-   */
+  /** ✅ 하이라이트 rect 기준 세로 보정 */
   const scrollActiveHighlightIntoView = (
-    behavior: ScrollBehavior = "smooth"
+    behavior: ScrollBehavior = "smooth",
   ): boolean => {
     const el = getActiveHighlightElement();
-    if (!el || typeof (el as Element).getBoundingClientRect !== "function") return false;
+    if (!el || typeof (el as Element).getBoundingClientRect !== "function")
+      return false;
 
     const parent = findScrollParent(el, "y");
     if (!parent) return false;
@@ -156,9 +181,8 @@ export default function MusicPlayer({
     const topSafe = getTopSafe();
     const bottomSafe = getBottomSafe();
 
-    const DEAD_ZONE = 36; // 미세 보정(툭) 방지
+    const DEAD_ZONE = 36;
 
-    // window 스크롤
     if (parent === document.scrollingElement) {
       const topLimit = topSafe;
       const bottomLimit = window.innerHeight - bottomSafe;
@@ -174,7 +198,6 @@ export default function MusicPlayer({
       return true;
     }
 
-    // 특정 컨테이너 스크롤
     const parentRect = parent.getBoundingClientRect();
     const topInParent = rect.top - parentRect.top;
     const bottomInParent = rect.bottom - parentRect.top;
@@ -193,13 +216,13 @@ export default function MusicPlayer({
     return true;
   };
 
-  /**
-   * ✅ 같은 페이지에서만: 커서가 화면 밖이면 세로로 따라가기
-   * (기존 유지: 커서 기준은 fallback으로만 사용)
-   */
-  const scrollToCursorVertIfNeeded = (behavior: ScrollBehavior = "smooth"): boolean => {
+  /** ✅ 커서 기준 세로 보정 (fallback) */
+  const scrollToCursorVertIfNeeded = (
+    behavior: ScrollBehavior = "smooth",
+  ): boolean => {
     const el = getCursorElement();
-    if (!el || typeof (el as Element).getBoundingClientRect !== "function") return false;
+    if (!el || typeof (el as Element).getBoundingClientRect !== "function")
+      return false;
 
     const rect = el.getBoundingClientRect();
     const yParent = findScrollParent(el, "y");
@@ -211,10 +234,12 @@ export default function MusicPlayer({
     const DEAD_ZONE = 36;
 
     if (yParent === document.scrollingElement) {
-      const out = rect.top < topSafe || rect.bottom > window.innerHeight - bottomSafe;
+      const out =
+        rect.top < topSafe || rect.bottom > window.innerHeight - bottomSafe;
       if (!out) return false;
 
-      let target = window.scrollY + (rect.top + rect.height / 2) - window.innerHeight / 2;
+      let target =
+        window.scrollY + (rect.top + rect.height / 2) - window.innerHeight / 2;
       if (target < 0) target = 0;
 
       if (Math.abs(target - window.scrollY) < DEAD_ZONE) return false;
@@ -228,7 +253,8 @@ export default function MusicPlayer({
     const bottomInParent = rect.bottom - parentRect.top;
 
     const out =
-      topInParent < topSafe || bottomInParent > yParent.clientHeight - bottomSafe;
+      topInParent < topSafe ||
+      bottomInParent > yParent.clientHeight - bottomSafe;
     if (!out) return false;
 
     const centerInParent = topInParent + rect.height / 2;
@@ -241,8 +267,11 @@ export default function MusicPlayer({
     return true;
   };
 
-  /** ✅ 페이지가 바뀌면: 그 페이지의 상단이 안전영역 아래로 오도록 정렬 */
-  const scrollToPageTop = (pageEl: Element, behavior: ScrollBehavior = "auto") => {
+  /** ✅ 페이지 상단 정렬 */
+  const scrollToPageTop = (
+    pageEl: Element,
+    behavior: ScrollBehavior = "auto",
+  ) => {
     const yParent = findScrollParent(pageEl, "y");
     const topSafe = getTopSafe();
     const DEAD_ZONE = 36;
@@ -262,7 +291,10 @@ export default function MusicPlayer({
     }
 
     const parentRect = yParent.getBoundingClientRect();
-    const target = Math.max(0, yParent.scrollTop + (pageRect.top - parentRect.top) - topSafe);
+    const target = Math.max(
+      0,
+      yParent.scrollTop + (pageRect.top - parentRect.top) - topSafe,
+    );
     if (Math.abs(target - yParent.scrollTop) < DEAD_ZONE) return;
     yParent.scrollTo({ top: target, behavior });
   };
@@ -270,7 +302,6 @@ export default function MusicPlayer({
   const ensurePageTop = (pageEl: Element) => {
     const run = () => {
       scrollToPageTop(pageEl, "auto");
-      // ✅ 페이지 top 정렬 후, 하이라이트가 아래에 있으면 최소 보정으로 확실히 보이게
       scrollActiveHighlightIntoView("auto");
     };
     run();
@@ -278,25 +309,19 @@ export default function MusicPlayer({
     setTimeout(run, 80);
   };
 
-  /**
-   * ✅ 하이라이트 이후: (기존 흐름 유지)
-   * - changed면 ensurePageTop
-   * - 아니면 "하이라이트 기준 세로 보정"을 먼저 하고, 안 되면 커서 fallback
-   */
   const postHighlightScroll = (prevPageEl: Element | null) => {
     const run = () => {
       const nextEl = getPageElement();
-      const changed = prevPageEl != null && nextEl != null && prevPageEl !== nextEl;
+      const changed =
+        prevPageEl != null && nextEl != null && prevPageEl !== nextEl;
 
       if (nextEl) lastPageElRef.current = nextEl;
 
       if (changed && nextEl) {
         ensurePageTop(nextEl);
       } else {
-        // ✅ (추가) 아래 악보에서 하이라이트가 안 보이는 문제 해결: 하이라이트 기준 우선
         const moved = scrollActiveHighlightIntoView("smooth");
         if (!moved) {
-          // fallback
           scrollToCursorVertIfNeeded("smooth");
         }
       }
@@ -307,6 +332,9 @@ export default function MusicPlayer({
     setTimeout(run, 80);
   };
 
+  // ============================================================
+  // ✅ 악보 로드 핸들러
+  // ============================================================
   const handleScoreLoaded = async (osmd: OpenSheetMusicDisplay) => {
     setState("loading");
 
@@ -317,18 +345,186 @@ export default function MusicPlayer({
       osmdRef.current = osmd;
 
       const sheet = osmd.Sheet as unknown as { SourceMeasures?: unknown };
-      const measures = Array.isArray(sheet?.SourceMeasures) ? sheet.SourceMeasures : [];
+      const measures = Array.isArray(sheet?.SourceMeasures)
+        ? sheet.SourceMeasures
+        : [];
       totalMeasuresRef.current = measures.length;
       setTotalMeasures(measures.length);
 
       const idx = buildMeasureIndex(osmd.cursor);
       measureToStepRef.current = idx.measureToStep;
 
-      const AudioPlayerCtor = AudioPlayer as unknown as new () => OsmdAudioPlayerLike;
+      const AudioPlayerCtor =
+        AudioPlayer as unknown as new () => OsmdAudioPlayerLike;
       const player = new AudioPlayerCtor();
       playerRef.current = player;
 
       await player.loadScore(osmd);
+
+      // ============================================================
+      // ✅ stepQueue: 같은 tick에 몰린 step들의 간격을 강제로 벌림
+      // ============================================================
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const sch = (player as any).scheduler;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const steps: any[] = sch?.stepQueue?.steps ?? [];
+
+        if (Array.isArray(steps) && steps.length > 1) {
+          // 1) 정수 round
+          steps.forEach((s) => {
+            if (typeof s?.tick === "number") s.tick = Math.round(s.tick);
+          });
+
+          // 2) 정렬
+          steps.sort((a, b) => (a.tick ?? 0) - (b.tick ?? 0));
+
+          // 3) 같은 tick이 연속이면 1씩 벌림 (시계 진행에 맞춰 순차 처리되도록)
+          let bumped = 0;
+          for (let i = 1; i < steps.length; i++) {
+            if (steps[i].tick <= steps[i - 1].tick) {
+              steps[i].tick = steps[i - 1].tick + 1;
+              bumped++;
+            }
+          }
+
+          if (bumped > 0) {
+            console.log(
+              `[MusicPlayer] stepQueue: ${bumped} step(s) bumped apart`,
+            );
+          }
+        }
+      } catch (e) {
+        console.warn("[MusicPlayer] stepQueue fix failed:", e);
+      }
+
+      // ============================================================
+      // ✅ instrument 목록 추출 + 원본 참조 보관
+      // ============================================================
+      type OsmdInstrumentLike = {
+        Name?: string;
+        NameLabel?: { text?: string };
+        Voices?: Array<{ VoiceId?: number }>;
+      };
+      const sheetForInstruments = osmd.Sheet as unknown as
+        | { Instruments?: OsmdInstrumentLike[] }
+        | undefined;
+      const rawInstruments = sheetForInstruments?.Instruments ?? [];
+
+      const instrumentList: InstrumentInfo[] = rawInstruments.map((ins, i) => ({
+        index: i,
+        name: ins.Name ?? ins.NameLabel?.text ?? `Track ${i + 1}`,
+        voiceIds: (ins.Voices ?? [])
+          .map((v) => v?.VoiceId)
+          .filter((v): v is number => typeof v === "number"),
+      }));
+
+      // ✅ instrument 참조 → index Map (핵심)
+      const instrumentRefToIndex = new Map<unknown, number>();
+      rawInstruments.forEach((ins, i) => {
+        instrumentRefToIndex.set(ins, i);
+      });
+
+      setInstruments(instrumentList);
+      setMutedIndices(new Set());
+      instrumentsRef.current = instrumentList;
+      mutedIndicesRef.current = new Set();
+
+      // ============================================================
+      // ✅ notePlaybackCallback 오버라이드 — muted 악기 노트 필터링
+      // ============================================================
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const pAny = player as any;
+      const originalCallback = pAny.notePlaybackCallback?.bind(player);
+
+      if (typeof originalCallback === "function") {
+        let loggedShape = false;
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const getInstrumentIndexFromNote = (note: any): number | null => {
+          try {
+            // 경로 1: note.parentStaffEntry.parentStaff.parentInstrument
+            const staff =
+              note?.parentStaffEntry?.parentStaff ??
+              note?.ParentStaffEntry?.ParentStaff ??
+              null;
+            const ins =
+              staff?.parentInstrument ?? staff?.ParentInstrument ?? null;
+            if (ins && instrumentRefToIndex.has(ins)) {
+              return instrumentRefToIndex.get(ins) ?? null;
+            }
+
+            // 경로 2: voiceEntry.parentVoice.parent (Instrument)
+            const voice =
+              note?.voiceEntry?.parentVoice ??
+              note?.ParentVoiceEntry?.ParentVoice ??
+              null;
+            const insFromVoice = voice?.parent ?? voice?.Parent ?? null;
+            if (insFromVoice && instrumentRefToIndex.has(insFromVoice)) {
+              return instrumentRefToIndex.get(insFromVoice) ?? null;
+            }
+
+            return null;
+          } catch {
+            return null;
+          }
+        };
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        pAny.notePlaybackCallback = function (
+          audioContextTime: number,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          scheduledNotes: any,
+        ) {
+          const muted = mutedIndicesRef.current;
+
+          // 첫 호출 시 진단 로그
+          if (!loggedShape) {
+            const sample = Array.isArray(scheduledNotes)
+              ? scheduledNotes[0]
+              : null;
+            console.log("[MusicPlayer] notePlaybackCallback shape:", {
+              isArray: Array.isArray(scheduledNotes),
+              length: Array.isArray(scheduledNotes)
+                ? scheduledNotes.length
+                : null,
+              sampleStaff: sample?.parentStaffEntry?.parentStaff,
+              sampleInstrumentIndex: sample
+                ? getInstrumentIndexFromNote(sample)
+                : null,
+              instrumentRefMapSize: instrumentRefToIndex.size,
+            });
+            loggedShape = true;
+          }
+
+          if (muted.size === 0) {
+            return originalCallback(audioContextTime, scheduledNotes);
+          }
+
+          if (Array.isArray(scheduledNotes)) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const filtered = scheduledNotes.filter((note: any) => {
+              const idx = getInstrumentIndexFromNote(note);
+              if (idx == null) return true; // 못 찾으면 재생 (안전)
+              return !muted.has(idx);
+            });
+            return originalCallback(audioContextTime, filtered);
+          }
+
+          return originalCallback(audioContextTime, scheduledNotes);
+        };
+
+        console.log("[MusicPlayer] notePlaybackCallback wrapped ✅");
+      } else {
+        console.warn("[MusicPlayer] notePlaybackCallback을 찾지 못했습니다.");
+      }
+
+      // 디버깅용: window에 노출 (배포 시 제거)
+      if (typeof window !== "undefined") {
+        (window as unknown as { __player: unknown }).__player = player;
+      }
+
+      console.log("[MusicPlayer] instruments:", instrumentList);
 
       // 초기 페이지 저장
       lastPageElRef.current = getPageElement();
@@ -345,10 +541,11 @@ export default function MusicPlayer({
           } catch {}
 
           setCurrentMeasure(1);
-          scoreViewerRef.current?.highlightMeasure(1, { scrollIntoView: false });
+          scoreViewerRef.current?.highlightMeasure(1, {
+            scrollIntoView: false,
+          });
           lastHighlightedMeasureRef.current = 1;
 
-          // ✅ 시작 마디도 하이라이트 기준으로 확실히 보이게
           requestAnimationFrame(() => {
             const moved = scrollActiveHighlightIntoView("auto");
             if (!moved) scrollToCursorVertIfNeeded("smooth");
@@ -372,11 +569,11 @@ export default function MusicPlayer({
 
         const prevPageEl = lastPageElRef.current ?? getPageElement();
 
-        // ✅ (그대로) 화면 밖일 때만 scrollIntoView
-        // ✅ suppress 구간에는 scrollIntoView/추가 스크롤 보정 모두 중단
         const useScrollIntoView = !suppress && shouldUseScrollIntoView();
 
-        scoreViewerRef.current?.highlightMeasure(m, { scrollIntoView: useScrollIntoView });
+        scoreViewerRef.current?.highlightMeasure(m, {
+          scrollIntoView: useScrollIntoView,
+        });
         lastHighlightedMeasureRef.current = m;
 
         const curPageEl = getPageElement();
@@ -419,11 +616,69 @@ export default function MusicPlayer({
       }
     } catch (e) {
       console.error(e);
-      alert(`플레이어 초기화 실패: ${e instanceof Error ? e.message : "Unknown error"}`);
+      alert(
+        `플레이어 초기화 실패: ${e instanceof Error ? e.message : "Unknown error"}`,
+      );
       setState("idle");
     }
   };
 
+  // ============================================================
+  // ✅ 곡 끝 감지 — stuck 상태 자동 복구
+  // scheduler가 끝을 인식 못 하는 케이스 (악보 데이터 한계로)
+  // 마지막 마디 도달 후 일정 시간 진행 없으면 강제 stop
+  // ============================================================
+  useEffect(() => {
+    if (state !== "playing") return;
+
+    let lastStep = -1;
+    let stuckCount = 0;
+    const STUCK_THRESHOLD = 6; // 300ms × 6 = 1.8초간 진행 없으면 stuck
+
+    const interval = setInterval(() => {
+      const p = playerRef.current;
+      if (!p) return;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const pAny = p as any;
+      const total = pAny.iterationSteps ?? 0;
+      const current = pAny.currentIterationStep ?? 0;
+
+      // 케이스 1: 끝까지 정상 도달
+      if (total > 0 && current >= total) {
+        console.log("[MusicPlayer] 곡 끝 도달, stop");
+        void p.stop?.();
+        setState("idle");
+        return;
+      }
+
+      // 케이스 2: 마지막 마디 근처에서 stuck (악보 한계)
+      const m = currentMeasure ?? 0;
+      const totalM = totalMeasuresRef.current;
+      const nearEnd = totalM > 0 && m >= totalM - 1;
+
+      if (current === lastStep) {
+        stuckCount++;
+        if (nearEnd && stuckCount >= STUCK_THRESHOLD) {
+          console.log(
+            `[MusicPlayer] 마지막 부근(${m}/${totalM})에서 stuck 감지, 강제 stop`,
+          );
+          void p.stop?.();
+          setState("idle");
+          return;
+        }
+      } else {
+        stuckCount = 0;
+        lastStep = current;
+      }
+    }, 300);
+
+    return () => clearInterval(interval);
+  }, [state, currentMeasure]);
+
+  // ============================================================
+  // ✅ 재생 제어
+  // ============================================================
   const play = async () => {
     const p = playerRef.current;
     if (!p) return;
@@ -439,18 +694,25 @@ export default function MusicPlayer({
   const stop = async () => {
     const p = playerRef.current;
     if (!p) return;
-    await p.stop();
+    try {
+      await p.stop();
+    } catch {
+      // PlaybackEngine.stop() 내부에서 cursor 등이 null이면 reject될 수 있음
+    }
   };
 
   const jumpToMeasure = async (
     measure: number,
     autoplay = true,
-    source: JumpSource = "control"
+    source: JumpSource = "control",
   ) => {
     const p = playerRef.current;
     if (!p) return;
 
-    const m = Math.min(Math.max(measure, 1), Math.max(totalMeasuresRef.current, 1));
+    const m = Math.min(
+      Math.max(measure, 1),
+      Math.max(totalMeasuresRef.current, 1),
+    );
     const step = measureToStepRef.current.get(m);
 
     if (step == null) {
@@ -469,10 +731,11 @@ export default function MusicPlayer({
     setCurrentMeasure(m);
 
     const fromClick = source === "click";
-
     const useScrollIntoView = !fromClick && shouldUseScrollIntoView();
 
-    scoreViewerRef.current?.highlightMeasure(m, { scrollIntoView: useScrollIntoView });
+    scoreViewerRef.current?.highlightMeasure(m, {
+      scrollIntoView: useScrollIntoView,
+    });
     lastHighlightedMeasureRef.current = m;
 
     try {
@@ -480,11 +743,10 @@ export default function MusicPlayer({
       c?.show();
     } catch {}
 
-    // ✅ 클릭/점프 직후 onIteration 자동보정 잠깐 차단
-    suppressAutoScrollUntilRef.current = performance.now() + (fromClick ? 320 : 180);
+    suppressAutoScrollUntilRef.current =
+      performance.now() + (fromClick ? 320 : 180);
 
     if (!fromClick) {
-      // ✅ 컨트롤 점프는 “하이라이트 기준”으로 확실히 보이게 보정
       postHighlightScroll(prevPageEl);
     } else {
       const curPageEl = getPageElement();
@@ -494,15 +756,46 @@ export default function MusicPlayer({
     if (autoplay) await p.play();
   };
 
+  // ============================================================
+  // ✅ 악기 믹서 핸들러
+  // ============================================================
+  const handleToggleMute = (index: number) => {
+    setMutedIndices((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      mutedIndicesRef.current = next; // 즉시 ref 동기화
+      return next;
+    });
+  };
+
+  const handleSolo = (index: number) => {
+    const next = new Set(
+      instrumentsRef.current.map((i) => i.index).filter((i) => i !== index),
+    );
+    mutedIndicesRef.current = next;
+    setMutedIndices(next);
+  };
+
+  const handleAll = () => {
+    const next = new Set<number>();
+    mutedIndicesRef.current = next;
+    setMutedIndices(next);
+  };
+
+  // ============================================================
+  // ✅ cleanup
+  // ============================================================
   useEffect(() => {
     return () => {
       cleanupPlayerEventsRef.current?.();
       cleanupPlayerEventsRef.current = null;
 
-      if (playerRef.current) {
-        try {
-          playerRef.current.stop?.();
-        } catch {}
+      const p = playerRef.current;
+      playerRef.current = null;
+      if (p) {
+        // stop()은 Promise를 반환하고, 내부에서 cursor가 null이면 reject → 동기 try/catch로는 잡히지 않음
+        void Promise.resolve(p.stop?.()).catch(() => {});
       }
     };
   }, []);
@@ -526,6 +819,16 @@ export default function MusicPlayer({
         </div>
       </div>
 
+      {/* ✅ 악기 믹서 */}
+      <InstrumentMixer
+        instruments={instruments}
+        mutedIndices={mutedIndices}
+        onToggleMute={handleToggleMute}
+        onSolo={handleSolo}
+        onAll={handleAll}
+        disabled={state === "loading"}
+      />
+
       {/* 브라우저 scroll anchoring 점프 완화 */}
       <div style={{ overflowAnchor: "none" }}>
         <ScoreViewer
@@ -533,6 +836,7 @@ export default function MusicPlayer({
           xmlData={xmlData}
           onScoreLoaded={handleScoreLoaded}
           onMeasureClick={(mm) => jumpToMeasure(mm, true, "click")}
+          highlightedInstrumentIndex="last"
         />
       </div>
     </div>

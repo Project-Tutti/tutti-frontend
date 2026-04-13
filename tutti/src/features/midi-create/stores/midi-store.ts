@@ -1,12 +1,31 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
+import type { ProjectVersionMappingResponseDto } from "@api/project/types/api.types";
+
 import { Track } from "@/types/track";
 import { DROP_CATEGORY_PROGRAM } from "@common/utils/midi-utils";
 
 interface NoteRange {
   min: number;
   max: number;
+}
+
+/** 플레이어 재생성 등: 특정 버전의 생성 옵션으로 스토어를 한 번에 맞출 때 사용 */
+export type RegenerateVersionSeed = {
+  instrumentId: number;
+  mappings: ProjectVersionMappingResponseDto[];
+  genre: string;
+  minNote: number;
+  maxNote: number;
+  temperature: number;
+};
+
+function trackIndexFromId(trackId: string): number | null {
+  const m = /^track-(\d+)$/.exec(trackId);
+  if (!m) return null;
+  const n = Number(m[1]);
+  return Number.isFinite(n) ? n : null;
 }
 
 interface MidiStore {
@@ -17,7 +36,7 @@ interface MidiStore {
   noteRange: NoteRange | null;
   genre: string | null;
   freedom: number | null;
-  setTracks: (tracks: Track[]) => void;
+  setTracks: (tracks: Track[], seed?: RegenerateVersionSeed | null) => void;
   setSelectedInstrument: (id: number | null) => void;
   setUploadedFile: (file: File | null) => void;
   setTrackMapping: (trackId: string, targetInstrumentId: number) => void;
@@ -37,14 +56,40 @@ export const useMidiStore = create<MidiStore>()(
       noteRange: null,
       genre: null,
       freedom: 1.0,
-      setTracks: (tracks) =>
+      setTracks: (tracks, seed) =>
         set(() => {
+          const mappingsByIndex = new Map<number, number>();
+          if (seed?.mappings?.length) {
+            for (const m of seed.mappings) {
+              mappingsByIndex.set(m.trackIndex, m.targetInstrumentId);
+            }
+          }
+
           const nextMappings: Record<string, number> = {};
           tracks.forEach((track) => {
-            nextMappings[track.id] = track.isDropListProgram
-              ? DROP_CATEGORY_PROGRAM
-              : track.sourceInstrumentId;
+            if (track.isDropListProgram) {
+              nextMappings[track.id] = DROP_CATEGORY_PROGRAM;
+              return;
+            }
+            const idx = trackIndexFromId(track.id);
+            const mapped =
+              idx != null && mappingsByIndex.has(idx)
+                ? mappingsByIndex.get(idx)!
+                : track.sourceInstrumentId;
+            nextMappings[track.id] = mapped;
           });
+
+          if (seed) {
+            return {
+              tracks,
+              trackMappings: nextMappings,
+              selectedInstrument: seed.instrumentId,
+              genre: seed.genre,
+              freedom: seed.temperature,
+              noteRange: { min: seed.minNote, max: seed.maxNote },
+            };
+          }
+
           return {
             tracks,
             trackMappings: nextMappings,

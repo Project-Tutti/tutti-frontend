@@ -7,6 +7,7 @@ import Sidebar from "@/components/common/Sidebar";
 import Header from "@/components/common/Header";
 import Footer from "@/components/common/Footer";
 import { Spinner } from "@/components/common/Spinner";
+import { getProject } from "@api/project/apis/get/get-project";
 import { useProjectScoreQuery } from "@api/project/hooks/queries/useProjectScoreQuery";
 import { useProjectTracksQuery } from "@api/project/hooks/queries/useProjectTracksQuery";
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
@@ -24,13 +25,10 @@ function PlayerPageContent() {
   /** 쿼리가 없으면 임시로 14/14 악보 조회. 둘 중 하나만 있으면 API 호출 안 함. */
   const useDevDefault = rawProjectId == null && rawVersionId == null;
 
-  const parsedProjectId =
-    rawProjectId == null ? NaN : Number(rawProjectId);
-  const parsedVersionId =
-    rawVersionId == null ? NaN : Number(rawVersionId);
+  const parsedProjectId = rawProjectId == null ? NaN : Number(rawProjectId);
+  const parsedVersionId = rawVersionId == null ? NaN : Number(rawVersionId);
 
-  const hasBothQueryParams =
-    rawProjectId != null && rawVersionId != null;
+  const hasBothQueryParams = rawProjectId != null && rawVersionId != null;
   const hasValidBothQueryNumbers =
     Number.isFinite(parsedProjectId) && Number.isFinite(parsedVersionId);
 
@@ -70,7 +68,12 @@ function PlayerPageContent() {
   }, [scoreXml]);
 
   const openDownloadModal = () => {
-    if (!fetchScoreFromApi || !Number.isFinite(projectId) || !Number.isFinite(versionId)) return;
+    if (
+      !fetchScoreFromApi ||
+      !Number.isFinite(projectId) ||
+      !Number.isFinite(versionId)
+    )
+      return;
     const qs = new URLSearchParams({
       projectId: String(projectId),
       versionId: String(versionId),
@@ -79,12 +82,30 @@ function PlayerPageContent() {
   };
 
   const handleRegenerate = async () => {
-    if (!fetchScoreFromApi || !Number.isFinite(projectId) || !Number.isFinite(versionId)) return;
+    if (
+      !fetchScoreFromApi ||
+      !Number.isFinite(projectId) ||
+      !Number.isFinite(versionId)
+    )
+      return;
     try {
       const res = await tracksQuery.refetch();
       const tracks = res.data?.result?.tracks ?? [];
       if (!tracks.length) {
         throw new Error("트랙 정보를 불러오지 못했습니다.");
+      }
+
+      const projectRes = await getProject(projectId);
+      if (!projectRes.isSuccess || !projectRes.result) {
+        throw new Error(
+          projectRes.message ?? "프로젝트 버전 정보를 불러오지 못했습니다.",
+        );
+      }
+      const versionMeta = projectRes.result.versions.find(
+        (v) => v.versionId === versionId,
+      );
+      if (!versionMeta) {
+        throw new Error("선택한 버전의 생성 설정을 찾을 수 없습니다.");
       }
 
       setUploadedFile(null);
@@ -98,6 +119,14 @@ function PlayerPageContent() {
           channel: t.trackIndex,
           tags: ["original"],
         })),
+        {
+          instrumentId: versionMeta.instrumentId,
+          mappings: versionMeta.mappings ?? [],
+          genre: versionMeta.genre,
+          minNote: versionMeta.minNote,
+          maxNote: versionMeta.maxNote,
+          temperature: versionMeta.temperature,
+        },
       );
 
       router.push(
@@ -111,8 +140,7 @@ function PlayerPageContent() {
 
   const showInvalidParams = !fetchScoreFromApi;
   const showScoreLoading = fetchScoreFromApi && isScorePending;
-  const showScoreError =
-    fetchScoreFromApi && isScoreError && !isScorePending;
+  const showScoreError = fetchScoreFromApi && isScoreError && !isScorePending;
 
   return (
     <div className="h-screen flex flex-row overflow-hidden">
@@ -136,7 +164,10 @@ function PlayerPageContent() {
                   disabled={isScorePending || tracksQuery.isFetching}
                   className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold bg-[#0f1218] text-gray-200 hover:bg-white/6 border border-[#1e293b] disabled:opacity-50 disabled:pointer-events-none transition-colors"
                 >
-                  <span className="material-symbols-outlined text-lg" aria-hidden>
+                  <span
+                    className="material-symbols-outlined text-lg"
+                    aria-hidden
+                  >
                     {tracksQuery.isFetching ? "progress_activity" : "autorenew"}
                   </span>
                   {tracksQuery.isFetching ? "불러오는 중…" : "재생성"}
@@ -148,7 +179,10 @@ function PlayerPageContent() {
                   disabled={isScorePending}
                   className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold bg-[#1e293b] text-gray-200 hover:bg-[#334155] border border-[#334155] disabled:opacity-50 disabled:pointer-events-none transition-colors"
                 >
-                  <span className="material-symbols-outlined text-lg" aria-hidden>
+                  <span
+                    className="material-symbols-outlined text-lg"
+                    aria-hidden
+                  >
                     download
                   </span>
                   다운로드
@@ -168,8 +202,8 @@ function PlayerPageContent() {
                 <p className="text-gray-300 text-sm">
                   악보를 보려면{" "}
                   <span className="text-[#93c5fd]">projectId</span>와{" "}
-                  <span className="text-[#93c5fd]">versionId</span> 쿼리가
-                  모두 필요합니다.
+                  <span className="text-[#93c5fd]">versionId</span> 쿼리가 모두
+                  필요합니다.
                 </p>
                 <p className="mt-3 text-xs text-gray-500">
                   예:{" "}
@@ -207,7 +241,13 @@ function PlayerPageContent() {
             {scoreXml && !showScoreLoading && fetchScoreFromApi && (
               <div>
                 <MusicPlayer
-                  xmlData={scoreXml}
+                  xmlData={
+                    typeof scoreXml === "string"
+                      ? new File([scoreXml], "score.xml", {
+                          type: "application/xml",
+                        })
+                      : scoreXml
+                  }
                   autoPlay={false}
                   onRequestChangeFile={undefined}
                 />
