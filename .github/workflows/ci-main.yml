@@ -58,6 +58,8 @@ jobs:
         run: pnpm run build
         env:
           NEXT_TELEMETRY_DISABLED: "1"
+          NEXT_PUBLIC_API_BASE_URL: ${{ secrets.NEXT_PUBLIC_API_BASE_URL }}
+          NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
 
   # ================================================================
   # Job 2: Build & Push — Docker 이미지 빌드 후 Artifact Registry 푸시
@@ -100,6 +102,9 @@ jobs:
         with:
           context: tutti
           push: true
+          build-args: |
+            NEXT_PUBLIC_API_BASE_URL=${{ secrets.NEXT_PUBLIC_API_BASE_URL }}
+            NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.short-sha }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
