@@ -3,8 +3,6 @@
 export interface InstrumentInfo {
   index: number;
   name: string;
-  /** OSMD voice id 목록(향후 voice 단위 mute/solo 등 확장용). 현재 UI에서는 사용하지 않음. */
-  voiceIds: number[];
 }
 
 interface InstrumentMixerProps {

@@ -416,9 +416,6 @@ export default function MusicPlayer({
       const instrumentList: InstrumentInfo[] = rawInstruments.map((ins, i) => ({
         index: i,
         name: ins.Name ?? ins.NameLabel?.text ?? `Track ${i + 1}`,
-        voiceIds: (ins.Voices ?? [])
-          .map((v) => v?.VoiceId)
-          .filter((v): v is number => typeof v === "number"),
       }));
 
       // ✅ instrument 참조 → index Map (핵심)
