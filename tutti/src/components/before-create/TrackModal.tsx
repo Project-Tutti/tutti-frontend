@@ -60,7 +60,7 @@ const TrackModal = ({ isOpen, track, onClose }: TrackModalProps) => {
         : track.sourceInstrumentId);
     setInputValue(String(initialId));
     setSearchText("");
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- 모달 열림 시 초기값 세팅 목적; trackMappings 변경에 반응하면 안 됨
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 모달 열림 시 초기값 세팅 목적; trackMappings 변경에 반응하면 안 됨
   }, [track, isOpen]);
 
   const filteredOptions = useMemo(() => {
