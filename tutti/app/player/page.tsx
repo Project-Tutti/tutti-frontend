@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import MusicPlayer from "@/components/music/MusicPlayer";
 import Sidebar from "@/components/common/Sidebar";
@@ -12,18 +12,11 @@ import { useProjectScoreQuery } from "@api/project/hooks/queries/useProjectScore
 import { useProjectTracksQuery } from "@api/project/hooks/queries/useProjectTracksQuery";
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
 
-/** TODO: `/player`만 열었을 때 기본 pid/vid 제거 — 개발용 */
-const DEV_PLAYER_PROJECT_ID = 14;
-const DEV_PLAYER_VERSION_ID = 14;
-
 function PlayerPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawProjectId = searchParams.get("projectId");
   const rawVersionId = searchParams.get("versionId");
-
-  /** 쿼리가 없으면 임시로 14/14 악보 조회. 둘 중 하나만 있으면 API 호출 안 함. */
-  const useDevDefault = rawProjectId == null && rawVersionId == null;
 
   const parsedProjectId = rawProjectId == null ? NaN : Number(rawProjectId);
   const parsedVersionId = rawVersionId == null ? NaN : Number(rawVersionId);
@@ -32,11 +25,11 @@ function PlayerPageContent() {
   const hasValidBothQueryNumbers =
     Number.isFinite(parsedProjectId) && Number.isFinite(parsedVersionId);
 
-  const fetchScoreFromApi =
-    useDevDefault || (hasBothQueryParams && hasValidBothQueryNumbers);
+  /** projectId·versionId가 모두 있고 숫자로 파싱 가능할 때만 API 조회 */
+  const fetchScoreFromApi = hasBothQueryParams && hasValidBothQueryNumbers;
 
-  const projectId = useDevDefault ? DEV_PLAYER_PROJECT_ID : parsedProjectId;
-  const versionId = useDevDefault ? DEV_PLAYER_VERSION_ID : parsedVersionId;
+  const projectId = parsedProjectId;
+  const versionId = parsedVersionId;
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const { setTracks, setUploadedFile } = useMidiStore();
@@ -142,6 +135,16 @@ function PlayerPageContent() {
   const showScoreLoading = fetchScoreFromApi && isScorePending;
   const showScoreError = fetchScoreFromApi && isScoreError && !isScorePending;
 
+  // scoreXml이 string인 경우 매 렌더마다 new File(...)을 만들면 xmlData 참조가 바뀌어
+  // ScoreViewer가 불필요하게 전체 리로드(깜빡임)될 수 있어 scoreXml 변경 시에만 생성.
+  const stableXmlData = useMemo(() => {
+    if (!scoreXml) return null;
+    if (typeof scoreXml === "string") {
+      return new File([scoreXml], "score.xml", { type: "application/xml" });
+    }
+    return scoreXml;
+  }, [scoreXml]);
+
   return (
     <div className="h-screen flex flex-row overflow-hidden">
       <Sidebar
@@ -238,16 +241,10 @@ function PlayerPageContent() {
               </div>
             )}
 
-            {scoreXml && !showScoreLoading && fetchScoreFromApi && (
+            {stableXmlData && !showScoreLoading && fetchScoreFromApi && (
               <div>
                 <MusicPlayer
-                  xmlData={
-                    typeof scoreXml === "string"
-                      ? new File([scoreXml], "score.xml", {
-                          type: "application/xml",
-                        })
-                      : scoreXml
-                  }
+                  xmlData={stableXmlData}
                   autoPlay={false}
                   onRequestChangeFile={undefined}
                 />
