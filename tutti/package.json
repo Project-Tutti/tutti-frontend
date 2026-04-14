@@ -2,11 +2,17 @@
   "name": "tutti",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.12.4",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "osmd-audio-player@0.7.0": "patches/osmd-audio-player.patch"
+    }
   },
   "dependencies": {
     "@coderline/alphatab": "^1.7.1",

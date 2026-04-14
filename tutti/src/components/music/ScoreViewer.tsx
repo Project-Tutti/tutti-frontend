@@ -20,6 +20,14 @@ interface ScoreViewerProps {
 
   /** 마디 hover 표시(선택) */
   onMeasureHover?: (measureNumber: number | null) => void;
+
+  /**
+   * ✅ "맨 아래 트랙(생성된 트랙)"을 다른 색으로 분리 하이라이트할지
+   * - number: 해당 인덱스
+   * - "last": 맨 아래 instrument
+   * - null/undefined: 분리 없이 단일 색
+   */
+  highlightedInstrumentIndex?: number | "last" | null;
 }
 
 export interface ScoreViewerRef {
@@ -45,25 +53,66 @@ type MeasureBox = {
   cy: number;
 };
 
-const ACTIVE_CLASS = "osmd-active-measure-highlight";
+type BBoxUnion = { minX: number; minY: number; maxX: number; maxY: number };
+
+/** instrument별 시스템의 y 범위 캐시 */
+type SystemYInfo = {
+  minY: number;
+  maxY: number;
+  ratio: number;
+  svg: SVGSVGElement;
+};
+type InstrumentYRange = {
+  // pages[pageIdx][sysIdx] = info | null
+  pages: Array<Array<SystemYInfo | null>>;
+};
+
+const ACTIVE_CLASS = "osmd-active-measure-highlight"; // 단일 모드
+const ACTIVE_TOP_CLASS = "osmd-active-top-highlight"; // 위쪽 트랙
+const ACTIVE_BOTTOM_CLASS = "osmd-active-bottom-highlight"; // generated 트랙
 const HOVER_CLASS = "osmd-hover-measure-highlight";
 
 const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
-  ({ xmlData, onScoreLoaded, onMeasureClick, onMeasureHover }, ref) => {
-    /** 바깥(가로 스크롤) */
+  (
+    {
+      xmlData,
+      onScoreLoaded,
+      onMeasureClick,
+      onMeasureHover,
+      highlightedInstrumentIndex = null,
+    },
+    ref,
+  ) => {
     const scrollRef = useRef<HTMLDivElement>(null);
-    /** OSMD 렌더 타겟(여기에 svg 페이지들이 들어옴) */
     const renderRef = useRef<HTMLDivElement>(null);
 
     const osmdRef = useRef<OpenSheetMusicDisplay | null>(null);
     const cursorRef = useRef<Cursor | null>(null);
 
-    /** measure -> box(페이지+좌표) 인덱스 (하이라이트/히트테스트용) */
     const measureBoxMapRef = useRef<Map<number, MeasureBox>>(new Map());
     const measureBoxesRef = useRef<MeasureBox[]>([]);
 
     const hoveredMeasureRef = useRef<number | null>(null);
     const cleanupHandlersRef = useRef<(() => void) | null>(null);
+
+    /** instrument별 y 범위 캐시 */
+    const instrumentYRangesRef = useRef<InstrumentYRange[]>([]);
+
+    /** 최신 prop ref */
+    const highlightedInstrumentIndexRef = useRef(highlightedInstrumentIndex);
+    useEffect(() => {
+      highlightedInstrumentIndexRef.current = highlightedInstrumentIndex;
+    }, [highlightedInstrumentIndex]);
+
+    /** 콜백은 ref로 최신값 유지 — loadScore 의존성을 xmlData 중심으로 두기 위함 */
+    const onScoreLoadedRef = useRef(onScoreLoaded);
+    const onMeasureClickRef = useRef(onMeasureClick);
+    const onMeasureHoverRef = useRef(onMeasureHover);
+    useEffect(() => {
+      onScoreLoadedRef.current = onScoreLoaded;
+      onMeasureClickRef.current = onMeasureClick;
+      onMeasureHoverRef.current = onMeasureHover;
+    }, [onScoreLoaded, onMeasureClick, onMeasureHover]);
 
     // -----------------------------
     // Utils
@@ -102,7 +151,6 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           }
         }
 
-        // fallback: 아무 숫자 1개
         const any = label.match(/(\d+)/);
         if (any?.[1]) {
           const n = parseInt(any[1], 10);
@@ -126,11 +174,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           ),
         ) as SVGGraphicsElement[];
 
-        // measure 하나당 bbox union
-        const union = new Map<
-          number,
-          { minX: number; minY: number; maxX: number; maxY: number }
-        >();
+        const union = new Map<number, BBoxUnion>();
 
         for (const g of groups) {
           const id = g.getAttribute("id") || "";
@@ -156,9 +200,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
               u.maxX = Math.max(u.maxX, b.x + b.width);
               u.maxY = Math.max(u.maxY, b.y + b.height);
             }
-          } catch {
-            // 일부 그룹 bbox 실패는 무시
-          }
+          } catch {}
         }
 
         for (const [measure, u] of union.entries()) {
@@ -178,7 +220,6 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           };
           all.push(box);
 
-          // 같은 measure가 중복으로 들어오면(보통 없음) 먼저 것 유지
           if (!map.has(measure)) map.set(measure, box);
         }
       }
@@ -187,6 +228,193 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
       measureBoxesRef.current = all;
     }, [getAllSvgs, parseMeasureNumberFromLabel]);
 
+    // ============================================================
+    // ✅ instrument별 y 범위 캐시 빌드 (GraphicSheet 기반)
+    // ============================================================
+    const buildInstrumentYRanges = useCallback(() => {
+      const osmd = osmdRef.current;
+      if (!osmd) {
+        instrumentYRangesRef.current = [];
+        return;
+      }
+
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const sheet = osmd.Sheet as any;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const graphic = (osmd as any).GraphicSheet ?? (osmd as any).graphic;
+
+        const instruments = sheet?.Instruments ?? sheet?.instruments ?? [];
+        const pages = graphic?.MusicPages ?? graphic?.musicPages ?? [];
+        const svgs = getAllSvgs();
+
+        if (!Array.isArray(instruments) || instruments.length === 0) {
+          instrumentYRangesRef.current = [];
+          return;
+        }
+
+        const result: InstrumentYRange[] = instruments.map(() => ({
+          pages: [],
+        }));
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        pages.forEach((page: any, pageIdx: number) => {
+          const svg = svgs[pageIdx];
+          if (!svg) return;
+
+          const viewBox = svg.viewBox?.baseVal;
+          const pageSize =
+            page?.PositionAndShape?.Size ??
+            page?.positionAndShape?.size ??
+            null;
+          if (!viewBox || !pageSize || pageSize.width <= 0) return;
+
+          const ratio = viewBox.width / pageSize.width;
+          const systems = page?.MusicSystems ?? page?.musicSystems ?? [];
+
+          // 이 페이지의 systems 슬롯 초기화
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          instruments.forEach((_: unknown, insIdx: number) => {
+            const arr: Array<SystemYInfo | null> = new Array(
+              systems.length,
+            ).fill(null);
+            result[insIdx].pages[pageIdx] = arr;
+          });
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          systems.forEach((system: any, sysIdx: number) => {
+            const staffLines = system?.StaffLines ?? system?.staffLines ?? [];
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const byInstrument = new Map<unknown, any[]>();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            staffLines.forEach((sl: any) => {
+              const staff = sl?.ParentStaff ?? sl?.parentStaff ?? null;
+              const ins =
+                staff?.ParentInstrument ?? staff?.parentInstrument ?? null;
+              if (!ins) return;
+              if (!byInstrument.has(ins)) byInstrument.set(ins, []);
+              byInstrument.get(ins)!.push(sl);
+            });
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            instruments.forEach((ins: any, insIdx: number) => {
+              const matched = byInstrument.get(ins) ?? [];
+              if (matched.length === 0) return;
+
+              let minY = Infinity;
+              let maxY = -Infinity;
+
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              matched.forEach((sl: any) => {
+                const ps = sl?.PositionAndShape ?? sl?.positionAndShape ?? null;
+                if (!ps) return;
+                const pos = ps.AbsolutePosition ?? ps.absolutePosition;
+                const size = ps.Size ?? ps.size;
+                if (!pos || !size) return;
+                if (
+                  typeof pos.y !== "number" ||
+                  typeof size.height !== "number"
+                )
+                  return;
+
+                if (pos.y < minY) minY = pos.y;
+                if (pos.y + size.height > maxY) maxY = pos.y + size.height;
+              });
+
+              if (!isFinite(minY)) return;
+
+              result[insIdx].pages[pageIdx][sysIdx] = {
+                minY,
+                maxY,
+                ratio,
+                svg,
+              };
+            });
+          });
+        });
+
+        instrumentYRangesRef.current = result;
+        console.log(
+          `[ScoreViewer] instrument Y ranges built: ${result.length} instruments`,
+        );
+      } catch (e) {
+        console.error("[ScoreViewer] buildInstrumentYRanges failed:", e);
+        instrumentYRangesRef.current = [];
+      }
+    }, [getAllSvgs]);
+
+    // ============================================================
+    // ✅ measureBox → 어느 system에 속하는지 찾기
+    // ============================================================
+    const findSystemForMeasureBox = useCallback(
+      (box: MeasureBox): { pageIdx: number; sysIdx: number } | null => {
+        const osmd = osmdRef.current;
+        if (!osmd) return null;
+
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const graphic = (osmd as any).GraphicSheet ?? (osmd as any).graphic;
+          const pages = graphic?.MusicPages ?? graphic?.musicPages ?? [];
+          const svgs = getAllSvgs();
+
+          const pageIdx = svgs.indexOf(box.svg);
+          if (pageIdx < 0) return null;
+
+          const page = pages[pageIdx];
+          if (!page) return null;
+
+          const viewBox = box.svg.viewBox?.baseVal;
+          const pageSize =
+            page?.PositionAndShape?.Size ??
+            page?.positionAndShape?.size ??
+            null;
+          if (!viewBox || !pageSize || pageSize.width <= 0) return null;
+          const ratio = viewBox.width / pageSize.width;
+
+          const systems = page?.MusicSystems ?? page?.musicSystems ?? [];
+
+          // box.cy(SVG unit) → OSMD unit
+          const cyOsmd = box.cy / ratio;
+
+          let bestIdx = -1;
+          let bestDist = Infinity;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          systems.forEach((system: any, sysIdx: number) => {
+            const ps =
+              system?.PositionAndShape ?? system?.positionAndShape ?? null;
+            if (!ps) return;
+            const pos = ps.AbsolutePosition ?? ps.absolutePosition;
+            const size = ps.Size ?? ps.size;
+            if (!pos || !size) return;
+
+            const top = pos.y;
+            const bottom = pos.y + size.height;
+            const center = (top + bottom) / 2;
+
+            if (cyOsmd >= top && cyOsmd <= bottom) {
+              bestIdx = sysIdx;
+              bestDist = 0;
+              return;
+            }
+            const d = Math.abs(cyOsmd - center);
+            if (d < bestDist) {
+              bestDist = d;
+              bestIdx = sysIdx;
+            }
+          });
+
+          return bestIdx >= 0 ? { pageIdx, sysIdx: bestIdx } : null;
+        } catch {
+          return null;
+        }
+      },
+      [getAllSvgs],
+    );
+
+    // ============================================================
+    // Rect 삽입
+    // ============================================================
     const insertRect = useCallback(
       (box: MeasureBox, className: string, fill: string) => {
         const svg = box.svg;
@@ -203,7 +431,36 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
         rect.setAttribute("class", className);
         rect.setAttribute("pointer-events", "none");
 
-        // 노트/커서 가리지 않게 맨 뒤로
+        if (svg.firstChild) svg.insertBefore(rect, svg.firstChild);
+        else svg.appendChild(rect);
+      },
+      [],
+    );
+
+    const insertRawRect = useCallback(
+      (
+        svg: SVGSVGElement,
+        x: number,
+        y: number,
+        w: number,
+        h: number,
+        className: string,
+        fill: string,
+      ) => {
+        const rect = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "rect",
+        );
+        rect.setAttribute("x", String(x));
+        rect.setAttribute("y", String(y));
+        rect.setAttribute("width", String(w));
+        rect.setAttribute("height", String(h));
+        rect.setAttribute("fill", fill);
+        rect.setAttribute("class", className);
+        rect.setAttribute("pointer-events", "none");
+        rect.setAttribute("rx", "3");
+        rect.setAttribute("ry", "3");
+
         if (svg.firstChild) svg.insertBefore(rect, svg.firstChild);
         else svg.appendChild(rect);
       },
@@ -211,7 +468,6 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
     );
 
     const scrollPageIntoView = useCallback((box: MeasureBox) => {
-      // 페이지 단위(svg)로 가운데 정렬되도록 스크롤
       try {
         box.svg.scrollIntoView({
           behavior: "smooth",
@@ -221,18 +477,124 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
       } catch {}
     }, []);
 
+    // ============================================================
+    // ✅ 핵심: 마디 하이라이트 (위쪽 트랙 / generated 트랙 분리)
+    // ============================================================
     const highlightMeasure = useCallback(
       (measureNumber: number | null, opts?: { scrollIntoView?: boolean }) => {
         clearHighlightByClass(ACTIVE_CLASS);
+        clearHighlightByClass(ACTIVE_TOP_CLASS);
+        clearHighlightByClass(ACTIVE_BOTTOM_CLASS);
+
         if (measureNumber == null) return;
 
         const box = measureBoxMapRef.current.get(measureNumber);
         if (!box) return;
 
-        insertRect(box, ACTIVE_CLASS, "rgba(59,130,246,0.16)"); // active
+        const target = highlightedInstrumentIndexRef.current;
+        const ranges = instrumentYRangesRef.current;
+        const osmd = osmdRef.current;
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const sheet = osmd?.Sheet as any;
+        const instruments = sheet?.Instruments ?? sheet?.instruments ?? [];
+
+        // 분리 모드 비활성 또는 instrument 1개 → 단일 active
+        if (target == null || instruments.length < 2 || ranges.length === 0) {
+          insertRect(box, ACTIVE_CLASS, "rgba(59,130,246,0.16)");
+          if (opts?.scrollIntoView) scrollPageIntoView(box);
+          return;
+        }
+
+        const targetIdx = target === "last" ? instruments.length - 1 : target;
+        if (targetIdx < 0 || targetIdx >= instruments.length) {
+          insertRect(box, ACTIVE_CLASS, "rgba(59,130,246,0.16)");
+          if (opts?.scrollIntoView) scrollPageIntoView(box);
+          return;
+        }
+
+        const sysInfo = findSystemForMeasureBox(box);
+        if (!sysInfo) {
+          insertRect(box, ACTIVE_CLASS, "rgba(59,130,246,0.16)");
+          if (opts?.scrollIntoView) scrollPageIntoView(box);
+          return;
+        }
+
+        const { pageIdx, sysIdx } = sysInfo;
+
+        let topMinY = Infinity;
+        let topMaxY = -Infinity;
+        let bottomMinY = Infinity;
+        let bottomMaxY = -Infinity;
+        let ratio = 1;
+        let svg: SVGSVGElement | null = null;
+
+        for (let i = 0; i < instruments.length; i++) {
+          const r = ranges[i]?.pages?.[pageIdx]?.[sysIdx];
+          if (!r) continue;
+          ratio = r.ratio;
+          svg = r.svg;
+
+          if (i === targetIdx) {
+            if (r.minY < bottomMinY) bottomMinY = r.minY;
+            if (r.maxY > bottomMaxY) bottomMaxY = r.maxY;
+          } else {
+            if (r.minY < topMinY) topMinY = r.minY;
+            if (r.maxY > topMaxY) topMaxY = r.maxY;
+          }
+        }
+
+        if (!svg) {
+          insertRect(box, ACTIVE_CLASS, "rgba(59,130,246,0.16)");
+          if (opts?.scrollIntoView) scrollPageIntoView(box);
+          return;
+        }
+
+        const padY = 8; // SVG px
+
+        // 위쪽 트랙 (파란색)
+        if (isFinite(topMinY)) {
+          const padTop = 8;
+          const padBottom = -26; // ✅ 초록 padTop(30) - 기본(8) = 22 만큼 줄임
+          const y = topMinY * ratio - padTop;
+          const h = (topMaxY - topMinY) * ratio + padTop + padBottom;
+          insertRawRect(
+            svg,
+            box.x,
+            y,
+            box.w,
+            h,
+            ACTIVE_TOP_CLASS,
+            "rgba(59,130,246,0.16)",
+          );
+        }
+
+        // 맨 아래 트랙 (초록색 — generated)
+        if (isFinite(bottomMinY)) {
+          const padTop = 30;
+          const padBottom = 8;
+          const y = bottomMinY * ratio - padTop;
+          const h = (bottomMaxY - bottomMinY) * ratio + padTop + padBottom;
+          insertRawRect(
+            svg,
+            box.x,
+            y,
+            box.w,
+            h,
+            ACTIVE_BOTTOM_CLASS,
+            "rgba(16,185,129,0.22)",
+          );
+        }
+
         if (opts?.scrollIntoView) scrollPageIntoView(box);
       },
-      [clearHighlightByClass, insertRect, scrollPageIntoView],
+      [
+        clearHighlightByClass,
+        insertRect,
+        insertRawRect,
+        scrollPageIntoView,
+        findSystemForMeasureBox,
+      ],
     );
 
     const highlightHover = useCallback(
@@ -243,7 +605,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
         const box = measureBoxMapRef.current.get(measureNumber);
         if (!box) return;
 
-        insertRect(box, HOVER_CLASS, "rgba(148,163,184,0.16)"); // hover
+        insertRect(box, HOVER_CLASS, "rgba(148,163,184,0.16)");
       },
       [clearHighlightByClass, insertRect],
     );
@@ -314,7 +676,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
     }, [xmlData]);
 
     // -----------------------------
-    // Hit test (click/hover)
+    // Hit test
     // -----------------------------
     const getSvgPoint = (
       svg: SVGSVGElement,
@@ -351,7 +713,6 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
       x: number,
       y: number,
     ): number | null => {
-      // 해당 svg에 속한 measure box만 대상으로
       const boxes = measureBoxesRef.current.filter((b) => b.svg === svg);
       if (boxes.length === 0) return null;
 
@@ -382,7 +743,6 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
       cleanupHandlersRef.current?.();
       cleanupHandlersRef.current = null;
 
-      // 이전 svg들 제거
       renderRef.current.innerHTML = "";
 
       try {
@@ -394,11 +754,9 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
             drawComposer: true,
             drawCredits: false,
             drawingParameters: "compact",
-            // ✅ 페이지 단위(Endless 말고 A4). 필요하면 "A4_L"(가로)로도 테스트 가능
             pageFormat: "A4_P",
           } as unknown as Record<string, unknown>);
         } else {
-          // 컨테이너가 바뀌거나 innerHTML 비웠으니, 안전하게 clear
           try {
             osmdRef.current.clear();
           } catch {}
@@ -409,8 +767,6 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
 
         await osmdRef.current.load(xmlString);
 
-        // ✅ 너무 큰 문제: 기본 zoom을 먼저 낮춰서 한 페이지가 더 잘 보이게
-        // (필요하면 아래 값만 조정하면 됨)
         const zoomable = osmdRef.current as unknown as {
           Zoom?: number;
           zoom?: number;
@@ -420,13 +776,11 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
 
         osmdRef.current.render();
 
-        // Cursor
         const c = (osmdRef.current as unknown as { cursor?: unknown })
           .cursor as Cursor | undefined;
         if (c) {
           cursorRef.current = c;
 
-          // 노트(음) 커서 표시(얇은 라인/하이라이트 느낌)
           try {
             const cursorWithOptions = c as unknown as {
               CursorOptions?: unknown;
@@ -435,7 +789,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
               type: 0,
               color: "#f59e0b",
               alpha: 0.38,
-              follow: false, // 가로 페이지에서는 follow=true가 오히려 이상해질 수 있어 꺼둠
+              follow: false,
             };
           } catch {}
 
@@ -445,20 +799,13 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           cursorRef.current = null;
         }
 
-        // ✅ 페이지(svg)들을 가로로 나열되게 만들기 (OSMD가 svg 여러 개를 넣어줌)
-        // renderRef가 flex-row이기 때문에 자동으로 가로 나열됨.
-        // scroll-snap은 바깥 컨테이너에서 처리.
-
-        // measure box index 생성 (모든 페이지 대상)
         buildMeasureBoxesIndex();
-
-        // cursor-pointer 적용
+        buildInstrumentYRanges();
         applyPointerCursorToMeasures();
 
         // 초기 active highlight: 1마디
         highlightMeasure(1);
 
-        // 이벤트 핸들러 연결
         const root = scrollRef.current;
         if (!root) return;
 
@@ -469,7 +816,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
 
           const direct = tryFindMeasureFromDomPath(target, svg);
           if (direct != null) {
-            onMeasureClick?.(direct);
+            onMeasureClickRef.current?.(direct);
             return;
           }
 
@@ -477,11 +824,10 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           if (!p) return;
 
           const m = findMeasureByPoint(svg, p.x, p.y);
-          if (m != null) onMeasureClick?.(m);
+          if (m != null) onMeasureClickRef.current?.(m);
         };
 
         const onPointerMove = (e: PointerEvent) => {
-          // hover는 마우스만 (터치에서는 의미 없음)
           if (e.pointerType !== "mouse") return;
 
           const target = e.target as Element | null;
@@ -496,14 +842,14 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           if (m !== hoveredMeasureRef.current) {
             hoveredMeasureRef.current = m ?? null;
             highlightHover(m ?? null);
-            onMeasureHover?.(m ?? null);
+            onMeasureHoverRef.current?.(m ?? null);
           }
         };
 
         const onLeave = () => {
           hoveredMeasureRef.current = null;
           highlightHover(null);
-          onMeasureHover?.(null);
+          onMeasureHoverRef.current?.(null);
         };
 
         root.addEventListener("click", onClick);
@@ -516,7 +862,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           root.removeEventListener("mouseleave", onLeave);
         };
 
-        onScoreLoaded?.(osmdRef.current);
+        onScoreLoadedRef.current?.(osmdRef.current);
       } catch (e) {
         console.error(e);
         alert(
@@ -527,16 +873,13 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
       xmlData,
       readMusicXml,
       buildMeasureBoxesIndex,
+      buildInstrumentYRanges,
       applyPointerCursorToMeasures,
       highlightMeasure,
       highlightHover,
-      onScoreLoaded,
-      onMeasureClick,
-      onMeasureHover,
       tryFindMeasureFromDomPath,
     ]);
 
-    // expose ref
     useImperativeHandle(ref, () => ({
       getOSMD: () => osmdRef.current,
       getCursor: () => cursorRef.current,
@@ -554,6 +897,8 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
         cleanupHandlersRef.current = null;
 
         clearHighlightByClass(ACTIVE_CLASS);
+        clearHighlightByClass(ACTIVE_TOP_CLASS);
+        clearHighlightByClass(ACTIVE_BOTTOM_CLASS);
         clearHighlightByClass(HOVER_CLASS);
 
         if (cursorRef.current) {
@@ -568,16 +913,11 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           } catch {}
         }
       };
-      // 의도: xmlData가 바뀔 때만 OSMD를 다시 로드(그 외 렌더 변화로 재로드되면 깜빡임/성능 저하)
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [xmlData]);
+      // xmlData 또는 loadScore(내부 의존) 변경 시에만 전체 리로드. 콜백은 ref로 최신값 사용.
+    }, [xmlData, loadScore]);
 
-    // -----------------------------
-    // UI
-    // -----------------------------
     return (
       <div className="w-full">
-        {/* ✅ 가로 스크롤 + 페이지 넘김 스냅 */}
         <div
           ref={scrollRef}
           className="w-full overflow-x-auto overflow-y-hidden"
@@ -586,22 +926,19 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
             WebkitOverflowScrolling: "touch",
           }}
         >
-          {/* ✅ OSMD가 만든 svg들이 여기 들어오고, flex-row라서 가로로 쭉 나열됨 */}
           <div
             ref={renderRef}
             className="flex flex-row gap-6 items-start py-4 px-4"
           />
         </div>
 
-        {/* highlight rect 스타일 최소(필요시) */}
         <style jsx global>{`
-          .${ACTIVE_CLASS} {
+          .${ACTIVE_CLASS}, .${HOVER_CLASS} {
             shape-rendering: crispEdges;
           }
-          .${HOVER_CLASS} {
-            shape-rendering: crispEdges;
+          .${ACTIVE_TOP_CLASS}, .${ACTIVE_BOTTOM_CLASS} {
+            shape-rendering: geometricPrecision;
           }
-          /* 페이지 단위 scroll-snap: svg 각각 */
           .osmdSvgPage,
           svg {
             scroll-snap-align: start;
