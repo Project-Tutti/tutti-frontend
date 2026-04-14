@@ -36,6 +36,11 @@ const INITIAL_STATE: ProjectStatusState = {
 
 const STALE_MS = 30_000;
 
+/** SSE가 끊겼을 때 지수 백오프로 자동 재연결 */
+const RECONNECT_INITIAL_MS = 1000;
+const RECONNECT_MAX_MS = 30_000;
+const MAX_RECONNECT_ATTEMPTS = 12;
+
 function normalizeStatus(raw: string): ProjectStatusType | null {
   const s = raw.trim().toLowerCase();
   if (
@@ -118,6 +123,10 @@ export function useProjectStatusSSE(
   const lastProgressAtRef = useRef<number>(Date.now());
   /** 종료(완료/실패/치명적 오류) 이후에는 폴링·재처리 중단 */
   const terminalRef = useRef(false);
+  const reconnectAttemptRef = useRef(0);
+  const reconnectTimerRef = useRef<number | null>(null);
+  /** project/version이 바뀔 때만 재연결 시도 횟수를 리셋 (retryKey만 바뀌면 유지) */
+  const lastProjectKeyRef = useRef<string | null>(null);
 
   const close = useCallback(() => {
     if (abortRef.current) {
@@ -146,6 +155,15 @@ export function useProjectStatusSSE(
     if (projectId == null || versionId == null) return;
 
     close();
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+    const projectKey = `${projectId}-${versionId}`;
+    if (lastProjectKeyRef.current !== projectKey) {
+      reconnectAttemptRef.current = 0;
+      lastProjectKeyRef.current = projectKey;
+    }
     terminalRef.current = false;
     lastProgressAtRef.current = Date.now();
     setState({ ...INITIAL_STATE, status: "pending", message: "연결 중..." });
@@ -155,6 +173,40 @@ export function useProjectStatusSSE(
 
     const controller = new AbortController();
     abortRef.current = controller;
+
+    const scheduleReconnect = (reason: string) => {
+      if (terminalRef.current) return;
+      if (reconnectAttemptRef.current >= MAX_RECONNECT_ATTEMPTS) {
+        terminalRef.current = true;
+        setState({
+          ...INITIAL_STATE,
+          error:
+            "진행률 연결이 반복적으로 끊어졌습니다. 새로고침하거나 재시도해 주세요.",
+          isFailed: true,
+        });
+        return;
+      }
+      const attempt = reconnectAttemptRef.current;
+      const delay = Math.min(
+        RECONNECT_MAX_MS,
+        RECONNECT_INITIAL_MS * Math.pow(2, attempt),
+      );
+      reconnectAttemptRef.current = attempt + 1;
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+      }
+      reconnectTimerRef.current = window.setTimeout(() => {
+        reconnectTimerRef.current = null;
+        if (terminalRef.current) return;
+        setState((prev) => ({
+          ...prev,
+          message: `재연결 중… (${reason})`,
+          error: null,
+          isFailed: false,
+        }));
+        retry();
+      }, delay) as unknown as number;
+    };
 
     (async () => {
       let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
@@ -225,6 +277,7 @@ export function useProjectStatusSSE(
 
               const { status, progress } = parsed.result;
               lastProgressAtRef.current = Date.now();
+              reconnectAttemptRef.current = 0;
               setState({
                 status,
                 progress,
@@ -263,25 +316,32 @@ export function useProjectStatusSSE(
             break;
           }
         }
+
+        if (!terminalRef.current) {
+          scheduleReconnect("stream ended");
+        }
       } catch (err: unknown) {
         if (reader) {
           void reader.cancel().catch(() => {});
         }
         if (err instanceof DOMException && err.name === "AbortError") return;
 
-        terminalRef.current = true;
+        if (terminalRef.current) return;
+
         const message =
           err instanceof Error ? err.message : "연결이 끊어졌습니다.";
-        setState((prev) => ({
-          ...prev,
-          error: message,
-          isFailed: true,
-        }));
+        scheduleReconnect(message);
       }
     })();
 
-    return close;
-  }, [projectId, versionId, retryKey, close]);
+    return () => {
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+      close();
+    };
+  }, [projectId, versionId, retryKey, close, retry]);
 
   // ── SSE 30초 무응답 시 프로젝트 상세로 상태 복구 (가이드 폴백) ──
   useEffect(() => {
