@@ -5,7 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 patchedDependencies:
-  osmd-audio-player:
+  osmd-audio-player@0.7.0:
     hash: 203dac190f4dab7dfae7fadfe9299d3eaefcaa1673a637951078bfc31032bbbc
     path: patches/osmd-audio-player.patch
 
