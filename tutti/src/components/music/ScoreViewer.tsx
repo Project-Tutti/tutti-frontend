@@ -104,6 +104,16 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
       highlightedInstrumentIndexRef.current = highlightedInstrumentIndex;
     }, [highlightedInstrumentIndex]);
 
+    /** 콜백은 ref로 최신값 유지 — loadScore 의존성을 xmlData 중심으로 두기 위함 */
+    const onScoreLoadedRef = useRef(onScoreLoaded);
+    const onMeasureClickRef = useRef(onMeasureClick);
+    const onMeasureHoverRef = useRef(onMeasureHover);
+    useEffect(() => {
+      onScoreLoadedRef.current = onScoreLoaded;
+      onMeasureClickRef.current = onMeasureClick;
+      onMeasureHoverRef.current = onMeasureHover;
+    }, [onScoreLoaded, onMeasureClick, onMeasureHover]);
+
     // -----------------------------
     // Utils
     // -----------------------------
@@ -806,7 +816,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
 
           const direct = tryFindMeasureFromDomPath(target, svg);
           if (direct != null) {
-            onMeasureClick?.(direct);
+            onMeasureClickRef.current?.(direct);
             return;
           }
 
@@ -814,7 +824,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           if (!p) return;
 
           const m = findMeasureByPoint(svg, p.x, p.y);
-          if (m != null) onMeasureClick?.(m);
+          if (m != null) onMeasureClickRef.current?.(m);
         };
 
         const onPointerMove = (e: PointerEvent) => {
@@ -832,14 +842,14 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           if (m !== hoveredMeasureRef.current) {
             hoveredMeasureRef.current = m ?? null;
             highlightHover(m ?? null);
-            onMeasureHover?.(m ?? null);
+            onMeasureHoverRef.current?.(m ?? null);
           }
         };
 
         const onLeave = () => {
           hoveredMeasureRef.current = null;
           highlightHover(null);
-          onMeasureHover?.(null);
+          onMeasureHoverRef.current?.(null);
         };
 
         root.addEventListener("click", onClick);
@@ -852,7 +862,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           root.removeEventListener("mouseleave", onLeave);
         };
 
-        onScoreLoaded?.(osmdRef.current);
+        onScoreLoadedRef.current?.(osmdRef.current);
       } catch (e) {
         console.error(e);
         alert(
@@ -867,9 +877,6 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
       applyPointerCursorToMeasures,
       highlightMeasure,
       highlightHover,
-      onScoreLoaded,
-      onMeasureClick,
-      onMeasureHover,
       tryFindMeasureFromDomPath,
     ]);
 
@@ -906,8 +913,8 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           } catch {}
         }
       };
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [xmlData]);
+      // xmlData 또는 loadScore(내부 의존) 변경 시에만 전체 리로드. 콜백은 ref로 최신값 사용.
+    }, [xmlData, loadScore]);
 
     return (
       <div className="w-full">
