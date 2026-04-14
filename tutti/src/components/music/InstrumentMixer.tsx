@@ -3,6 +3,7 @@
 export interface InstrumentInfo {
   index: number;
   name: string;
+  /** OSMD voice id 목록(향후 voice 단위 mute/solo 등 확장용). 현재 UI에서는 사용하지 않음. */
   voiceIds: number[];
 }
 
@@ -13,6 +14,8 @@ interface InstrumentMixerProps {
   onSolo: (index: number) => void;
   onAll: () => void;
   disabled?: boolean;
+  /** 악보/플레이어 초기화 중이면 악기 목록 영역만 스켈레톤 (헤더는 유지) */
+  isLoading?: boolean;
 }
 
 export default function InstrumentMixer({
@@ -22,10 +25,10 @@ export default function InstrumentMixer({
   onSolo,
   onAll,
   disabled = false,
+  isLoading = false,
 }: InstrumentMixerProps) {
-  if (instruments.length === 0) return null;
-
   const allPlaying = mutedIndices.size === 0;
+  const hasRows = instruments.length > 0;
 
   return (
     <div className="w-full rounded-xl border border-[#1e293b] bg-[#0f1218]/70 backdrop-blur px-3 py-2">
@@ -41,9 +44,9 @@ export default function InstrumentMixer({
 
         <button
           onClick={onAll}
-          disabled={disabled || allPlaying}
+          disabled={disabled || allPlaying || !hasRows || isLoading}
           className={`text-[11px] px-2 py-1 rounded-md transition-all ${
-            disabled || allPlaying
+            disabled || allPlaying || !hasRows || isLoading
               ? "text-gray-600 cursor-not-allowed"
               : "text-gray-300 hover:text-white hover:bg-white/10"
           }`}
@@ -53,63 +56,85 @@ export default function InstrumentMixer({
         </button>
       </div>
 
-      <ul className="flex flex-wrap gap-2">
-        {instruments.map((ins) => {
-          const isMuted = mutedIndices.has(ins.index);
-          const isSolo =
-            !isMuted &&
-            mutedIndices.size === instruments.length - 1 &&
-            instruments.every(
-              (i) => i.index === ins.index || mutedIndices.has(i.index),
-            );
-
-          return (
+      {isLoading ? (
+        <ul className="flex flex-wrap gap-2" aria-busy="true" aria-label="악기 목록 불러오는 중">
+          {[0, 1, 2].map((i) => (
             <li
-              key={ins.index}
-              className={`flex items-center gap-1 rounded-lg border px-2 py-1 transition-all ${
-                isMuted
-                  ? "border-[#1e293b] bg-[#05070a]/60 opacity-50"
-                  : isSolo
-                    ? "border-[#3b82f6]/60 bg-[#3b82f6]/10"
-                    : "border-[#1e293b] bg-[#05070a]/30"
-              }`}
+              key={i}
+              className="flex items-center gap-1 rounded-lg border border-[#1e293b]/80 bg-[#05070a]/25 px-2 py-1"
             >
-              <button
-                onClick={() => onToggleMute(ins.index)}
-                disabled={disabled}
-                className={`h-6 px-2 rounded text-[11px] font-medium transition-all ${
-                  disabled
-                    ? "cursor-not-allowed text-gray-600"
-                    : isMuted
-                      ? "text-gray-500 hover:text-gray-300"
-                      : "text-white hover:bg-white/10"
-                }`}
-                title={isMuted ? "재생" : "음소거"}
-              >
-                <span className="material-symbols-outlined text-[14px] align-middle mr-1">
-                  {isMuted ? "volume_off" : "volume_up"}
-                </span>
-                {ins.name}
-              </button>
-
-              <button
-                onClick={() => onSolo(ins.index)}
-                disabled={disabled}
-                className={`h-6 w-6 grid place-items-center rounded text-[10px] font-bold transition-all ${
-                  disabled
-                    ? "cursor-not-allowed text-gray-600"
-                    : isSolo
-                      ? "bg-[#3b82f6] text-white"
-                      : "text-gray-400 hover:text-white hover:bg-white/10"
-                }`}
-                title="이 악기만 재생 (Solo)"
-              >
-                S
-              </button>
+              <div
+                className="h-6 w-24 rounded-md bg-slate-400/18 animate-pulse duration-[1.6s] ease-in-out motion-reduce:animate-none"
+                style={{ animationDelay: `${i * 90}ms` }}
+              />
+              <div
+                className="h-6 w-6 shrink-0 rounded-md bg-slate-400/14 animate-pulse duration-[1.6s] ease-in-out motion-reduce:animate-none"
+                style={{ animationDelay: `${i * 90 + 40}ms` }}
+              />
             </li>
-          );
-        })}
-      </ul>
+          ))}
+        </ul>
+      ) : !hasRows ? (
+        <p className="text-[11px] text-gray-500 py-0.5">악기 트랙이 없습니다.</p>
+      ) : (
+        <ul className="flex flex-wrap gap-2">
+          {instruments.map((ins) => {
+            const isMuted = mutedIndices.has(ins.index);
+            const isSolo =
+              !isMuted &&
+              mutedIndices.size === instruments.length - 1 &&
+              instruments.every(
+                (i) => i.index === ins.index || mutedIndices.has(i.index),
+              );
+
+            return (
+              <li
+                key={ins.index}
+                className={`flex items-center gap-1 rounded-lg border px-2 py-1 transition-all ${
+                  isMuted
+                    ? "border-[#1e293b] bg-[#05070a]/60 opacity-50"
+                    : isSolo
+                      ? "border-[#3b82f6]/60 bg-[#3b82f6]/10"
+                      : "border-[#1e293b] bg-[#05070a]/30"
+                }`}
+              >
+                <button
+                  onClick={() => onToggleMute(ins.index)}
+                  disabled={disabled}
+                  className={`h-6 px-2 rounded text-[11px] font-medium transition-all ${
+                    disabled
+                      ? "cursor-not-allowed text-gray-600"
+                      : isMuted
+                        ? "text-gray-500 hover:text-gray-300"
+                        : "text-white hover:bg-white/10"
+                  }`}
+                  title={isMuted ? "재생" : "음소거"}
+                >
+                  <span className="material-symbols-outlined text-[14px] align-middle mr-1">
+                    {isMuted ? "volume_off" : "volume_up"}
+                  </span>
+                  {ins.name}
+                </button>
+
+                <button
+                  onClick={() => onSolo(ins.index)}
+                  disabled={disabled}
+                  className={`h-6 w-6 grid place-items-center rounded text-[10px] font-bold transition-all ${
+                    disabled
+                      ? "cursor-not-allowed text-gray-600"
+                      : isSolo
+                        ? "bg-[#3b82f6] text-white"
+                        : "text-gray-400 hover:text-white hover:bg-white/10"
+                  }`}
+                  title="이 악기만 재생 (Solo)"
+                >
+                  S
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }

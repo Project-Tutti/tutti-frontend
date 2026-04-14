@@ -12,6 +12,8 @@ import { buildMeasureIndex, getMeasureNumberFromCursor } from "./MeasureIndex";
 type UiState = "loading" | "idle" | "playing" | "paused";
 type JumpSource = "control" | "click";
 
+const isDev = process.env.NODE_ENV === "development";
+
 // ✅ ScoreViewer.tsx에서 active 하이라이트 rect에 붙이는 클래스
 const ACTIVE_HIGHLIGHT_CLASS = "osmd-active-measure-highlight";
 
@@ -388,14 +390,14 @@ export default function MusicPlayer({
             }
           }
 
-          if (bumped > 0) {
+          if (bumped > 0 && isDev) {
             console.log(
               `[MusicPlayer] stepQueue: ${bumped} step(s) bumped apart`,
             );
           }
         }
       } catch (e) {
-        console.warn("[MusicPlayer] stepQueue fix failed:", e);
+        if (isDev) console.warn("[MusicPlayer] stepQueue fix failed:", e);
       }
 
       // ============================================================
@@ -478,8 +480,7 @@ export default function MusicPlayer({
         ) {
           const muted = mutedIndicesRef.current;
 
-          // 첫 호출 시 진단 로그
-          if (!loggedShape) {
+          if (!loggedShape && isDev) {
             const sample = Array.isArray(scheduledNotes)
               ? scheduledNotes[0]
               : null;
@@ -514,17 +515,10 @@ export default function MusicPlayer({
           return originalCallback(audioContextTime, scheduledNotes);
         };
 
-        console.log("[MusicPlayer] notePlaybackCallback wrapped ✅");
-      } else {
+        if (isDev) console.log("[MusicPlayer] notePlaybackCallback wrapped ✅");
+      } else if (isDev) {
         console.warn("[MusicPlayer] notePlaybackCallback을 찾지 못했습니다.");
       }
-
-      // 디버깅용: window에 노출 (배포 시 제거)
-      if (typeof window !== "undefined") {
-        (window as unknown as { __player: unknown }).__player = player;
-      }
-
-      console.log("[MusicPlayer] instruments:", instrumentList);
 
       // 초기 페이지 저장
       lastPageElRef.current = getPageElement();
@@ -646,7 +640,7 @@ export default function MusicPlayer({
 
       // 케이스 1: 끝까지 정상 도달
       if (total > 0 && current >= total) {
-        console.log("[MusicPlayer] 곡 끝 도달, stop");
+        if (isDev) console.log("[MusicPlayer] 곡 끝 도달, stop");
         void p.stop?.();
         setState("idle");
         return;
@@ -660,9 +654,11 @@ export default function MusicPlayer({
       if (current === lastStep) {
         stuckCount++;
         if (nearEnd && stuckCount >= STUCK_THRESHOLD) {
-          console.log(
-            `[MusicPlayer] 마지막 부근(${m}/${totalM})에서 stuck 감지, 강제 stop`,
-          );
+          if (isDev) {
+            console.log(
+              `[MusicPlayer] 마지막 부근(${m}/${totalM})에서 stuck 감지, 강제 stop`,
+            );
+          }
           void p.stop?.();
           setState("idle");
           return;
@@ -716,7 +712,7 @@ export default function MusicPlayer({
     const step = measureToStepRef.current.get(m);
 
     if (step == null) {
-      console.warn("No step mapping for measure:", m);
+      if (isDev) console.warn("No step mapping for measure:", m);
       return;
     }
 
@@ -827,6 +823,9 @@ export default function MusicPlayer({
         onSolo={handleSolo}
         onAll={handleAll}
         disabled={state === "loading"}
+        // 초기 로드(악기 목록이 비어있을 때)만 스켈레톤 표시.
+        // 점프/재렌더/재로딩 시에는 기존 악기 목록을 유지해 깜빡임을 줄임.
+        isLoading={state === "loading" && instruments.length === 0}
       />
 
       {/* 브라우저 scroll anchoring 점프 완화 */}
