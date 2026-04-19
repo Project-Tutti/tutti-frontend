@@ -1,5 +1,5 @@
-import { AudioWaveform } from "lucide-react";
 import Visualizer from "./Visualizer";
+import { BrandGraphicEqIcon } from "./BrandGraphicEqIcon";
 
 const LoginHero = () => {
   return (
@@ -16,8 +16,8 @@ const LoginHero = () => {
       {/* 브랜딩 텍스트 */}
       <div className="relative z-10 text-center px-10">
         <div className="flex items-center justify-center gap-3 mb-5">
-          <div className="bg-[#3b82f6] p-2 rounded-lg shadow-[0_0_18px_rgba(59,130,246,0.45)]">
-            <AudioWaveform className="size-6 text-white" strokeWidth={2} />
+          <div className="bg-[#3b82f6] rounded-lg px-2 pt-2 pb-[2px] shadow-[0_0_18px_rgba(59,130,246,0.45)]">
+            <BrandGraphicEqIcon className="text-[28px]" />
           </div>
           <span className="text-3xl font-bold tracking-tighter text-white">
             Tutti

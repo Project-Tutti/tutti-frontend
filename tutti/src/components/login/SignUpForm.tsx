@@ -2,8 +2,8 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { AudioWaveform } from "lucide-react";
 import FormInput from "./FormInput";
+import { BrandGraphicEqIcon } from "./BrandGraphicEqIcon";
 import GoogleSignInButton from "./GoogleSignInButton";
 import {
   signUpSchema,
@@ -87,8 +87,16 @@ const SignUpForm = () => {
       if (errors[field]) setFieldError(field);
     };
 
-  const handleBlur = (field: SignUpField) => () => {
-    validateField(field);
+  const handleBlur = (field: SignUpField) => async () => {
+    const isValid = validateField(field);
+    if (field === "email" && isValid) {
+      try {
+        await handleCheckEmailDuplication();
+      } catch {
+        setFieldError("email", "이메일 중복 확인에 실패했습니다");
+        setIsEmailAvailable(false);
+      }
+    }
   };
 
   const handleCheckEmailDuplication = async () => {
@@ -164,8 +172,8 @@ const SignUpForm = () => {
     <div className="w-full max-w-md space-y-6 py-6">
       {/* 모바일 로고 */}
       <div className="lg:hidden flex items-center gap-3 mb-6">
-        <div className="bg-[#3b82f6] p-2 rounded-lg">
-          <AudioWaveform className="size-5 text-white" strokeWidth={2} />
+        <div className="bg-[#3b82f6] rounded-lg px-2 pt-2 pb-[2px]">
+          <BrandGraphicEqIcon className="text-[24px]" />
         </div>
         <span className="text-xl font-bold tracking-tight text-white">
           Tutti
@@ -206,22 +214,14 @@ const SignUpForm = () => {
           onChange={handleChange("email")}
           onBlur={handleBlur("email")}
           rightLabel={
-            <button
-              type="button"
-              onClick={handleCheckEmailDuplication}
-              disabled={isCheckingEmail}
-              className="text-[11px] font-semibold text-[#3b82f6] hover:text-blue-400 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isCheckingEmail ? "확인 중..." : "중복 확인"}
-            </button>
+            isCheckingEmail ? (
+              <span className="text-[11px] text-gray-400">확인 중...</span>
+            ) : isEmailAvailable && !errors.email ? (
+              <span className="text-[11px] text-emerald-400">사용 가능</span>
+            ) : null
           }
           error={errors.email}
         />
-        {isEmailAvailable && !errors.email ? (
-          <p className="-mt-3 text-[11px] text-emerald-400">
-            사용 가능한 이메일입니다
-          </p>
-        ) : null}
 
         {/* 비밀번호 */}
         <FormInput
@@ -250,12 +250,12 @@ const SignUpForm = () => {
         {/* 회원가입 버튼 */}
         <button
           type="submit"
-          disabled={isPending}
+          disabled={isPending || isCheckingEmail || !isEmailAvailable}
+          title={!isEmailAvailable ? "이메일 중복 확인 후 가입 가능합니다" : undefined}
           className={`
-            w-full bg-[#3b82f6] hover:bg-blue-600 text-white font-bold py-3 rounded-xl text-[13px]
-            shadow-lg transition-all hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] 
-            transform hover:-translate-y-0.5 mt-2
-            ${isPending ? "opacity-50 cursor-not-allowed" : ""}
+            w-full bg-[#3b82f6] text-white font-bold py-3 rounded-xl text-[13px]
+            shadow-lg transition-all mt-2
+            ${isPending || isCheckingEmail || !isEmailAvailable ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-600 hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:-translate-y-0.5"}
           `}
         >
           {isPending ? "Creating Account..." : "Sign Up"}
@@ -279,7 +279,11 @@ const SignUpForm = () => {
       </div>
 
       {/* Google 회원가입 */}
-      <GoogleSignInButton text="Sign up with Google" postAuthRedirect="/home" />
+      <GoogleSignInButton
+        text="Sign up with Google"
+        postAuthRedirect="/home"
+        disabled={isPending || isCheckingEmail}
+      />
 
       {/* 로그인 링크 */}
       <p className="text-center text-[13px] text-gray-500 pt-2">
