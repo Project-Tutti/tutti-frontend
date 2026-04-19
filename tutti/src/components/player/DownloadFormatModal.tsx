@@ -8,6 +8,7 @@ import {
   type ProjectDownloadType,
 } from "@api/project/constants/api-end-point.constants";
 import { useProjectDownloadMutation } from "@api/project/hooks/mutations/useProjectDownloadMutation";
+import { toast } from "@/components/common/Toast";
 
 type DownloadFormatModalProps = {
   projectId: string;
@@ -100,7 +101,9 @@ export default function DownloadFormatModal({
       onClose();
     } catch (e) {
       console.error(e);
-      alert(e instanceof Error ? e.message : "다운로드에 실패했습니다.");
+      toast.error(
+        e instanceof Error ? e.message : "다운로드에 실패했습니다.",
+      );
     } finally {
       setPendingType(null);
     }

@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import { OpenSheetMusicDisplay, Cursor } from "opensheetmusicdisplay";
 import JSZip from "jszip";
+import { toast } from "@/components/common/Toast";
 
 interface ScoreViewerProps {
   xmlData?: string | ArrayBuffer | File;
@@ -862,7 +863,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
         onScoreLoadedRef.current?.(osmdRef.current);
       } catch (e) {
         console.error(e);
-        alert(
+        toast.error(
           `악보 로드 실패: ${e instanceof Error ? e.message : "Unknown error"}`,
         );
       }
