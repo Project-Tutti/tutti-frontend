@@ -26,7 +26,6 @@ const GoogleSignInButton = ({
   const [startError, setStartError] = useState<string | null>(null);
 
   const handleClick = () => {
-    if (disabled) return;
     setStartError(null);
     try {
       const state = crypto.randomUUID();

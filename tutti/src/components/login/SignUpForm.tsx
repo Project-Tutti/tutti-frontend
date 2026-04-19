@@ -90,7 +90,12 @@ const SignUpForm = () => {
   const handleBlur = (field: SignUpField) => async () => {
     const isValid = validateField(field);
     if (field === "email" && isValid) {
-      await handleCheckEmailDuplication();
+      try {
+        await handleCheckEmailDuplication();
+      } catch {
+        setFieldError("email", "이메일 중복 확인에 실패했습니다");
+        setIsEmailAvailable(false);
+      }
     }
   };
 
@@ -246,6 +251,7 @@ const SignUpForm = () => {
         <button
           type="submit"
           disabled={isPending || isCheckingEmail || !isEmailAvailable}
+          title={!isEmailAvailable ? "이메일 중복 확인 후 가입 가능합니다" : undefined}
           className={`
             w-full bg-[#3b82f6] text-white font-bold py-3 rounded-xl text-[13px]
             shadow-lg transition-all mt-2
