@@ -25,10 +25,17 @@ const TrackGrid = ({
   onPrevPage,
   onPageChange,
 }: TrackGridProps) => {
+  const n = tracks.length;
+  const useGrid = n >= 4;
+
   return (
-    <div className="flex-1 flex flex-col items-center justify-center max-w-5xl mx-auto w-full">
+    <div
+      className={`mx-auto flex w-full max-w-5xl min-h-0 flex-1 flex-col items-center ${
+        useGrid ? "justify-start" : "justify-center"
+      }`}
+    >
       {/* 트랙 그리드 + 페이지네이션 버튼 */}
-      <div className="relative w-full flex items-center justify-center">
+      <div className="relative flex w-full items-start justify-center">
         {/* 이전 버튼 */}
         {totalPages > 1 && (
           <button
@@ -55,16 +62,32 @@ const TrackGrid = ({
           </button>
         )}
 
-        {/* 트랙 그리드 */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 w-full px-10 md:px-12">
-          {tracks.map((track) => (
-            <TrackCard
-              key={track.id}
-              track={track}
-              onClick={() => onTrackClick(track)}
-            />
-          ))}
-        </div>
+        {/* 4개 이상: 전폭 그리드 / 1~3개: flex 중앙 + 동일 카드 크기 */}
+        {useGrid ? (
+          <div className="mx-auto grid w-full grid-cols-2 gap-2 px-10 md:grid-cols-4 md:gap-3 md:px-12">
+            {tracks.map((track) => (
+              <TrackCard
+                key={track.id}
+                track={track}
+                onClick={() => onTrackClick(track)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="flex w-full flex-wrap justify-center gap-2 px-10 md:gap-3 md:px-12">
+            {tracks.map((track) => (
+              <div
+                key={track.id}
+                className="w-[calc(50%-0.25rem)] md:w-[calc(25%-0.5625rem)]"
+              >
+                <TrackCard
+                  track={track}
+                  onClick={() => onTrackClick(track)}
+                />
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* 다음 버튼 */}
         {totalPages > 1 && (
