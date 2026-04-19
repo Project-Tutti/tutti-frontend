@@ -34,7 +34,7 @@ const InstrumentSelector = ({
     number | null
   >(null);
 
-  const safeCategories = categories ?? [];
+  const safeCategories = useMemo(() => categories ?? [], [categories]);
 
   const selectedInfo = useMemo(() => {
     if (selectedInstrument == null) return null;

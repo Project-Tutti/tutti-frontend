@@ -469,7 +469,6 @@ export default function MusicPlayer({
           }
         };
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         pAny.notePlaybackCallback = function (
           audioContextTime: number,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any

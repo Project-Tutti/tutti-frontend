@@ -63,7 +63,7 @@ export const useDeleteProjectMutation = () => {
       }
     },
 
-    onSettled: (_res, _err) => {
+    onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: ["library"] });
     },
   });

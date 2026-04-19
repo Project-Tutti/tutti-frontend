@@ -212,7 +212,7 @@ const LoginForm = () => {
           href="/register"
           className="font-bold text-[#3b82f6] hover:text-blue-400"
         >
-          Let's Go Sign Up
+          Let&apos;s Go Sign Up
         </Link>
       </p>
     </div>

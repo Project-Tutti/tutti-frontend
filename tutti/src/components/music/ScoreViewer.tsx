@@ -273,7 +273,6 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           const systems = page?.MusicSystems ?? page?.musicSystems ?? [];
 
           // 이 페이지의 systems 슬롯 초기화
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           instruments.forEach((_: unknown, insIdx: number) => {
             const arr: Array<SystemYInfo | null> = new Array(
               systems.length,
@@ -549,8 +548,6 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           if (opts?.scrollIntoView) scrollPageIntoView(box);
           return;
         }
-
-        const padY = 8; // SVG px
 
         // 위쪽 트랙 (파란색)
         if (isFinite(topMinY)) {
@@ -914,7 +911,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
         }
       };
       // xmlData 또는 loadScore(내부 의존) 변경 시에만 전체 리로드. 콜백은 ref로 최신값 사용.
-    }, [xmlData, loadScore]);
+    }, [xmlData, loadScore, clearHighlightByClass]);
 
     return (
       <div className="score-viewer-root w-full">
