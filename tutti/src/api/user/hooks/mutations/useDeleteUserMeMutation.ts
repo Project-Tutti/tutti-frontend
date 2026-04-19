@@ -9,6 +9,7 @@ import queryKeys from "@common/constants/query-key.constants";
 import { ApiError } from "@/common/errors/ApiError";
 
 import { useAuthStoreActions } from "@features/auth/hooks/useAuthStore";
+import { toast } from "@/components/common/Toast";
 
 export const useDeleteUserMeMutation = () => {
   const queryClient = useQueryClient();
@@ -25,6 +26,7 @@ export const useDeleteUserMeMutation = () => {
     },
     onError: (err) => {
       console.error("회원 탈퇴 실패:", err);
+      toast.error("회원 탈퇴에 실패했습니다. 다시 시도해주세요.");
     },
   });
 };
