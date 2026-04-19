@@ -134,6 +134,29 @@ const InstrumentSettingsModal = ({
     [setFreedom],
   );
 
+  const noteRangeSliderVisual = useMemo(() => {
+    if (!instrumentInfo || !noteRange) return null;
+    const lo = instrumentInfo.defaultMin;
+    const hi = instrumentInfo.defaultMax;
+    const span = Math.max(1, hi - lo);
+    const fillLeft = ((noteRange.min - lo) / span) * 100;
+    const fillWidth = ((noteRange.max - noteRange.min) / span) * 100;
+    const t = NOTE_RANGE_RAIL_INSET_REM;
+    const railGap = `${2 * t}rem`;
+    const railPad = `${t}rem`;
+    const minThumbZIndex =
+      noteRange.min > hi - Math.max(4, span * 0.08) ? 5 : 3;
+    return {
+      lo,
+      hi,
+      fillLeft,
+      fillWidth,
+      railGap,
+      railPad,
+      minThumbZIndex,
+    };
+  }, [instrumentInfo, noteRange]);
+
   if (!isOpen || !mounted) return null;
 
   const content = (
@@ -208,62 +231,48 @@ const InstrumentSettingsModal = ({
                 </div>
 
                 <div className="relative w-full pt-0.5">
-                  {(() => {
-                    const lo = instrumentInfo.defaultMin;
-                    const hi = instrumentInfo.defaultMax;
-                    const span = Math.max(1, hi - lo);
-                    const fillLeft = ((noteRange.min - lo) / span) * 100;
-                    const fillWidth =
-                      ((noteRange.max - noteRange.min) / span) * 100;
-                    const t = NOTE_RANGE_RAIL_INSET_REM;
-                    const railGap = `${2 * t}rem`;
-                    const railPad = `${t}rem`;
-                    return (
-                      <div className="relative w-full">
-                        <div
-                          className="pointer-events-none absolute left-3 right-3 top-[19px] h-2 rounded-full bg-[#1e293b]"
-                          aria-hidden
-                        />
-                        <div
-                          className="pointer-events-none absolute top-[19px] h-2 rounded-full bg-[#3b82f6]/40"
+                  {noteRangeSliderVisual && (
+                    <div className="relative w-full">
+                      <div
+                        className="pointer-events-none absolute left-3 right-3 top-[19px] h-2 rounded-full bg-[#1e293b]"
+                        aria-hidden
+                      />
+                      <div
+                        className="pointer-events-none absolute top-[19px] h-2 rounded-full bg-[#3b82f6]/40"
+                        style={{
+                          left: `calc(${noteRangeSliderVisual.railPad} + (100% - ${noteRangeSliderVisual.railGap}) * ${noteRangeSliderVisual.fillLeft / 100})`,
+                          width: `calc((100% - ${noteRangeSliderVisual.railGap}) * ${Math.max(0, noteRangeSliderVisual.fillWidth) / 100})`,
+                        }}
+                        aria-hidden
+                      />
+                      <div className="relative h-10 w-full">
+                        <input
+                          type="range"
+                          min={noteRangeSliderVisual.lo}
+                          max={noteRangeSliderVisual.hi}
+                          value={noteRange.min}
+                          onChange={(e) =>
+                            handleMinChange(Number(e.target.value))
+                          }
+                          className={`${NOTE_RANGE_SLIDER_CLASS} pointer-events-none`}
                           style={{
-                            left: `calc(${railPad} + (100% - ${railGap}) * ${fillLeft / 100})`,
-                            width: `calc((100% - ${railGap}) * ${Math.max(0, fillWidth) / 100})`,
+                            zIndex: noteRangeSliderVisual.minThumbZIndex,
                           }}
-                          aria-hidden
                         />
-                        <div className="relative h-10 w-full">
-                          <input
-                            type="range"
-                            min={lo}
-                            max={hi}
-                            value={noteRange.min}
-                            onChange={(e) =>
-                              handleMinChange(Number(e.target.value))
-                            }
-                            className={`${NOTE_RANGE_SLIDER_CLASS} pointer-events-none`}
-                            style={{
-                              zIndex:
-                                noteRange.min > hi - Math.max(4, span * 0.08)
-                                  ? 5
-                                  : 3,
-                            }}
-                          />
-                          <input
-                            type="range"
-                            min={lo}
-                            max={hi}
-                            value={noteRange.max}
-                            onChange={(e) =>
-                              handleMaxChange(Number(e.target.value))
-                            }
-                            className={`${NOTE_RANGE_SLIDER_CLASS} pointer-events-none`}
-                            style={{ zIndex: 4 }}
-                          />
-                        </div>
+                        <input
+                          type="range"
+                          min={noteRangeSliderVisual.lo}
+                          max={noteRangeSliderVisual.hi}
+                          value={noteRange.max}
+                          onChange={(e) =>
+                            handleMaxChange(Number(e.target.value))
+                          }
+                          className={`${NOTE_RANGE_SLIDER_CLASS} pointer-events-none`}
+                          style={{ zIndex: 4 }}
+                        />
                       </div>
-                    );
-                  })()}
+                    </div>
+                  )}
                 </div>
               </div>
 
