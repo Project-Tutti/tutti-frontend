@@ -3,8 +3,8 @@
 import { FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { AudioWaveform } from "lucide-react";
 import FormInput from "./FormInput";
+import { BrandGraphicEqIcon } from "./BrandGraphicEqIcon";
 import GoogleSignInButton from "./GoogleSignInButton";
 import { loginSchema, LoginFormData } from "@/schemas/authSchema";
 import { useLoginMutation } from "@api/user/hooks/mutations/useLoginMutation";
@@ -100,8 +100,8 @@ const LoginForm = () => {
     <div className="w-full max-w-md space-y-6">
       {/* 모바일 로고 */}
       <div className="lg:hidden flex items-center gap-3 mb-9">
-        <div className="bg-[#3b82f6] p-2 rounded-lg">
-          <AudioWaveform className="size-5 text-white" strokeWidth={2} />
+        <div className="bg-[#3b82f6] rounded-lg px-2 pt-2 pb-[2px]">
+          <BrandGraphicEqIcon className="text-[24px]" />
         </div>
         <span className="text-xl font-bold tracking-tight text-white">
           Tutti
@@ -191,6 +191,7 @@ const LoginForm = () => {
         postAuthRedirect={safeInternalRedirectPath(
           searchParams.get("redirect"),
         )}
+        disabled={isPending}
       />
 
       {/* 회원가입 링크 */}

@@ -14,15 +14,19 @@ interface GoogleSignInButtonProps {
   text?: string;
   /** 로그인 성공 후 이동할 내부 경로 (예: /home, ?redirect= 연동) */
   postAuthRedirect?: string;
+  /** 다른 인증 요청 중일 때 비활성화 */
+  disabled?: boolean;
 }
 
 const GoogleSignInButton = ({
   text = "Sign in with Google",
   postAuthRedirect = "/home",
+  disabled = false,
 }: GoogleSignInButtonProps) => {
   const [startError, setStartError] = useState<string | null>(null);
 
   const handleClick = () => {
+    if (disabled) return;
     setStartError(null);
     try {
       const state = crypto.randomUUID();
@@ -52,7 +56,8 @@ const GoogleSignInButton = ({
     <button
       type="button"
       onClick={handleClick}
-      className="w-full flex items-center justify-center gap-2.5 bg-[#0f1218] border border-[#1e293b] hover:border-gray-500 py-2.5 rounded-xl transition-all"
+      disabled={disabled}
+      className={`w-full flex items-center justify-center gap-2.5 bg-[#0f1218] border border-[#1e293b] py-2.5 rounded-xl transition-all ${disabled ? "opacity-50 cursor-not-allowed" : "hover:border-gray-500"}`}
     >
       <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden>
         <path
