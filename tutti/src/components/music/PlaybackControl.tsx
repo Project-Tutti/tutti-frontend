@@ -1,5 +1,14 @@
 "use client";
 
+import {
+  FileUp,
+  Pause,
+  Play,
+  SkipBack,
+  SkipForward,
+  Square,
+} from "lucide-react";
+
 type PlaybackState = "idle" | "loading" | "playing" | "paused";
 
 interface PlaybackControlProps {
@@ -43,55 +52,57 @@ export default function PlaybackControl({
         <button
           onClick={onStop}
           disabled={disabled || state === "idle"}
-          className={`h-8 w-8 grid place-items-center rounded-md transition-all ${
+          className={`grid h-8 w-8 place-items-center rounded-md transition-all ${
             disabled || state === "idle"
-              ? "text-gray-600 cursor-not-allowed"
-              : "text-gray-200 hover:text-white hover:bg-white/10"
+              ? "cursor-not-allowed text-gray-600"
+              : "text-gray-200 hover:bg-white/10 hover:text-white"
           }`}
           title="Stop"
         >
-          <span className="material-symbols-outlined text-[20px]">stop</span>
+          <Square className="size-3.5 rounded-[2px]" strokeWidth={2} />
         </button>
 
         <button
           onClick={state === "playing" ? onPause : onPlay}
           disabled={disabled}
-          className={`h-8 w-8 grid place-items-center rounded-md transition-all ${
+          className={`grid h-8 w-8 place-items-center rounded-md transition-all ${
             disabled
-              ? "bg-[#3b82f6]/60 cursor-not-allowed"
+              ? "cursor-not-allowed bg-[#3b82f6]/60"
               : "bg-[#3b82f6] hover:bg-blue-600"
           }`}
           title={state === "playing" ? "Pause" : "Play"}
         >
-          <span className="material-symbols-outlined text-white text-[20px]">
-            {state === "playing" ? "pause" : "play_arrow"}
-          </span>
+          {state === "playing" ? (
+            <Pause className="size-[17px] text-white" fill="currentColor" />
+          ) : (
+            <Play className="size-[17px] translate-x-px text-white" fill="currentColor" />
+          )}
         </button>
 
         <button
           onClick={() => jump(safeCurrent - 1, true)}
           disabled={disabled || safeCurrent <= 1}
-          className={`h-8 w-8 grid place-items-center rounded-md transition-all ${
+          className={`grid h-8 w-8 place-items-center rounded-md transition-all ${
             disabled || safeCurrent <= 1
-              ? "text-gray-600 cursor-not-allowed"
-              : "text-gray-200 hover:text-white hover:bg-white/10"
+              ? "cursor-not-allowed text-gray-600"
+              : "text-gray-200 hover:bg-white/10 hover:text-white"
           }`}
           title="Prev Measure"
         >
-          <span className="material-symbols-outlined text-[20px]">skip_previous</span>
+          <SkipBack className="size-[17px]" strokeWidth={1.85} />
         </button>
 
         <button
           onClick={() => jump(safeCurrent + 1, true)}
           disabled={disabled || safeCurrent >= totalMeasures}
-          className={`h-8 w-8 grid place-items-center rounded-md transition-all ${
+          className={`grid h-8 w-8 place-items-center rounded-md transition-all ${
             disabled || safeCurrent >= totalMeasures
-              ? "text-gray-600 cursor-not-allowed"
-              : "text-gray-200 hover:text-white hover:bg-white/10"
+              ? "cursor-not-allowed text-gray-600"
+              : "text-gray-200 hover:bg-white/10 hover:text-white"
           }`}
           title="Next Measure"
         >
-          <span className="material-symbols-outlined text-[20px]">skip_next</span>
+          <SkipForward className="size-[17px]" strokeWidth={1.85} />
         </button>
       </div>
 
@@ -119,10 +130,10 @@ export default function PlaybackControl({
         {onChangeFile && (
           <button
             onClick={onChangeFile}
-            className="h-8 px-2 rounded-md text-gray-200 hover:text-white hover:bg-white/10 transition-all"
+            className="flex h-8 items-center justify-center rounded-md px-2 text-gray-200 transition-all hover:bg-white/10 hover:text-white"
             title="Change File"
           >
-            <span className="material-symbols-outlined text-[18px]">upload_file</span>
+            <FileUp className="size-4" strokeWidth={1.75} />
           </button>
         )}
       </div>

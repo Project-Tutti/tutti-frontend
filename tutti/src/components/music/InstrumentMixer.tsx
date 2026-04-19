@@ -1,5 +1,7 @@
 "use client";
 
+import { SlidersHorizontal, Volume2, VolumeX } from "lucide-react";
+
 export interface InstrumentInfo {
   index: number;
   name: string;
@@ -32,9 +34,11 @@ export default function InstrumentMixer({
     <div className="w-full rounded-xl border border-[#1e293b] bg-[#0f1218]/70 backdrop-blur px-3 py-2">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-[16px] text-gray-400">
-            tune
-          </span>
+          <SlidersHorizontal
+            className="size-4 shrink-0 text-gray-400"
+            strokeWidth={1.75}
+            aria-hidden
+          />
           <span className="text-xs uppercase tracking-widest text-gray-500">
             Instruments
           </span>
@@ -99,7 +103,7 @@ export default function InstrumentMixer({
                 <button
                   onClick={() => onToggleMute(ins.index)}
                   disabled={disabled}
-                  className={`h-6 px-2 rounded text-[11px] font-medium transition-all ${
+                  className={`flex h-6 items-center gap-1 rounded px-2 text-[11px] font-medium transition-all ${
                     disabled
                       ? "cursor-not-allowed text-gray-600"
                       : isMuted
@@ -108,9 +112,19 @@ export default function InstrumentMixer({
                   }`}
                   title={isMuted ? "재생" : "음소거"}
                 >
-                  <span className="material-symbols-outlined text-[14px] align-middle mr-1">
-                    {isMuted ? "volume_off" : "volume_up"}
-                  </span>
+                  {isMuted ? (
+                    <VolumeX
+                      className="size-3.5 shrink-0 text-gray-500"
+                      strokeWidth={2}
+                      aria-hidden
+                    />
+                  ) : (
+                    <Volume2
+                      className="size-3.5 shrink-0 text-gray-300"
+                      strokeWidth={2}
+                      aria-hidden
+                    />
+                  )}
                   {ins.name}
                 </button>
 

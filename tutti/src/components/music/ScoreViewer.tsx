@@ -917,7 +917,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
     }, [xmlData, loadScore]);
 
     return (
-      <div className="w-full">
+      <div className="score-viewer-root w-full">
         <div
           ref={scrollRef}
           className="w-full overflow-x-auto overflow-y-hidden"
@@ -939,8 +939,9 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           .${ACTIVE_TOP_CLASS}, .${ACTIVE_BOTTOM_CLASS} {
             shape-rendering: geometricPrecision;
           }
-          .osmdSvgPage,
-          svg {
+          /* OSMD만 대상 — 전역 svg 선택자는 Lucide 등 사이드바 아이콘까지 칠함 */
+          .score-viewer-root .osmdSvgPage,
+          .score-viewer-root svg {
             scroll-snap-align: start;
             flex: 0 0 auto;
             background: white;
