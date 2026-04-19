@@ -1,3 +1,20 @@
+import { Ban, Sparkles } from "lucide-react";
+import type { IconType } from "react-icons";
+import {
+  GiDrumKit,
+  GiGrandPiano,
+  GiAccordion,
+  GiXylophone,
+  GiGuitar,
+  GiGuitarBassHead,
+  GiViolin,
+  GiFlute,
+  GiSaxophone,
+  GiTrumpet,
+  GiMusicalNotes,
+  GiSoundWaves,
+} from "react-icons/gi";
+
 /** GM 프로그램을 카테고리 대표 번호(representative)로 묶는 규칙 (트랙 분석용) */
 
 export const INSTRUMENT_DROP_LIST: ReadonlySet<number> = new Set([
@@ -100,23 +117,6 @@ export const INSTRUMENT_GROUPING: Readonly<
     ],
   },
 } as const;
-
-import { Ban, Sparkles } from "lucide-react";
-import { IconType } from "react-icons";
-import {
-  GiDrumKit,
-  GiGrandPiano,
-  GiAccordion,
-  GiXylophone,
-  GiGuitar,
-  GiGuitarBassHead,
-  GiViolin,
-  GiFlute,
-  GiSaxophone,
-  GiTrumpet,
-  GiMusicalNotes,
-  GiSoundWaves,
-} from "react-icons/gi";
 
 /** 아이콘 키 → 컴포넌트 매핑 */
 export const ICON_MAP: Readonly<Record<string, IconType>> = {

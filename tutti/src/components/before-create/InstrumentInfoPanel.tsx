@@ -37,6 +37,8 @@ const InstrumentInfoPanel = ({ onOpenSettings }: InstrumentInfoPanelProps) => {
   }, [selectedInstrument, categories]);
 
   const prevInstrumentRef = useRef<number | null>(null);
+  const noteRangeRef = useRef(noteRange);
+  noteRangeRef.current = noteRange;
 
   useEffect(() => {
     if (selectedInstrument == null) {
@@ -46,7 +48,7 @@ const InstrumentInfoPanel = ({ onOpenSettings }: InstrumentInfoPanelProps) => {
     if (!instrumentInfo) return;
 
     const instrumentChanged = prevInstrumentRef.current !== selectedInstrument;
-    const needInitialRange = noteRange == null;
+    const needInitialRange = noteRangeRef.current == null;
 
     if (instrumentChanged || needInitialRange) {
       prevInstrumentRef.current = selectedInstrument;
@@ -57,19 +59,20 @@ const InstrumentInfoPanel = ({ onOpenSettings }: InstrumentInfoPanelProps) => {
       return;
     }
 
-    if (noteRange == null) return;
+    const nr = noteRangeRef.current;
+    if (nr == null) return;
 
     const lo = instrumentInfo.defaultMin;
     const hi = instrumentInfo.defaultMax;
-    let nextMin = Math.max(lo, Math.min(noteRange.min, hi));
-    let nextMax = Math.min(hi, Math.max(noteRange.max, lo));
+    let nextMin = Math.max(lo, Math.min(nr.min, hi));
+    let nextMax = Math.min(hi, Math.max(nr.max, lo));
     if (nextMin >= nextMax) {
       nextMin = lo;
       nextMax = hi;
     }
-    if (nextMin === noteRange.min && nextMax === noteRange.max) return;
+    if (nextMin === nr.min && nextMax === nr.max) return;
     setNoteRange({ min: nextMin, max: nextMax });
-  }, [selectedInstrument, instrumentInfo, noteRange, setNoteRange]);
+  }, [selectedInstrument, instrumentInfo, setNoteRange]);
 
   if (!instrumentInfo) return null;
 

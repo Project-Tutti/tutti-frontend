@@ -92,6 +92,7 @@ export const parseMidiFile = async (file: File): Promise<Track[]> => {
       icon,
       instrumentType,
       sourceInstrumentId,
+      isDropListProgram: false,
       channel: track.channel ?? outIndex,
       tags,
       noteCount: track.notes.length,

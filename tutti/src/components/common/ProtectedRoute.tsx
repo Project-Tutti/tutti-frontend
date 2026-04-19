@@ -35,9 +35,15 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   }, [isHydrated, accessToken, router, pathname]);
 
   if (!isHydrated || !accessToken) {
+    const redirecting = isHydrated && !accessToken;
     return (
       <div className="flex min-h-dvh items-center justify-center bg-[#05070a]">
-        <Spinner size="md" />
+        <Spinner
+          size="md"
+          label={
+            redirecting ? "로그인 페이지로 이동 중" : undefined
+          }
+        />
       </div>
     );
   }

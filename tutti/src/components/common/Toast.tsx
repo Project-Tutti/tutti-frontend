@@ -2,41 +2,14 @@
 
 import { useEffect, useCallback, useState, memo } from "react";
 import { createPortal } from "react-dom";
-import { create } from "zustand";
 import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle2, AlertCircle, Info, X } from "lucide-react";
 
-type ToastType = "success" | "error" | "info";
-
-interface ToastItem {
-  id: string;
-  type: ToastType;
-  message: string;
-  duration?: number;
-}
-
-interface ToastStore {
-  toasts: ToastItem[];
-  add: (toast: Omit<ToastItem, "id">) => void;
-  remove: (id: string) => void;
-  clear: () => void;
-}
-
-const useToastStore = create<ToastStore>((set) => ({
-  toasts: [],
-  add: (toast) =>
-    set((state) => ({
-      toasts: [
-        ...state.toasts,
-        { ...toast, id: `${Date.now()}-${Math.random().toString(36).slice(2)}` },
-      ],
-    })),
-  remove: (id) =>
-    set((state) => ({
-      toasts: state.toasts.filter((t) => t.id !== id),
-    })),
-  clear: () => set({ toasts: [] }),
-}));
+import {
+  useToastStore,
+  type ToastItem,
+  type ToastType,
+} from "@/components/common/toast-store";
 
 const ICONS: Record<ToastType, React.ReactNode> = {
   success: <CheckCircle2 className="size-[18px] text-emerald-400" strokeWidth={2} />,
@@ -93,6 +66,7 @@ const ToastItemComponent = memo(function ToastItemComponent({
   );
 });
 
+/** ToastProvider에서 dynamic import 전용 — UI는 이 파일, 상태는 toast-store */
 export const ToastContainer = memo(function ToastContainer() {
   const toasts = useToastStore((s) => s.toasts);
   const [mounted, setMounted] = useState(false);

@@ -40,7 +40,7 @@ const Modal = ({ isOpen, onClose, children, title, footer }: ModalProps) => {
       <div className="relative mx-auto flex w-full max-w-lg max-h-[min(88vh,720px)] flex-col overflow-hidden rounded-xl border border-[#1e293b] bg-[#0f1218] shadow-2xl animate-fade-in">
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#1e293b] px-4 py-3">
           <h2 className="min-w-0 text-sm font-semibold leading-snug tracking-tight text-white">
-            {title || "알림"}
+            {title?.trim() ? title : "알림"}
           </h2>
           <button
             type="button"
