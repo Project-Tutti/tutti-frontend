@@ -18,6 +18,35 @@ interface TrackModalProps {
   onClose: () => void;
 }
 
+function MetaRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+      <dt className="shrink-0 text-[11px] font-medium text-slate-500">{label}</dt>
+      <dd className="min-w-0 text-xs leading-snug text-slate-200 sm:text-right">
+        {children}
+      </dd>
+    </div>
+  );
+}
+
+/** HTML5: dl 안에서 dt/dd를 div로 묶을 수 있음 */
+function MetaList({ children }: { children: React.ReactNode }) {
+  return <dl className="space-y-2.5">{children}</dl>;
+}
+
+const sectionClass =
+  "rounded-xl border border-white/8 bg-[#080a0f]/95 p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]";
+
+/** 블루 포인트 박스 + 흰색 라벨 */
+const sectionTitleClass =
+  "mb-3 inline-flex w-fit max-w-full items-center rounded-md border border-blue-500/15 bg-blue-500/6 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-white";
+
 const TrackModal = ({ isOpen, track, onClose }: TrackModalProps) => {
   const { trackMappings, setTrackMapping } = useMidiStore();
   const [searchText, setSearchText] = useState("");
@@ -78,7 +107,7 @@ const TrackModal = ({ isOpen, track, onClose }: TrackModalProps) => {
     const matched = mappingOptions.find(
       (option) => option.id === currentMappedInstrumentId,
     );
-    return matched?.label ?? "Custom Instrument";
+    return matched?.label ?? "사용자 지정";
   }, [currentMappedInstrumentId, mappingOptions]);
 
   const applyMappingValue = (value: string) => {
@@ -91,67 +120,99 @@ const TrackModal = ({ isOpen, track, onClose }: TrackModalProps) => {
 
   if (!track) return null;
 
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`${track.name} Settings`}>
-      <div className="space-y-4">
-        <div className="rounded-lg border border-[#1e293b] bg-[#0f1218]/60 p-3 space-y-1.5">
-          <p className="text-[10px] uppercase tracking-widest text-gray-500">
-            Track Summary
-          </p>
-          <p className="text-white font-semibold text-xs">
-            {track.name} ({track.instrumentType})
-          </p>
-          <p className="text-[11px] text-gray-400">
-            Channel {track.channel} · {track.noteCount ?? 0} notes · Track ID{" "}
-            {track.id}
-          </p>
-          <div className="flex gap-1.5 justify-center flex-wrap">
-            {track.tags.map((tag, index) => (
-              <span
-                key={index}
-                className="text-[10px] text-gray-400 bg-white/5 px-2 py-0.5 rounded"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        </div>
+  const modalTitle = `${track.name} · 트랙 정보`;
 
-        <div className="rounded-lg border border-[#1e293b] bg-[#0f1218]/60 p-3 space-y-2">
-          <p className="text-[10px] uppercase tracking-widest text-gray-500">
-            Current Mapping
-          </p>
-          {track.isDropListProgram ? (
-            <>
-              <p className="text-[11px] text-gray-300">
-                원본 분류:{" "}
-                <span className="text-amber-300/95 font-medium">Drop</span>
-              </p>
-              <p className="text-[10px] text-gray-500 leading-relaxed">
-                자동 변환에서 제외되는 악기군입니다. 아래에서 원하는 악기로
-                매핑할 수 있습니다.
-              </p>
-            </>
-          ) : (
-            <p className="text-[11px] text-gray-300">
-              Source Instrument ID:{" "}
-              <span className="text-white">{track.sourceInstrumentId}</span>
-            </p>
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={modalTitle}
+      footer={
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full max-w-[200px] rounded-lg bg-[#2563eb] px-6 py-2 text-center text-xs font-semibold text-white transition-colors hover:bg-blue-600 active:scale-[0.99] sm:w-auto sm:min-w-[120px]"
+          >
+            확인
+          </button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
+        <section className={sectionClass} aria-labelledby="track-summary-heading">
+          <h3 id="track-summary-heading" className={sectionTitleClass}>
+            요약
+          </h3>
+          <MetaList>
+            <MetaRow label="트랙 이름">
+              <span className="font-medium text-white/95">{track.name}</span>
+            </MetaRow>
+            <MetaRow label="악기 유형">{track.instrumentType}</MetaRow>
+            <MetaRow label="채널">{track.channel}</MetaRow>
+            <MetaRow label="음표 수">
+              {(track.noteCount ?? 0).toLocaleString("ko-KR")}
+            </MetaRow>
+            <MetaRow label="트랙 ID">
+              <span className="font-mono text-[11px] text-slate-400">
+                {track.id}
+              </span>
+            </MetaRow>
+          </MetaList>
+          {track.tags.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5 border-t border-white/6 pt-3">
+              {track.tags.map((tag, index) => (
+                <span
+                  key={`${tag}-${index}`}
+                  className="rounded border border-white/10 bg-white/4 px-2 py-0.5 text-[10px] font-medium text-slate-400"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
           )}
-          <p className="text-[11px] text-gray-300">
+        </section>
+
+        <section
+          className={sectionClass}
+          aria-labelledby="track-mapping-current-heading"
+        >
+          <h3 id="track-mapping-current-heading" className={sectionTitleClass}>
+            현재 매핑
+          </h3>
+          <div className="space-y-2.5 text-xs leading-relaxed text-slate-300">
             {track.isDropListProgram ? (
               <>
-                매핑 악기:{" "}
-                <span className="text-white">{mappedOptionLabel}</span>
+                <p>
+                  <span className="text-slate-500">원본 분류</span>{" "}
+                  <span className="font-medium text-amber-300/95">Drop</span>
+                </p>
+                <p className="text-[11px] leading-relaxed text-slate-500">
+                  자동 변환에서 제외되는 악기군입니다. 아래에서 원하는 악기로 바꿀
+                  수 있습니다.
+                </p>
               </>
             ) : (
-              <>
-                Target Instrument ID:{" "}
-                <span className="text-white">{currentMappedInstrumentId}</span>{" "}
-                ({mappedOptionLabel})
-              </>
+              <p>
+                <span className="text-slate-500">원본 GM 번호</span>{" "}
+                <span className="font-mono font-medium text-white tabular-nums">
+                  {track.sourceInstrumentId}
+                </span>
+              </p>
             )}
-          </p>
+            <p>
+              <span className="text-slate-500">
+                {track.isDropListProgram ? "선택한 악기" : "매핑된 악기"}
+              </span>{" "}
+              <span className="font-medium text-white">{mappedOptionLabel}</span>
+              <span className="ml-1.5 font-mono text-[11px] text-slate-500 tabular-nums">
+                (#{currentMappedInstrumentId})
+              </span>
+            </p>
+            <p className="rounded-md border border-blue-500/15 bg-blue-500/6 px-2.5 py-1.5 text-[11px] leading-relaxed text-sky-200/95">
+              현재 매핑된 악기로 학습이 이루어집니다.
+            </p>
+          </div>
           <button
             type="button"
             onClick={() => {
@@ -161,73 +222,114 @@ const TrackModal = ({ isOpen, track, onClose }: TrackModalProps) => {
               setInputValue(String(resetId));
               setTrackMapping(track.id, resetId);
             }}
-            className="text-[10px] font-semibold text-[#3b82f6] hover:text-blue-400"
+            className="mt-3 text-xs font-medium text-blue-400 transition-colors hover:text-blue-300"
           >
             {track.isDropListProgram
               ? "기본 매핑으로 되돌리기"
-              : "원본 악기번호로 되돌리기"}
+              : "원본 악기 번호로 되돌리기"}
           </button>
-        </div>
+        </section>
 
-        <div className="rounded-lg border border-[#1e293b] bg-[#0f1218]/60 p-3 space-y-2">
-          <p className="text-[10px] uppercase tracking-widest text-gray-500">
-            Change Mapping
-          </p>
+        <section
+          className={sectionClass}
+          aria-labelledby="track-mapping-change-heading"
+        >
+          <h3 id="track-mapping-change-heading" className={sectionTitleClass}>
+            악기 변경
+          </h3>
+
           {categoriesLoadingWithoutData && (
-            <div className="flex justify-center py-4">
-              <Spinner size="sm" label="악기 카테고리 불러오는 중…" />
+            <div className="flex justify-center py-10">
+              <Spinner size="sm" label="악기 목록 불러오는 중" />
             </div>
           )}
-          {categoriesError && (
-            <p className="text-[10px] text-amber-400/90">
-              카테고리 API를 불러오지 못해 기본 GM 목록을 표시합니다.
-            </p>
-          )}
-          <input
-            type="text"
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            placeholder="악기명 또는 번호 검색"
-            disabled={categoriesLoadingWithoutData}
-            className="w-full bg-[#05070a] border border-[#1e293b] rounded-md px-2.5 py-1.5 text-xs text-gray-100 placeholder:text-gray-500 focus:outline-none focus:border-[#3b82f6] disabled:opacity-50"
-          />
-          <select
-            size={5}
-            value={String(currentMappedInstrumentId)}
-            onChange={(e) => {
-              const value = e.target.value;
-              setInputValue(value);
-              applyMappingValue(value);
-            }}
-            disabled={categoriesLoadingWithoutData}
-            className="w-full bg-[#05070a] border border-[#1e293b] rounded-md px-1.5 py-1.5 text-xs text-gray-100 focus:outline-none disabled:opacity-50"
-          >
-            {filteredOptions.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.id} - {option.label}
-              </option>
-            ))}
-          </select>
 
-          <div className="space-y-1.5">
-            <label
-              htmlFor="custom-instrument-id"
-              className="text-[10px] text-gray-400"
-            >
-              직접 악기번호 입력 (0~129)
-            </label>
-            <input
-              id="custom-instrument-id"
-              type="number"
-              min={0}
-              max={129}
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onBlur={(e) => applyMappingValue(e.target.value)}
-              className="w-full bg-[#05070a] border border-[#1e293b] rounded-md px-2.5 py-1.5 text-xs text-gray-100 focus:outline-none focus:border-[#3b82f6]"
-            />
-          </div>
-        </div>
+          {!categoriesLoadingWithoutData && (
+            <>
+              {categoriesError && (
+                <p className="mb-2.5 rounded-lg border border-amber-500/25 bg-amber-500/10 px-2.5 py-2 text-xs text-amber-200/95">
+                  카테고리를 불러오지 못해 기본 GM 목록을 표시합니다.
+                </p>
+              )}
+
+              <label className="mb-1 block text-[11px] font-medium text-slate-500">
+                검색
+              </label>
+              <input
+                type="text"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                placeholder="악기 이름 또는 번호"
+                className="mb-2.5 w-full rounded-lg border border-[#1e293b] bg-[#030508] px-2.5 py-2 text-xs text-white placeholder:text-slate-600 focus:border-blue-500/60 focus:outline-none focus:ring-1 focus:ring-blue-500/30"
+              />
+
+              <p className="mb-1.5 text-[11px] font-medium text-slate-500">
+                악기 선택 ({filteredOptions.length.toLocaleString("ko-KR")}개)
+              </p>
+              <div
+                role="listbox"
+                aria-label="악기 목록"
+                className="flex max-h-[min(280px,38vh)] flex-col gap-0.5 overflow-y-auto rounded-lg border border-[#1e293b] bg-[#030508] p-1.5"
+              >
+                {filteredOptions.length === 0 ? (
+                  <p className="px-3 py-5 text-center text-xs text-slate-500">
+                    검색 결과가 없습니다.
+                  </p>
+                ) : (
+                  filteredOptions.map((option) => {
+                    const selected = option.id === currentMappedInstrumentId;
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        role="option"
+                        aria-selected={selected}
+                        onClick={() => {
+                          setInputValue(String(option.id));
+                          applyMappingValue(String(option.id));
+                        }}
+                        className={
+                          selected
+                            ? "flex w-full items-center gap-2.5 rounded-md border border-blue-500/35 bg-blue-500/15 px-2.5 py-2 text-left text-xs text-blue-100"
+                            : "flex w-full items-center gap-2.5 rounded-md border border-transparent px-2.5 py-2 text-left text-xs text-slate-200 transition-colors hover:border-white/10 hover:bg-white/4"
+                        }
+                      >
+                        <span className="w-8 shrink-0 font-mono text-[11px] tabular-nums text-slate-500">
+                          {option.id === 0 ? ` ${option.id}` : option.id}
+                        </span>
+                        <span className="min-w-0 font-medium leading-snug">
+                          {option.label}
+                        </span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+
+              <div className="mt-3 border-t border-white/6 pt-3">
+                <label
+                  htmlFor="custom-instrument-id"
+                  className="mb-1 block text-[11px] font-medium text-slate-500"
+                >
+                  직접 입력 <span className="text-slate-600">(0–129)</span>
+                </label>
+                <input
+                  id="custom-instrument-id"
+                  type="number"
+                  min={0}
+                  max={129}
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onBlur={(e) => applyMappingValue(e.target.value)}
+                  className="w-full rounded-lg border border-[#1e293b] bg-[#030508] px-2.5 py-2 font-mono text-xs text-white tabular-nums focus:border-blue-500/60 focus:outline-none focus:ring-1 focus:ring-blue-500/30"
+                />
+                <p className="mt-1.5 text-[11px] leading-relaxed text-slate-600">
+                  포커스를 잃으면 입력한 번호가 적용됩니다.
+                </p>
+              </div>
+            </>
+          )}
+        </section>
       </div>
     </Modal>
   );
