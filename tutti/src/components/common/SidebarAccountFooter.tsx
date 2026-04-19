@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+
+import { useClickOutside } from "@/common/hooks/useClickOutside";
 import { useRouter } from "next/navigation";
 import { ChevronUp, LogOut, UserX } from "lucide-react";
 
@@ -25,8 +27,16 @@ const SidebarAccountFooter = () => {
   const [isDeleteSuccessModalOpen, setIsDeleteSuccessModalOpen] =
     useState(false);
 
+  const accountMenuRootRef = useRef<HTMLDivElement>(null);
+  useClickOutside(accountMenuRootRef, isUserMenuOpen, () =>
+    setIsUserMenuOpen(false),
+  );
+
   return (
-    <div className="relative min-w-54 border-t border-[#1e293b] p-2.5">
+    <div
+      ref={accountMenuRootRef}
+      className="relative min-w-54 border-t border-[#1e293b] p-2.5"
+    >
       <Modal
         isOpen={isDeleteAccountModalOpen}
         onClose={() => setIsDeleteAccountModalOpen(false)}
@@ -94,10 +104,7 @@ const SidebarAccountFooter = () => {
       </Modal>
 
       {isUserMenuOpen && (
-        <div
-          className="absolute inset-x-2.5 bottom-full z-70 mb-1"
-          onMouseLeave={() => setIsUserMenuOpen(false)}
-        >
+        <div className="absolute inset-x-2.5 bottom-full z-70 mb-1">
           <div className="overflow-hidden rounded-xl border border-[#1e293b] bg-[#0f1218] shadow-xl">
             <button
               type="button"
@@ -114,6 +121,7 @@ const SidebarAccountFooter = () => {
               type="button"
               onClick={() => {
                 setIsUserMenuOpen(false);
+                // 로그아웃 API가 느릴 수 있어 서버 응답 전에 인증을 비우고 이동(낙관적 UX).
                 clearAuth();
                 router.push("/login");
                 logoutMutation.mutate();

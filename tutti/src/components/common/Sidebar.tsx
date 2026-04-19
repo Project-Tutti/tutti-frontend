@@ -8,6 +8,7 @@ import { useLibraryListInfiniteQuery } from "@api/library/hooks/queries/useLibra
 import { useGeneratableInstrumentCategoriesQuery } from "@api/instruments/hooks/queries/useGeneratableInstrumentCategoriesQuery";
 import { useDeleteProjectMutation } from "@api/project/hooks/mutations/useDeleteProjectMutation";
 import { usePatchProjectNameMutation } from "@api/project/hooks/mutations/usePatchProjectNameMutation";
+import { useClickOutside } from "@/common/hooks/useClickOutside";
 import { toast } from "@/components/common/Toast";
 import SidebarAccountFooter from "@/components/common/SidebarAccountFooter";
 import SidebarDeleteProjectModal from "@/components/common/SidebarDeleteProjectModal";
@@ -30,6 +31,7 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
   const router = useRouter();
   const pathname = usePathname();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const projectMenuHostRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const hasNextPageRef = useRef(false);
   const isFetchingNextPageRef = useRef(false);
@@ -81,6 +83,8 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
     setOpenMenuProjectId(null);
   };
 
+  useClickOutside(projectMenuHostRef, openMenuProjectId != null, closeMenus);
+
   const startRename = (projectId: number, name: string) => {
     setRenamingProjectId(projectId);
     setRenameDraft(name);
@@ -100,9 +104,7 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
       await patchProjectNameMutation.mutateAsync({ projectId, name: next });
     } catch (e) {
       console.error(e);
-      toast.error(
-        e instanceof Error ? e.message : "이름 변경에 실패했습니다.",
-      );
+      toast.error(e instanceof Error ? e.message : "이름 변경에 실패했습니다.");
     }
   };
 
@@ -191,18 +193,18 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
         </button>
       </div>
 
+      <SidebarDeleteProjectModal
+        isOpen={deleteConfirmProject != null}
+        projectName={deleteConfirmProject?.name}
+        onClose={() => setDeleteConfirmProject(null)}
+        onConfirm={runDelete}
+        isPending={deleteProjectMutation.isPending}
+      />
+
       <div
         ref={scrollRef}
         className="grow flex min-h-0 min-w-54 flex-col space-y-4 overflow-y-auto p-2.5"
       >
-        <SidebarDeleteProjectModal
-          isOpen={deleteConfirmProject != null}
-          projectName={deleteConfirmProject?.name}
-          onClose={() => setDeleteConfirmProject(null)}
-          onConfirm={runDelete}
-          isPending={deleteProjectMutation.isPending}
-        />
-
         <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">
@@ -237,10 +239,12 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
             {projects.map((item) => (
               <div
                 key={item.projectId}
+                ref={
+                  openMenuProjectId === item.projectId
+                    ? projectMenuHostRef
+                    : undefined
+                }
                 className="group relative flex items-center gap-1.5 py-1.5 rounded-lg sidebar-item hover:bg-white/5 transition-colors"
-                onMouseLeave={() => {
-                  if (openMenuProjectId === item.projectId) closeMenus();
-                }}
               >
                 {renamingProjectId === item.projectId ? (
                   <input

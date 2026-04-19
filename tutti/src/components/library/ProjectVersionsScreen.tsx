@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+
+import { useClickOutside } from "@/common/hooks/useClickOutside";
 
 import { useDeleteProjectVersionMutation } from "@api/project/hooks/mutations/useDeleteProjectVersionMutation";
 import { usePatchProjectVersionNameMutation } from "@api/project/hooks/mutations/usePatchProjectVersionNameMutation";
@@ -88,6 +90,11 @@ const ProjectVersionsScreen = () => {
   const [openMenuVersionId, setOpenMenuVersionId] = useState<string | null>(
     null,
   );
+  const versionMenuHostRef = useRef<HTMLLIElement>(null);
+
+  useClickOutside(versionMenuHostRef, openMenuVersionId != null, () =>
+    setOpenMenuVersionId(null),
+  );
 
   const [renamingVersionId, setRenamingVersionId] = useState<string | null>(
     null,
@@ -165,7 +172,14 @@ const ProjectVersionsScreen = () => {
                   const isRenaming = renamingVersionId === v.id;
                   const isMenuOpen = openMenuVersionId === v.id;
                   return (
-                    <li key={v.id}>
+                    <li
+                      key={v.id}
+                      ref={
+                        openMenuVersionId === v.id
+                          ? versionMenuHostRef
+                          : undefined
+                      }
+                    >
                       <Link
                         href={href}
                         className={[
