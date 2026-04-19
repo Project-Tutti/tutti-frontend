@@ -157,10 +157,9 @@ const LoginForm = () => {
           type="submit"
           disabled={isPending}
           className={`
-            w-full bg-[#3b82f6] hover:bg-blue-600 text-white font-bold py-3 rounded-xl text-[13px]
-            shadow-lg transition-all hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] 
-            transform hover:-translate-y-0.5
-            ${isPending ? "opacity-50 cursor-not-allowed" : ""}
+            w-full bg-[#3b82f6] text-white font-bold py-3 rounded-xl text-[13px]
+            shadow-lg transition-all
+            ${isPending ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-600 hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:-translate-y-0.5"}
           `}
         >
           {isPending ? "Signing In..." : "Sign In"}
