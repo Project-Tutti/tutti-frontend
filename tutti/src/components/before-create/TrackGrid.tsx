@@ -36,13 +36,13 @@ const TrackGrid = ({
     >
       {/* 트랙 그리드 + 페이지네이션 버튼 */}
       <div className="relative flex w-full items-start justify-center">
-        {/* 이전 버튼 */}
+        {/* 이전 버튼 — 그리드 전체 세로 중앙 */}
         {totalPages > 1 && (
           <button
             onClick={onPrevPage}
             disabled={currentPage === 0}
             className={`
-              absolute -left-3 md:-left-5 z-10 p-3 md:p-4 rounded-full 
+              absolute top-1/2 -translate-y-1/2 -left-3 md:-left-5 z-10 p-3 md:p-4 rounded-full 
               bg-[#0f1218] border border-[#1e293b] 
               shadow-lg transition-all
               ${
@@ -87,13 +87,13 @@ const TrackGrid = ({
           </div>
         )}
 
-        {/* 다음 버튼 */}
+        {/* 다음 버튼 — 그리드 전체 세로 중앙 */}
         {totalPages > 1 && (
           <button
             onClick={onNextPage}
             disabled={currentPage === totalPages - 1}
             className={`
-              absolute -right-3 md:-right-5 z-10 p-3 md:p-4 rounded-full 
+              absolute top-1/2 -translate-y-1/2 -right-3 md:-right-5 z-10 p-3 md:p-4 rounded-full 
               bg-[#0f1218] border border-[#1e293b] 
               shadow-lg transition-all
               ${
