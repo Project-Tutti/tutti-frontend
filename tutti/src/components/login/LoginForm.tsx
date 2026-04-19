@@ -152,18 +152,6 @@ const LoginForm = () => {
             */ // 구현하지 않았음
         />
 
-        {/* 로그인 유지 체크박스 */}
-        <div className="flex items-center">
-          <input
-            id="remember"
-            type="checkbox"
-            className="w-3.5 h-3.5 bg-[#0f1218] border-[#1e293b] rounded text-[#3b82f6] focus:ring-[#3b82f6]"
-          />
-          <label htmlFor="remember" className="ml-2 text-[13px] text-gray-400">
-            Keep me signed in
-          </label>
-        </div>
-
         {/* 로그인 버튼 */}
         <button
           type="submit"
