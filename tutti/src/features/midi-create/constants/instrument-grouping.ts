@@ -1,3 +1,20 @@
+import { Ban, Sparkles } from "lucide-react";
+import type { IconType } from "react-icons";
+import {
+  GiDrumKit,
+  GiGrandPiano,
+  GiAccordion,
+  GiXylophone,
+  GiGuitar,
+  GiGuitarBassHead,
+  GiViolin,
+  GiFlute,
+  GiSaxophone,
+  GiTrumpet,
+  GiMusicalNotes,
+  GiSoundWaves,
+} from "react-icons/gi";
+
 /** GM 프로그램을 카테고리 대표 번호(representative)로 묶는 규칙 (트랙 분석용) */
 
 export const INSTRUMENT_DROP_LIST: ReadonlySet<number> = new Set([
@@ -101,21 +118,62 @@ export const INSTRUMENT_GROUPING: Readonly<
   },
 } as const;
 
-/** 그룹 키 → UI 아이콘 (Material Symbol 이름) */
-export const INSTRUMENT_GROUP_ICON: Readonly<Record<string, string>> = {
-  Drum: "album",
-  Keyboard: "piano",
-  "Organ and Accordion": "organ",
-  "Mallet and Bell": "keyboard",
-  "Acoustic and Plucked Guitar": "music_note",
-  "Distorted Guitar": "graphic_eq",
-  Bassline: "graphic_eq",
-  "Solo String": "queue_music",
-  Woodwind: "air",
-  Saxophone: "music_note",
-  "Synth Lead": "keyboard",
-  Brass: "campaign",
-  "Ensemble and Pad": "blur_on",
+/** 아이콘 키 → 컴포넌트 매핑 */
+export const ICON_MAP: Readonly<Record<string, IconType>> = {
+  drum: GiDrumKit,
+  keyboard: GiGrandPiano,
+  accordion: GiAccordion,
+  xylophone: GiXylophone,
+  guitar: GiGuitar,
+  bass: GiGuitarBassHead,
+  violin: GiViolin,
+  flute: GiFlute,
+  saxophone: GiSaxophone,
+  trumpet: GiTrumpet,
+  ensemble: GiMusicalNotes,
+  synth: GiSoundWaves,
+  music: GiMusicalNotes,
+  block: Ban as unknown as IconType,
+  sparkles: Sparkles as unknown as IconType,
+};
+
+/** 그룹 키 → 아이콘 키 */
+export const INSTRUMENT_GROUP_ICON_KEY: Readonly<Record<string, string>> = {
+  Drum: "drum",
+  Keyboard: "keyboard",
+  "Organ and Accordion": "accordion",
+  "Mallet and Bell": "xylophone",
+  "Acoustic and Plucked Guitar": "guitar",
+  "Distorted Guitar": "guitar",
+  Bassline: "bass",
+  "Solo String": "violin",
+  Woodwind: "flute",
+  Saxophone: "saxophone",
+  "Synth Lead": "synth",
+  Brass: "trumpet",
+  "Ensemble and Pad": "ensemble",
+};
+
+/** 그룹 키 → 아이콘 컴포넌트 (컴포넌트에서 직접 사용) */
+export const INSTRUMENT_GROUP_ICON: Readonly<Record<string, IconType>> = {
+  Drum: GiDrumKit,
+  Keyboard: GiGrandPiano,
+  "Organ and Accordion": GiAccordion,
+  "Mallet and Bell": GiXylophone,
+  "Acoustic and Plucked Guitar": GiGuitar,
+  "Distorted Guitar": GiGuitar,
+  Bassline: GiGuitarBassHead,
+  "Solo String": GiViolin,
+  Woodwind: GiFlute,
+  Saxophone: GiSaxophone,
+  "Synth Lead": GiSoundWaves,
+  Brass: GiTrumpet,
+  "Ensemble and Pad": GiMusicalNotes,
+};
+
+/** 아이콘 키로 컴포넌트 가져오기 */
+export const getIconComponent = (iconKey: string): IconType => {
+  return ICON_MAP[iconKey] ?? GiMusicalNotes;
 };
 
 export type ResolvedInstrument =

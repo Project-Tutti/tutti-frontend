@@ -27,6 +27,7 @@ export const useCreateProjectMutation = () => {
     noteRange,
     genre,
     freedom,
+    projectName,
   } = useMidiStore();
 
   return useMutation<CreateProjectResponseDto, Error, void>({
@@ -45,6 +46,7 @@ export const useCreateProjectMutation = () => {
       }
 
       const fileBaseName = uploadedFile.name.replace(/\.[^.]+$/, "");
+      const finalName = projectName.trim() || fileBaseName || "project";
       const minNote = noteRange?.min ?? 0;
       const maxNote = noteRange?.max ?? 127;
       const temperature = freedom ?? 1.0;
@@ -67,7 +69,7 @@ export const useCreateProjectMutation = () => {
           trackIndex: index,
           sourceInstrumentId: track.sourceInstrumentId,
         })),
-        name: fileBaseName || "project",
+        name: finalName,
         temperature,
       };
 

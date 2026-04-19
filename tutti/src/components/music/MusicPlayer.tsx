@@ -8,6 +8,7 @@ import ScoreViewer, { ScoreViewerRef } from "./ScoreViewer";
 import PlaybackControl from "./PlaybackControl";
 import InstrumentMixer, { InstrumentInfo } from "./InstrumentMixer";
 import { buildMeasureIndex, getMeasureNumberFromCursor } from "./MeasureIndex";
+import { toast } from "@/components/common/Toast";
 
 type UiState = "loading" | "idle" | "playing" | "paused";
 type JumpSource = "control" | "click";
@@ -469,7 +470,6 @@ export default function MusicPlayer({
           }
         };
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         pAny.notePlaybackCallback = function (
           audioContextTime: number,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -607,7 +607,7 @@ export default function MusicPlayer({
       }
     } catch (e) {
       console.error(e);
-      alert(
+      toast.error(
         `플레이어 초기화 실패: ${e instanceof Error ? e.message : "Unknown error"}`,
       );
       setState("idle");
@@ -714,7 +714,9 @@ export default function MusicPlayer({
     }
 
     if (typeof p.jumpToStep !== "function") {
-      alert("이 버전의 osmd-audio-player에서 jumpToStep을 찾지 못했습니다.");
+      toast.error(
+        "이 버전의 osmd-audio-player에서 jumpToStep을 찾지 못했습니다.",
+      );
       return;
     }
 

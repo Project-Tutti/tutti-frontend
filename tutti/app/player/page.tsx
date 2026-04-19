@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Download, Loader2, RefreshCw } from "lucide-react";
 import MusicPlayer from "@/components/music/MusicPlayer";
 import Sidebar from "@/components/common/Sidebar";
 import Header from "@/components/common/Header";
@@ -11,6 +12,8 @@ import { getProject } from "@api/project/apis/get/get-project";
 import { useProjectScoreQuery } from "@api/project/hooks/queries/useProjectScoreQuery";
 import { useProjectTracksQuery } from "@api/project/hooks/queries/useProjectTracksQuery";
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
+import ProtectedRoute from "@/components/common/ProtectedRoute";
+import { toast } from "@/components/common/Toast";
 
 function PlayerPageContent() {
   const router = useRouter();
@@ -127,7 +130,9 @@ function PlayerPageContent() {
       );
     } catch (e) {
       console.error(e);
-      alert(e instanceof Error ? e.message : "재생성 준비에 실패했습니다.");
+      toast.error(
+        e instanceof Error ? e.message : "재생성 준비에 실패했습니다.",
+      );
     }
   };
 
@@ -146,13 +151,13 @@ function PlayerPageContent() {
   }, [scoreXml]);
 
   return (
-    <div className="h-screen flex flex-row overflow-hidden">
+    <div className="flex h-dvh max-h-dvh flex-row overflow-hidden">
       <Sidebar
         isCollapsed={isSidebarCollapsed}
         onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
 
-      <div className="grow flex flex-col min-h-0">
+      <div className="flex min-h-0 grow flex-col">
         <Header
           onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           isSidebarCollapsed={isSidebarCollapsed}
@@ -160,35 +165,47 @@ function PlayerPageContent() {
           subtitle={effectiveSubtitle}
           rightContent={
             fetchScoreFromApi ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3 md:gap-4">
+                <div
+                  className="hidden h-7 w-px shrink-0 bg-[#1e293b] sm:block"
+                  aria-hidden
+                />
                 <button
                   type="button"
                   onClick={() => void handleRegenerate()}
                   disabled={isScorePending || tracksQuery.isFetching}
-                  className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold bg-[#0f1218] text-gray-200 hover:bg-white/6 border border-[#1e293b] disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                  className="group inline-flex min-h-9 shrink-0 items-center gap-2 rounded-xl border border-[#1e293b] bg-[#0a0c11] px-3 py-2 text-xs font-semibold text-gray-200 shadow-sm transition-all hover:border-[#334155] hover:bg-[#12151d] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 md:min-h-10 md:px-3.5 md:text-[13px]"
                 >
-                  <span
-                    className="material-symbols-outlined text-lg"
-                    aria-hidden
-                  >
-                    {tracksQuery.isFetching ? "progress_activity" : "autorenew"}
+                  {tracksQuery.isFetching ? (
+                    <Loader2
+                      className="size-4 shrink-0 animate-spin text-[#3b82f6]"
+                      strokeWidth={2}
+                      aria-hidden
+                    />
+                  ) : (
+                    <RefreshCw
+                      className="size-4 shrink-0 text-gray-500 transition-colors group-hover:text-gray-300"
+                      strokeWidth={2}
+                      aria-hidden
+                    />
+                  )}
+                  <span className="tabular-nums">
+                    {tracksQuery.isFetching ? "불러오는 중…" : "재생성"}
                   </span>
-                  {tracksQuery.isFetching ? "불러오는 중…" : "재생성"}
                 </button>
 
                 <button
                   type="button"
                   onClick={() => openDownloadModal()}
                   disabled={isScorePending}
-                  className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold bg-[#1e293b] text-gray-200 hover:bg-[#334155] border border-[#334155] disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                  className="group inline-flex min-h-9 shrink-0 items-center gap-2 rounded-xl border border-[#3b82f6]/35 bg-[#3b82f6]/10 px-3 py-2 text-xs font-semibold text-blue-100 shadow-[0_0_0_1px_rgba(59,130,246,0.08)] transition-all hover:border-[#3b82f6]/55 hover:bg-[#3b82f6]/18 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 md:min-h-10 md:px-3.5 md:text-[13px]"
                 >
-                  <span
-                    className="material-symbols-outlined text-lg"
+                  <Download
+                    className="size-4 shrink-0 text-[#60a5fa] transition-colors group-hover:text-blue-200"
+                    strokeWidth={2}
                     aria-hidden
-                  >
-                    download
-                  </span>
-                  다운로드
+                  />
+                  <span>다운로드</span>
                 </button>
               </div>
             ) : undefined
@@ -261,15 +278,17 @@ function PlayerPageContent() {
 
 export default function PlayerPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="h-screen flex flex-col items-center justify-center gap-3 bg-[#05070a]">
-          <Spinner size="md" />
-          <p className="text-gray-400 text-sm">불러오는 중…</p>
-        </div>
-      }
-    >
-      <PlayerPageContent />
-    </Suspense>
+    <ProtectedRoute>
+      <Suspense
+        fallback={
+          <div className="flex h-dvh max-h-dvh flex-col items-center justify-center gap-3 bg-[#05070a]">
+            <Spinner size="md" />
+            <p className="text-gray-400 text-sm">불러오는 중…</p>
+          </div>
+        }
+      >
+        <PlayerPageContent />
+      </Suspense>
+    </ProtectedRoute>
   );
 }

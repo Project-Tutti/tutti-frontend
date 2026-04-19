@@ -1,10 +1,11 @@
 'use client';
 
+import { type LucideIcon, Music } from 'lucide-react';
 import { COMMON_STYLES } from '@/constants/styles';
 
 interface InstrumentNodeProps {
   name: string;
-  icon: string;
+  Icon?: LucideIcon;
   isSelected?: boolean;
   position: 'top' | 'right' | 'left';
   onClick?: () => void;
@@ -18,7 +19,7 @@ const positionClasses = {
 
 const InstrumentNode = ({
   name,
-  icon,
+  Icon = Music,
   isSelected = false,
   position,
   onClick,
@@ -36,9 +37,7 @@ const InstrumentNode = ({
       `}
     >
       <div className="w-8 h-8 md:w-12 md:h-12 bg-[#05070a] rounded-xl flex items-center justify-center mb-1 md:mb-2 group-hover:bg-blue-900/30 transition-colors">
-        <span className="material-symbols-outlined text-gray-400 group-hover:text-[#3b82f6] text-xl md:text-2xl">
-          {icon}
-        </span>
+        <Icon className="size-5 md:size-6 text-gray-400 group-hover:text-[#3b82f6]" strokeWidth={1.75} />
       </div>
       <span className="text-[10px] md:text-xs font-semibold text-white">{name}</span>
     </button>

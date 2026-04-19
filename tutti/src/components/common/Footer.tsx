@@ -1,8 +1,8 @@
 const Footer = () => {
   return (
-    <footer className="w-full py-2.5 text-center border-t border-[#1e293b] bg-[#0f1218]/50">
+    <footer className="w-full shrink-0 border-t border-[#1e293b] bg-[#0f1218]/50 py-2.5 text-center">
       <p className="text-[9px] text-gray-600 uppercase tracking-tighter">
-        © 2024 tutti
+        © 2026 Global Media tutti
       </p>
     </footer>
   );

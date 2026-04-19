@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { AnimatePresence } from "framer-motion";
+import { GiMusicalNotes } from "react-icons/gi";
 
 import { useGeneratableInstrumentCategoriesQuery } from "@api/instruments/hooks/queries/useGeneratableInstrumentCategoriesQuery";
 import { INSTRUMENT_GROUP_ICON } from "@features/midi-create/constants/instrument-grouping";
@@ -33,7 +34,7 @@ const InstrumentSelector = ({
     number | null
   >(null);
 
-  const safeCategories = categories ?? [];
+  const safeCategories = useMemo(() => categories ?? [], [categories]);
 
   const selectedInfo = useMemo(() => {
     if (selectedInstrument == null) return null;
@@ -114,7 +115,7 @@ const InstrumentSelector = ({
             <CategoryCard
               key={cat.representativeProgram}
               name={cat.name}
-              icon={INSTRUMENT_GROUP_ICON[cat.name] ?? "music_note"}
+              icon={INSTRUMENT_GROUP_ICON[cat.name] ?? GiMusicalNotes}
               isSelected={isThisCatSelected}
               selectedInstrumentName={
                 isThisCatSelected ? selectedInfo?.instrumentName : undefined

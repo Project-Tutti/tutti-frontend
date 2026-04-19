@@ -6,6 +6,9 @@ import type { ProjectVersionMappingResponseDto } from "@api/project/types/api.ty
 import { Track } from "@/types/track";
 import { DROP_CATEGORY_PROGRAM } from "@common/utils/midi-utils";
 
+/** 생성 설정 모달 등에서 기본 선택 장르 */
+export const DEFAULT_GENRE = "POP";
+
 interface NoteRange {
   min: number;
   max: number;
@@ -36,6 +39,7 @@ interface MidiStore {
   noteRange: NoteRange | null;
   genre: string | null;
   freedom: number | null;
+  projectName: string;
   setTracks: (tracks: Track[], seed?: RegenerateVersionSeed | null) => void;
   setSelectedInstrument: (id: number | null) => void;
   setUploadedFile: (file: File | null) => void;
@@ -43,6 +47,7 @@ interface MidiStore {
   setNoteRange: (range: NoteRange | null) => void;
   setGenre: (genre: string | null) => void;
   setFreedom: (freedom: number | null) => void;
+  setProjectName: (name: string) => void;
   reset: () => void;
 }
 
@@ -54,8 +59,9 @@ export const useMidiStore = create<MidiStore>()(
       uploadedFile: null,
       trackMappings: {},
       noteRange: null,
-      genre: null,
+      genre: DEFAULT_GENRE,
       freedom: 1.0,
+      projectName: "",
       setTracks: (tracks, seed) =>
         set(() => {
           const mappingsByIndex = new Map<number, number>();
@@ -93,7 +99,7 @@ export const useMidiStore = create<MidiStore>()(
           return {
             tracks,
             trackMappings: nextMappings,
-            genre: null,
+            genre: DEFAULT_GENRE,
             freedom: 1.0,
             noteRange: null,
           };
@@ -110,6 +116,7 @@ export const useMidiStore = create<MidiStore>()(
       setNoteRange: (range) => set({ noteRange: range }),
       setGenre: (genre) => set({ genre }),
       setFreedom: (freedom) => set({ freedom }),
+      setProjectName: (name) => set({ projectName: name }),
       reset: () =>
         set({
           tracks: [],
@@ -117,8 +124,9 @@ export const useMidiStore = create<MidiStore>()(
           uploadedFile: null,
           trackMappings: {},
           noteRange: null,
-          genre: null,
+          genre: DEFAULT_GENRE,
           freedom: 1.0,
+          projectName: "",
         }),
     }),
     {
@@ -132,7 +140,19 @@ export const useMidiStore = create<MidiStore>()(
         noteRange: state.noteRange,
         genre: state.genre,
         freedom: state.freedom,
+        projectName: state.projectName,
       }),
+      merge: (persistedState, currentState) => {
+        if (persistedState == null || typeof persistedState !== "object") {
+          return currentState;
+        }
+        const p = persistedState as Partial<MidiStore>;
+        const genre =
+          p.genre != null && String(p.genre).trim() !== ""
+            ? p.genre
+            : DEFAULT_GENRE;
+        return { ...currentState, ...p, genre };
+      },
     },
   ),
 );

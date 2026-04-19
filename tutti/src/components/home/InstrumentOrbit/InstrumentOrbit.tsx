@@ -1,12 +1,13 @@
 'use client';
 
+import { type LucideIcon } from 'lucide-react';
 import InstrumentNode from './InstrumentNode'
 import UploadCenter from '../upload/UploadCenter';
 
 export interface Instrument {
   id: string;
   name: string;
-  icon: string;
+  Icon?: LucideIcon;
   position: 'top' | 'right' | 'left';
 }
 
@@ -38,7 +39,7 @@ const InstrumentOrbit = ({
         <InstrumentNode
           key={instrument.id}
           name={instrument.name}
-          icon={instrument.icon}
+          Icon={instrument.Icon}
           position={instrument.position}
           isSelected={selectedInstrument === instrument.id}
           onClick={() => onInstrumentToggle(instrument.id)}

@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+
+import { useClickOutside } from "@/common/hooks/useClickOutside";
 
 import { useDeleteProjectVersionMutation } from "@api/project/hooks/mutations/useDeleteProjectVersionMutation";
 import { usePatchProjectVersionNameMutation } from "@api/project/hooks/mutations/usePatchProjectVersionNameMutation";
@@ -13,6 +15,8 @@ import Header from "@/components/common/Header";
 import Modal from "@/components/common/Modal";
 import Sidebar from "@/components/common/Sidebar";
 import { Spinner } from "@/components/common/Spinner";
+import { toast } from "@/components/common/Toast";
+import { MoreVertical } from "lucide-react";
 
 interface VersionRow {
   id: string;
@@ -86,6 +90,11 @@ const ProjectVersionsScreen = () => {
   const [openMenuVersionId, setOpenMenuVersionId] = useState<string | null>(
     null,
   );
+  const versionMenuHostRef = useRef<HTMLLIElement>(null);
+
+  useClickOutside(versionMenuHostRef, openMenuVersionId != null, () =>
+    setOpenMenuVersionId(null),
+  );
 
   const [renamingVersionId, setRenamingVersionId] = useState<string | null>(
     null,
@@ -113,24 +122,24 @@ const ProjectVersionsScreen = () => {
           isSidebarCollapsed={isSidebarCollapsed}
           title="Library / Versions"
           subtitle="버전을 눌러 해당 프로젝트 작업 화면으로 이동합니다."
+          rightContent={
+            <span className="rounded-full border border-[#1e293b] bg-white/5 px-3 py-1 text-[11px] font-semibold text-gray-300 md:text-xs">
+              Library
+            </span>
+          }
         />
 
         <main className="grow px-4 md:px-6 py-6 md:py-8">
           <div className="max-w-xl mx-auto w-full">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500 mb-2">
-              <Link
-                href="/home"
-                className="hover:text-[#3b82f6] transition-colors"
-              >
-                LIBRARY
-              </Link>
+              <span>LIBRARY</span>
               <span className="text-gray-600">{" > "}</span>
               <span className="text-gray-400 truncate">
                 {projectName.toUpperCase()}
               </span>
             </p>
 
-            <h1 className="text-xl md:text-2xl font-bold text-[#f8fafc] tracking-tight mb-1">
+            <h1 className="mb-1 text-xl font-bold tracking-tight text-foreground md:text-2xl">
               {projectName}
             </h1>
             {result?.originalFileName && (
@@ -163,16 +172,22 @@ const ProjectVersionsScreen = () => {
                   const isRenaming = renamingVersionId === v.id;
                   const isMenuOpen = openMenuVersionId === v.id;
                   return (
-                    <li key={v.id}>
+                    <li
+                      key={v.id}
+                      ref={
+                        openMenuVersionId === v.id
+                          ? versionMenuHostRef
+                          : undefined
+                      }
+                    >
                       <Link
                         href={href}
                         className={[
-                          "group flex w-full min-w-0 items-start gap-3 px-3 py-2.5 rounded-lg text-left border transition-colors",
-                          "outline-none",
-                          "hover:bg-white/[0.06] focus-visible:ring-1 focus-visible:ring-[#3b82f6]/50 focus-visible:ring-inset",
+                          "group flex w-full min-w-0 items-start gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors",
+                          "outline-none hover:bg-white/5 focus-visible:bg-white/6",
                           v.isMaster
-                            ? "bg-[#0f1218] border-[#1e293b]"
-                            : "border-transparent",
+                            ? "border-[#1e293b] bg-[#0f1218]"
+                            : "border-transparent hover:border-[#1e293b]/70",
                         ].join(" ")}
                         onClick={() => {
                           // 다른 메뉴/인풋 상태 정리 (네비게이션은 그대로)
@@ -245,7 +260,7 @@ const ProjectVersionsScreen = () => {
                                       );
                                     } catch (e) {
                                       console.error(e);
-                                      alert(
+                                      toast.error(
                                         e instanceof Error
                                           ? e.message
                                           : "버전 이름 변경에 실패했습니다.",
@@ -270,19 +285,23 @@ const ProjectVersionsScreen = () => {
                           )}
                         </div>
 
-                        <div className="relative flex items-start gap-2 shrink-0 pt-0.5">
-                          <span className="text-[11px] text-gray-500 tabular-nums whitespace-nowrap">
+                        <div className="relative flex shrink-0 items-start gap-2 pt-0.5">
+                          <span className="whitespace-nowrap text-[11px] tabular-nums text-gray-500">
                             {v.savedAt}
                           </span>
 
                           <button
                             type="button"
                             className={[
-                              "ml-1 rounded-md p-1.5",
-                              "text-gray-500 hover:text-gray-200 hover:bg-white/5 transition-colors",
-                              "focus-visible:ring-1 focus-visible:ring-[#3b82f6]/60 outline-none",
-                            ].join(" ")}
+                              "ml-0.5 grid size-8 shrink-0 place-items-center rounded-md text-gray-500 transition-colors",
+                              "outline-none hover:bg-white/8 hover:text-gray-200",
+                              "focus-visible:bg-white/10 focus-visible:text-gray-100",
+                              isMenuOpen ? "bg-white/10 text-gray-200" : "",
+                            ]
+                              .filter(Boolean)
+                              .join(" ")}
                             aria-label="버전 메뉴 열기"
+                            aria-expanded={isMenuOpen}
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
@@ -292,15 +311,17 @@ const ProjectVersionsScreen = () => {
                               setRenamingVersionId(null);
                             }}
                           >
-                            <span className="material-symbols-outlined text-[18px] leading-none">
-                              more_vert
-                            </span>
+                            <MoreVertical
+                              className="size-[18px]"
+                              strokeWidth={1.75}
+                              aria-hidden
+                            />
                           </button>
 
                           {isMenuOpen && (
                             <div
                               className={[
-                                "absolute right-0 top-7 z-[200] w-44 overflow-hidden",
+                                "absolute right-0 top-full z-200 mt-1 w-44 overflow-hidden",
                                 "rounded-lg border border-[#1e293b] bg-[#0f1218] shadow-xl",
                               ].join(" ")}
                               onClick={(e) => {
@@ -314,7 +335,7 @@ const ProjectVersionsScreen = () => {
                                 type="button"
                                 className={[
                                   "w-full text-left px-3 py-2 text-[12px] text-gray-200",
-                                  "hover:bg-white/[0.06] transition-colors",
+                                  "hover:bg-white/6 transition-colors",
                                 ].join(" ")}
                                 role="menuitem"
                                 onClick={(e) => {
@@ -331,7 +352,7 @@ const ProjectVersionsScreen = () => {
                                 type="button"
                                 className={[
                                   "w-full text-left px-3 py-2 text-[12px] transition-colors",
-                                  "text-red-300 hover:bg-white/[0.06]",
+                                  "text-red-300 hover:bg-white/6",
                                 ].join(" ")}
                                 role="menuitem"
                                 onClick={(e) => {
@@ -393,7 +414,7 @@ const ProjectVersionsScreen = () => {
                   setDeleteTarget(null);
                 } catch (e) {
                   console.error(e);
-                  alert(
+                  toast.error(
                     e instanceof Error
                       ? e.message
                       : "버전 삭제에 실패했습니다.",

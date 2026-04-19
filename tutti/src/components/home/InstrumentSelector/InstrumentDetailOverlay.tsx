@@ -3,6 +3,8 @@
 import { useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
+import { CheckCircle, X } from "lucide-react";
+import { GiMusicalNotes } from "react-icons/gi";
 
 import type { GeneratableInstrumentCategoryDto } from "@api/instruments/types/api.types";
 import { INSTRUMENT_GROUP_ICON } from "@features/midi-create/constants/instrument-grouping";
@@ -33,7 +35,7 @@ const InstrumentDetailOverlay = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
-  const icon = INSTRUMENT_GROUP_ICON[category.name] ?? "music_note";
+  const IconComponent = INSTRUMENT_GROUP_ICON[category.name] ?? GiMusicalNotes;
 
   return createPortal(
     <motion.div
@@ -54,7 +56,7 @@ const InstrumentDetailOverlay = ({
 
       {/* panel */}
       <motion.div
-        className="relative w-full max-w-sm rounded-3xl border border-[#1e293b] bg-[#0c0e14]/95 backdrop-blur-xl shadow-2xl overflow-hidden"
+        className="relative w-full max-w-sm overflow-hidden rounded-3xl border border-[#1e293b] bg-[#0c0e14]/95 shadow-2xl backdrop-blur-xl"
         initial={{ opacity: 0, scale: 0.92, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.92, y: 20 }}
@@ -62,31 +64,26 @@ const InstrumentDetailOverlay = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* glow accent */}
-        <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-64 h-48 bg-[#3b82f6]/8 rounded-full blur-[80px] pointer-events-none" />
+        <div className="pointer-events-none absolute -top-24 left-1/2 h-48 w-64 -translate-x-1/2 rounded-full bg-[#3b82f6]/8 blur-[80px]" />
 
         {/* header */}
-        <div className="relative px-6 pt-6 pb-4 flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-[#3b82f6]/10 border border-[#3b82f6]/20 flex items-center justify-center shrink-0">
-            <span
-              className="material-symbols-outlined text-[#3b82f6] text-xl"
-              style={{ fontVariationSettings: "'FILL' 1" }}
-            >
-              {icon}
-            </span>
+        <div className="relative flex items-center gap-3 px-6 pb-4 pt-6">
+          <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-[#3b82f6]/20 bg-[#3b82f6]/10">
+            <IconComponent className="size-5 text-[#3b82f6]" />
           </div>
           <div className="min-w-0">
-            <h3 className="text-lg font-bold text-white leading-tight">
+            <h3 className="text-lg font-bold leading-tight text-white">
               {category.name}
             </h3>
-            <p className="text-[11px] text-gray-500 mt-0.5">
+            <p className="mt-0.5 text-[11px] text-gray-500">
               {category.instruments.length}개 악기 선택 가능
             </p>
           </div>
           <button
             onClick={onClose}
-            className="ml-auto w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/5 transition-colors"
+            className="ml-auto flex size-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-white/5 hover:text-white"
           >
-            <span className="material-symbols-outlined text-lg">close</span>
+            <X className="size-5" strokeWidth={1.75} />
           </button>
         </div>
 
@@ -97,7 +94,8 @@ const InstrumentDetailOverlay = ({
         <div className="px-5 py-5 grid grid-cols-2 gap-2.5">
           {category.instruments.map((inst, idx) => {
             const isActive = currentSelection === inst.midiProgram;
-            const range = `${midiToNoteName(inst.minNote)} – ${midiToNoteName(inst.maxNote)}`;
+            const minLabel = midiToNoteName(inst.minNote);
+            const maxLabel = midiToNoteName(inst.maxNote);
 
             return (
               <motion.button
@@ -124,9 +122,7 @@ const InstrumentDetailOverlay = ({
                 `}
               >
                 {isActive && (
-                  <span className="absolute top-2 right-2 material-symbols-outlined text-[#3b82f6] text-sm">
-                    check_circle
-                  </span>
+                  <CheckCircle className="absolute right-2 top-2 size-4 text-[#3b82f6]" strokeWidth={2} />
                 )}
                 <span
                   className={`block text-sm font-semibold leading-tight ${
@@ -135,8 +131,15 @@ const InstrumentDetailOverlay = ({
                 >
                   {inst.name}
                 </span>
-                <span className="block text-[10px] text-gray-500 mt-1 tabular-nums">
-                  {range}
+                <span className="mt-1 block space-y-0.5 text-[10px] leading-snug text-gray-500 tabular-nums">
+                  <span className="block">
+                    <span className="text-gray-600">최소 음 :</span>{" "}
+                    <span className="text-gray-400">{minLabel}</span>
+                  </span>
+                  <span className="block">
+                    <span className="text-gray-600">최대 음 :</span>{" "}
+                    <span className="text-gray-400">{maxLabel}</span>
+                  </span>
                 </span>
               </motion.button>
             );

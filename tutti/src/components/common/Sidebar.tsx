@@ -4,16 +4,23 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import Modal from "@/components/common/Modal";
-import TuttiIcon from "@/assets/Icon/TUTTI_180px.webp";
-
 import { useLibraryListInfiniteQuery } from "@api/library/hooks/queries/useLibraryListInfiniteQuery";
 import { useGeneratableInstrumentCategoriesQuery } from "@api/instruments/hooks/queries/useGeneratableInstrumentCategoriesQuery";
 import { useDeleteProjectMutation } from "@api/project/hooks/mutations/useDeleteProjectMutation";
 import { usePatchProjectNameMutation } from "@api/project/hooks/mutations/usePatchProjectNameMutation";
-import { useUser } from "@features/auth/hooks/useAuthStore";
+import { useClickOutside } from "@/common/hooks/useClickOutside";
+import { toast } from "@/components/common/Toast";
+import SidebarAccountFooter from "@/components/common/SidebarAccountFooter";
+import SidebarDeleteProjectModal from "@/components/common/SidebarDeleteProjectModal";
 
 import { Spinner } from "@/components/common/Spinner";
+import {
+  CirclePlus,
+  LayoutPanelLeft,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -23,15 +30,14 @@ interface SidebarProps {
 const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
   const router = useRouter();
   const pathname = usePathname();
-  const user = useUser();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const projectMenuHostRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const hasNextPageRef = useRef(false);
   const isFetchingNextPageRef = useRef(false);
 
   const deleteProjectMutation = useDeleteProjectMutation();
   const patchProjectNameMutation = usePatchProjectNameMutation();
-
   useGeneratableInstrumentCategoriesQuery();
 
   const [openMenuProjectId, setOpenMenuProjectId] = useState<number | null>(
@@ -45,7 +51,6 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
     projectId: number;
     name: string;
   } | null>(null);
-
   const {
     data,
     fetchNextPage,
@@ -78,6 +83,8 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
     setOpenMenuProjectId(null);
   };
 
+  useClickOutside(projectMenuHostRef, openMenuProjectId != null, closeMenus);
+
   const startRename = (projectId: number, name: string) => {
     setRenamingProjectId(projectId);
     setRenameDraft(name);
@@ -97,7 +104,7 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
       await patchProjectNameMutation.mutateAsync({ projectId, name: next });
     } catch (e) {
       console.error(e);
-      alert(e instanceof Error ? e.message : "이름 변경에 실패했습니다.");
+      toast.error(e instanceof Error ? e.message : "이름 변경에 실패했습니다.");
     }
   };
 
@@ -118,7 +125,7 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
       }
     } catch (e) {
       console.error(e);
-      alert(e instanceof Error ? e.message : "삭제에 실패했습니다.");
+      toast.error(e instanceof Error ? e.message : "삭제에 실패했습니다.");
     }
   };
 
@@ -150,13 +157,13 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
     <aside
       className={`
         bg-[#0a0c10] border-r border-[#1e293b] flex flex-col
-        h-screen max-h-screen sticky top-0 shrink-0
+        sticky top-0 h-dvh max-h-dvh shrink-0
         transition-all duration-300 ease-in-out z-60
-        ${isCollapsed ? "w-0 border-r-0" : "w-52"}
+        ${isCollapsed ? "w-0 border-r-0" : "w-54"}
       `}
       style={{ overflow: isCollapsed ? "hidden" : "visible" }}
     >
-      <div className="p-2.5 border-b border-[#1e293b] flex items-center justify-between min-w-[208px]">
+      <div className="flex min-h-16 min-w-54 shrink-0 items-center justify-between border-b border-[#1e293b] px-2.5 py-2">
         <Link
           href="/home"
           className="flex items-center justify-start focus:outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6]/60 rounded-lg"
@@ -168,7 +175,7 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
         >
           <div className="relative h-9 w-[100px] ml-1">
             <Image
-              src={TuttiIcon}
+              src="/logo.svg"
               alt="tutti"
               fill
               sizes="100px"
@@ -182,56 +189,25 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
           className="text-gray-500 hover:text-white transition-colors"
           aria-label="Toggle sidebar"
         >
-          <span className="material-symbols-outlined text-base">
-            side_navigation
-          </span>
+          <LayoutPanelLeft className="size-5" strokeWidth={1.75} />
         </button>
       </div>
 
+      <SidebarDeleteProjectModal
+        isOpen={deleteConfirmProject != null}
+        projectName={deleteConfirmProject?.name}
+        onClose={() => setDeleteConfirmProject(null)}
+        onConfirm={runDelete}
+        isPending={deleteProjectMutation.isPending}
+      />
+
       <div
         ref={scrollRef}
-        className="grow flex flex-col p-2.5 space-y-4 overflow-y-auto min-w-[208px] min-h-0"
+        className="grow flex min-h-0 min-w-54 flex-col space-y-4 overflow-y-auto p-2.5"
       >
-        <Modal
-          isOpen={deleteConfirmProject != null}
-          onClose={() => setDeleteConfirmProject(null)}
-          title="프로젝트 삭제"
-        >
-          <div className="space-y-4">
-            <p className="text-xs text-gray-300">
-              정말로{" "}
-              <span className="text-white font-semibold">
-                {deleteConfirmProject?.name ?? ""}
-              </span>
-              을(를) 삭제할까요?
-            </p>
-            <p className="text-[11px] text-gray-500">
-              삭제하면 프로젝트의 모든 버전과 파일이 함께 삭제됩니다.
-            </p>
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setDeleteConfirmProject(null)}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#1e293b] text-gray-200 hover:bg-[#334155] transition-colors"
-                disabled={deleteProjectMutation.isPending}
-              >
-                취소
-              </button>
-              <button
-                type="button"
-                onClick={() => void runDelete()}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-600 text-white hover:bg-red-500 transition-colors disabled:opacity-50"
-                disabled={deleteProjectMutation.isPending}
-              >
-                {deleteProjectMutation.isPending ? "삭제 중…" : "삭제"}
-              </button>
-            </div>
-          </div>
-        </Modal>
-
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+            <h2 className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">
               프로젝트 히스토리
             </h2>
             <Link
@@ -239,24 +215,22 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
               className="text-gray-500 hover:text-[#3b82f6] transition-colors"
               aria-label="새 프로젝트"
             >
-              <span className="material-symbols-outlined text-sm">
-                add_circle
-              </span>
+              <CirclePlus className="size-4" strokeWidth={1.75} />
             </Link>
           </div>
 
           {isPending && (
-            <div className="px-2 py-2">
+            <div className="py-2">
               <Spinner size="sm" label="불러오는 중…" />
             </div>
           )}
           {isError && (
-            <p className="text-[11px] text-red-400/90 px-2 py-2">
+            <p className="py-2 text-[11px] text-red-400/90">
               목록을 불러오지 못했습니다.
             </p>
           )}
           {!isPending && !isError && projects.length === 0 && (
-            <p className="text-[11px] text-gray-500 px-2 py-2">
+            <p className="py-2 text-[11px] text-gray-500">
               저장된 프로젝트가 없습니다.
             </p>
           )}
@@ -265,10 +239,12 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
             {projects.map((item) => (
               <div
                 key={item.projectId}
-                className="group relative flex items-center gap-1.5 px-2 py-1.5 rounded-lg sidebar-item hover:bg-white/5 transition-colors"
-                onMouseLeave={() => {
-                  if (openMenuProjectId === item.projectId) closeMenus();
-                }}
+                ref={
+                  openMenuProjectId === item.projectId
+                    ? projectMenuHostRef
+                    : undefined
+                }
+                className="group relative flex items-center gap-1.5 py-1.5 rounded-lg sidebar-item hover:bg-white/5 transition-colors"
               >
                 {renamingProjectId === item.projectId ? (
                   <input
@@ -306,49 +282,53 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
                       prev === item.projectId ? null : item.projectId,
                     );
                   }}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-white"
+                  className="flex size-7 shrink-0 items-center justify-center rounded-md p-0 text-gray-500 opacity-0 transition-opacity hover:text-white group-hover:opacity-100"
                 >
-                  <span className="material-symbols-outlined text-sm">
-                    more_horiz
-                  </span>
+                  <MoreHorizontal className="size-5" strokeWidth={1.75} />
                 </button>
 
                 {openMenuProjectId === item.projectId && (
-                  <div className="absolute right-2 top-8 z-70 w-36 rounded-xl border border-[#1e293b] bg-[#0f1218] shadow-xl overflow-hidden">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        startRename(item.projectId, item.name);
-                      }}
-                      className="w-full text-left px-2.5 py-1.5 text-[11px] text-gray-200 hover:bg-white/5 transition-colors flex items-center gap-1.5"
-                    >
-                      <span className="material-symbols-outlined text-sm">
-                        edit
-                      </span>
-                      이름 바꾸기
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        confirmDelete(item.projectId, item.name);
-                      }}
-                      className="w-full text-left px-2.5 py-1.5 text-[11px] text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-1.5"
-                    >
-                      <span className="material-symbols-outlined text-sm">
-                        delete
-                      </span>
-                      삭제
-                    </button>
+                  <div className="absolute inset-x-0 top-full z-70 pt-1">
+                    <div className="flex justify-end px-2">
+                      <div className="w-36 overflow-hidden rounded-xl border border-[#1e293b] bg-[#0f1218] shadow-xl">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            startRename(item.projectId, item.name);
+                          }}
+                          className="flex w-full items-center gap-1.5 px-2.5 py-1.5 text-left text-[11px] text-gray-200 transition-colors hover:bg-white/5"
+                        >
+                          <Pencil
+                            className="size-[18px] shrink-0 text-gray-400"
+                            strokeWidth={1.75}
+                          />
+                          이름 바꾸기
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            confirmDelete(item.projectId, item.name);
+                          }}
+                          className="flex w-full items-center gap-1.5 px-2.5 py-1.5 text-left text-[11px] text-red-400 transition-colors hover:bg-red-500/10"
+                        >
+                          <Trash2
+                            className="size-[18px] shrink-0"
+                            strokeWidth={1.75}
+                          />
+                          삭제
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
             ))}
             {isFetchingNextPage && (
-              <div className="px-2 py-1.5">
+              <div className="py-1.5">
                 <Spinner size="xs" label="더 불러오는 중…" />
               </div>
             )}
@@ -361,43 +341,7 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
         </div>
       </div>
 
-      <div className="p-2.5 border-t border-[#1e293b] space-y-0.5 min-w-[208px]">
-        <a
-          href="#"
-          className="sidebar-item flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] text-gray-400 hover:text-white transition-colors hover:bg-white/5"
-        >
-          <span className="material-symbols-outlined text-sm">help</span>
-          <span>Help &amp; Support</span>
-        </a>
-        <a
-          href="#"
-          className="sidebar-item flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] text-gray-400 hover:text-white transition-colors hover:bg-white/5"
-        >
-          <span className="material-symbols-outlined text-sm">settings</span>
-          <span>Settings</span>
-        </a>
-
-        <div className="mt-2 flex items-center gap-1.5 px-2 py-1 min-w-0">
-          {user?.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={user.avatarUrl}
-              alt=""
-              className="h-6 w-6 rounded-full border border-white/20 object-cover shrink-0"
-            />
-          ) : (
-            <div className="h-6 w-6 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 border border-white/20 shrink-0" />
-          )}
-          <div className="flex flex-col min-w-0">
-            <span className="text-[11px] font-medium text-white truncate">
-              {user?.name ?? "—"}
-            </span>
-            <span className="text-[8px] text-gray-500 font-bold tracking-tighter truncate">
-              {user?.email ?? ""}
-            </span>
-          </div>
-        </div>
-      </div>
+      <SidebarAccountFooter />
     </aside>
   );
 };

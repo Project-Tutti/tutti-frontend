@@ -14,6 +14,7 @@ import queryKeys from "@common/constants/query-key.constants";
 import { ApiError } from "@/common/errors/ApiError";
 
 import { useAuthStoreActions } from "@features/auth/hooks/useAuthStore";
+import { safeInternalRedirectPath } from "@common/utils/safe-internal-path.utils";
 
 export const useLoginMutation = () => {
   const queryClient = useQueryClient();
@@ -47,13 +48,11 @@ export const useLoginMutation = () => {
         }
       }
 
-      const redirectPath = searchParams.get("redirect");
-      if (redirectPath) {
-        router.push(redirectPath);
-      } else {
-        // 루트(/)는 app/page.tsx에서 항상 /login 으로 보내므로 메인은 /home
-        router.push("/home");
-      }
+      const redirectTo = safeInternalRedirectPath(
+        searchParams.get("redirect"),
+        "/home",
+      );
+      router.replace(redirectTo);
     },
     onError: (err) => {
       console.error("로그인 실패:", err);

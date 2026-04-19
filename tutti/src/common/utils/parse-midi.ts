@@ -1,31 +1,31 @@
 import { Midi } from "@tonejs/midi";
 import { Track } from "@/types/track";
 import {
-  INSTRUMENT_GROUP_ICON,
+  INSTRUMENT_GROUP_ICON_KEY,
   resolveInstrumentForTrack,
 } from "@features/midi-create/constants/instrument-grouping";
 
-// GM(General MIDI) 악기 패밀리 → Material Symbol 아이콘 (그룹 미매칭 시)
+// GM(General MIDI) 악기 패밀리 → 아이콘 키 (그룹 미매칭 시)
 const getIconByFamily = (family: string): string => {
   const familyMap: Record<string, string> = {
-    piano: "piano",
-    chromatic_perc: "keyboard",
-    organ: "organ",
-    guitar: "music_note",
-    bass: "graphic_eq",
-    strings: "queue_music",
-    ensemble: "queue_music",
-    brass: "campaign",
-    reed: "music_note",
-    pipe: "air",
-    synth_lead: "keyboard",
-    synth_pad: "blur_on",
-    synth_effects: "auto_awesome",
-    ethnic: "music_note",
-    percussive: "album",
-    sound_effects: "auto_awesome",
+    piano: "keyboard",
+    chromatic_perc: "xylophone",
+    organ: "accordion",
+    guitar: "guitar",
+    bass: "bass",
+    strings: "violin",
+    ensemble: "ensemble",
+    brass: "trumpet",
+    reed: "saxophone",
+    pipe: "flute",
+    synth_lead: "synth",
+    synth_pad: "ensemble",
+    synth_effects: "sparkles",
+    ethnic: "music",
+    percussive: "drum",
+    sound_effects: "sparkles",
   };
-  return familyMap[family] ?? "music_note";
+  return familyMap[family] ?? "music";
 };
 
 const formatInstrumentType = (name: string): string => {
@@ -83,7 +83,7 @@ export const parseMidiFile = async (file: File): Promise<Track[]> => {
 
     const icon =
       resolved.kind === "grouped"
-        ? (INSTRUMENT_GROUP_ICON[resolved.groupKey] ?? "music_note")
+        ? (INSTRUMENT_GROUP_ICON_KEY[resolved.groupKey] ?? "music")
         : getIconByFamily(instrumentFamily);
 
     result.push({
@@ -92,6 +92,7 @@ export const parseMidiFile = async (file: File): Promise<Track[]> => {
       icon,
       instrumentType,
       sourceInstrumentId,
+      isDropListProgram: false,
       channel: track.channel ?? outIndex,
       tags,
       noteCount: track.notes.length,

@@ -1,21 +1,32 @@
-import Visualizer from './Visualizer';
+import { AudioWaveform } from "lucide-react";
+import Visualizer from "./Visualizer";
 
 const LoginHero = () => {
   return (
-    <div className="hidden lg:flex lg:w-[25%] relative items-center justify-center overflow-hidden border-r border-[#1e293b]" style={{ background: 'radial-gradient(circle at center, #0a111f 0%, #05070a 100%)' }}>
+    <div
+      className="hidden lg:flex lg:w-[25%] relative items-center justify-center overflow-hidden border-r border-[#1e293b]"
+      style={{
+        background:
+          "radial-gradient(circle at center, #0a111f 0%, #05070a 100%)",
+      }}
+    >
       {/* Visualizer 애니메이션 */}
       <Visualizer />
 
       {/* 브랜딩 텍스트 */}
       <div className="relative z-10 text-center px-10">
         <div className="flex items-center justify-center gap-3 mb-5">
-          <div className="bg-[#3b82f6] p-1.5 rounded-xl shadow-[0_0_18px_rgba(59,130,246,0.45)]">
-            <span className="material-symbols-outlined text-white text-[28px]">graphic_eq</span>
+          <div className="bg-[#3b82f6] p-2 rounded-lg shadow-[0_0_18px_rgba(59,130,246,0.45)]">
+            <AudioWaveform className="size-6 text-white" strokeWidth={2} />
           </div>
-          <span className="text-3xl font-bold tracking-tighter text-white">Tutti</span>
+          <span className="text-3xl font-bold tracking-tighter text-white">
+            Tutti
+          </span>
         </div>
         <h2 className="text-[26px] font-light text-gray-300 tracking-wide leading-tight">
-          AI-Powered <span className="text-white font-semibold">Orchestration</span> for the Modern Composer.
+          AI-Powered{" "}
+          <span className="text-white font-semibold">Orchestration</span> for
+          the Modern Composer.
         </h2>
       </div>
 

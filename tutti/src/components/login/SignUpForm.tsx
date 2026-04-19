@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
+import { AudioWaveform } from "lucide-react";
 import FormInput from "./FormInput";
 import GoogleSignInButton from "./GoogleSignInButton";
 import {
@@ -163,10 +164,8 @@ const SignUpForm = () => {
     <div className="w-full max-w-md space-y-6 py-6">
       {/* 모바일 로고 */}
       <div className="lg:hidden flex items-center gap-3 mb-6">
-        <div className="bg-[#3b82f6] p-1.5 rounded-lg">
-          <span className="material-symbols-outlined text-white text-lg">
-            graphic_eq
-          </span>
+        <div className="bg-[#3b82f6] p-2 rounded-lg">
+          <AudioWaveform className="size-5 text-white" strokeWidth={2} />
         </div>
         <span className="text-xl font-bold tracking-tight text-white">
           Tutti

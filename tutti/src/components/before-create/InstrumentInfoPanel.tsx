@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
+import { SlidersHorizontal } from "lucide-react";
+import { GiMusicalNotes } from "react-icons/gi";
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
 import { useGeneratableInstrumentCategoriesQuery } from "@api/instruments/hooks/queries/useGeneratableInstrumentCategoriesQuery";
 import { INSTRUMENT_GROUP_ICON } from "@features/midi-create/constants/instrument-grouping";
@@ -26,7 +28,7 @@ const InstrumentInfoPanel = ({ onOpenSettings }: InstrumentInfoPanelProps) => {
             category: cat.name,
             defaultMin: inst.minNote,
             defaultMax: inst.maxNote,
-            icon: INSTRUMENT_GROUP_ICON[cat.name] ?? "music_note",
+            Icon: INSTRUMENT_GROUP_ICON[cat.name] ?? GiMusicalNotes,
           };
         }
       }
@@ -35,6 +37,8 @@ const InstrumentInfoPanel = ({ onOpenSettings }: InstrumentInfoPanelProps) => {
   }, [selectedInstrument, categories]);
 
   const prevInstrumentRef = useRef<number | null>(null);
+  const noteRangeRef = useRef(noteRange);
+  noteRangeRef.current = noteRange;
 
   useEffect(() => {
     if (selectedInstrument == null) {
@@ -44,17 +48,31 @@ const InstrumentInfoPanel = ({ onOpenSettings }: InstrumentInfoPanelProps) => {
     if (!instrumentInfo) return;
 
     const instrumentChanged = prevInstrumentRef.current !== selectedInstrument;
-    const needInitialRange = noteRange == null;
+    const needInitialRange = noteRangeRef.current == null;
 
-    if (!instrumentChanged && !needInitialRange) return;
+    if (instrumentChanged || needInitialRange) {
+      prevInstrumentRef.current = selectedInstrument;
+      setNoteRange({
+        min: instrumentInfo.defaultMin,
+        max: instrumentInfo.defaultMax,
+      });
+      return;
+    }
 
-    prevInstrumentRef.current = selectedInstrument;
+    const nr = noteRangeRef.current;
+    if (nr == null) return;
 
-    setNoteRange({
-      min: instrumentInfo.defaultMin,
-      max: instrumentInfo.defaultMax,
-    });
-  }, [selectedInstrument, instrumentInfo, noteRange, setNoteRange]);
+    const lo = instrumentInfo.defaultMin;
+    const hi = instrumentInfo.defaultMax;
+    let nextMin = Math.max(lo, Math.min(nr.min, hi));
+    let nextMax = Math.min(hi, Math.max(nr.max, lo));
+    if (nextMin >= nextMax) {
+      nextMin = lo;
+      nextMax = hi;
+    }
+    if (nextMin === nr.min && nextMax === nr.max) return;
+    setNoteRange({ min: nextMin, max: nextMax });
+  }, [selectedInstrument, instrumentInfo, setNoteRange]);
 
   if (!instrumentInfo) return null;
 
@@ -66,50 +84,43 @@ const InstrumentInfoPanel = ({ onOpenSettings }: InstrumentInfoPanelProps) => {
     <button
       type="button"
       onClick={onOpenSettings}
-      className="w-full max-w-3xl mx-auto rounded-lg border border-[#1e293b] bg-[#0f1218]/60 p-3 hover:border-[#3b82f6]/40 hover:bg-[#0f1218]/80 transition-all cursor-pointer text-left"
+      className="mx-auto w-full max-w-3xl cursor-pointer rounded-lg border border-[#1e293b] bg-[#0f1218]/60 p-3 text-left transition-all hover:border-[#3b82f6]/40 hover:bg-[#0f1218]/80"
     >
       <div className="flex items-center gap-2">
-        <span
-          className="material-symbols-outlined text-[#3b82f6] text-base"
-          style={{ fontVariationSettings: "'FILL' 1" }}
-        >
-          {instrumentInfo.icon}
-        </span>
+        <instrumentInfo.Icon className="size-4 text-[#3b82f6]" />
 
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span className="text-gray-400 text-[11px] shrink-0">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className="shrink-0 text-[11px] text-gray-400">
             선택된 악기 :
           </span>
-          <span className="text-white font-semibold text-xs truncate">
+          <span className="truncate text-xs font-semibold text-white">
             {instrumentInfo.name}
           </span>
-          <span className="text-gray-600 text-[10px] shrink-0">
+          <span className="shrink-0 text-[10px] text-gray-600">
             ({instrumentInfo.category})
           </span>
         </div>
 
-        <div className="ml-auto flex items-center gap-1.5 shrink-0">
-          <span className="text-[9px] text-gray-500 bg-[#1e293b]/60 px-1.5 py-0.5 rounded">
+        <div className="ml-auto flex shrink-0 items-center gap-1.5">
+          <span className="rounded bg-[#1e293b]/60 px-1.5 py-0.5 text-[9px] text-gray-500">
             {rangeText}
           </span>
           {genre ? (
-            <span className="text-[9px] text-[#3b82f6] bg-[#3b82f6]/10 px-1.5 py-0.5 rounded">
+            <span className="rounded bg-[#3b82f6]/10 px-1.5 py-0.5 text-[9px] text-[#3b82f6]">
               {genre}
             </span>
           ) : (
-            <span className="text-[9px] text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded">
+            <span className="rounded bg-red-400/10 px-1.5 py-0.5 text-[9px] text-red-400">
               장르 미선택
             </span>
           )}
           {freedom != null && (
-            <span className="text-[9px] text-[#3b82f6] bg-[#3b82f6]/10 px-1.5 py-0.5 rounded">
+            <span className="rounded bg-[#3b82f6]/10 px-1.5 py-0.5 text-[9px] text-[#3b82f6]">
               자유도 {freedom.toFixed(1)}
             </span>
           )}
 
-          <span className="material-symbols-outlined text-sm text-[#3b82f6] ml-1">
-            tune
-          </span>
+          <SlidersHorizontal className="ml-1 size-4 text-[#3b82f6]" strokeWidth={1.75} />
         </div>
       </div>
     </button>

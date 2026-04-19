@@ -9,6 +9,9 @@ import React, {
 } from "react";
 import { OpenSheetMusicDisplay, Cursor } from "opensheetmusicdisplay";
 import JSZip from "jszip";
+import { toast } from "@/components/common/Toast";
+
+const isDev = process.env.NODE_ENV === "development";
 
 interface ScoreViewerProps {
   xmlData?: string | ArrayBuffer | File;
@@ -273,7 +276,6 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           const systems = page?.MusicSystems ?? page?.musicSystems ?? [];
 
           // 이 페이지의 systems 슬롯 초기화
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           instruments.forEach((_: unknown, insIdx: number) => {
             const arr: Array<SystemYInfo | null> = new Array(
               systems.length,
@@ -335,9 +337,11 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
         });
 
         instrumentYRangesRef.current = result;
-        console.log(
-          `[ScoreViewer] instrument Y ranges built: ${result.length} instruments`,
-        );
+        if (isDev) {
+          console.log(
+            `[ScoreViewer] instrument Y ranges built: ${result.length} instruments`,
+          );
+        }
       } catch (e) {
         console.error("[ScoreViewer] buildInstrumentYRanges failed:", e);
         instrumentYRangesRef.current = [];
@@ -549,8 +553,6 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           if (opts?.scrollIntoView) scrollPageIntoView(box);
           return;
         }
-
-        const padY = 8; // SVG px
 
         // 위쪽 트랙 (파란색)
         if (isFinite(topMinY)) {
@@ -865,7 +867,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
         onScoreLoadedRef.current?.(osmdRef.current);
       } catch (e) {
         console.error(e);
-        alert(
+        toast.error(
           `악보 로드 실패: ${e instanceof Error ? e.message : "Unknown error"}`,
         );
       }
@@ -914,10 +916,10 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
         }
       };
       // xmlData 또는 loadScore(내부 의존) 변경 시에만 전체 리로드. 콜백은 ref로 최신값 사용.
-    }, [xmlData, loadScore]);
+    }, [xmlData, loadScore, clearHighlightByClass]);
 
     return (
-      <div className="w-full">
+      <div className="score-viewer-root w-full">
         <div
           ref={scrollRef}
           className="w-full overflow-x-auto overflow-y-hidden"
@@ -939,8 +941,9 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           .${ACTIVE_TOP_CLASS}, .${ACTIVE_BOTTOM_CLASS} {
             shape-rendering: geometricPrecision;
           }
-          .osmdSvgPage,
-          svg {
+          /* OSMD만 대상 — 전역 svg 선택자는 Lucide 등 사이드바 아이콘까지 칠함 */
+          .score-viewer-root .osmdSvgPage,
+          .score-viewer-root svg {
             scroll-snap-align: start;
             flex: 0 0 auto;
             background: white;

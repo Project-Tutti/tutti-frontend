@@ -2,6 +2,7 @@ import { Suspense } from "react";
 
 import ProjectVersionsScreen from "@/components/library/ProjectVersionsScreen";
 import { Spinner } from "@/components/common/Spinner";
+import ProtectedRoute from "@/components/common/ProtectedRoute";
 
 function VersionsFallback() {
   return (
@@ -13,8 +14,10 @@ function VersionsFallback() {
 
 export default function LibraryProjectVersionsPage() {
   return (
-    <Suspense fallback={<VersionsFallback />}>
-      <ProjectVersionsScreen />
-    </Suspense>
+    <ProtectedRoute>
+      <Suspense fallback={<VersionsFallback />}>
+        <ProjectVersionsScreen />
+      </Suspense>
+    </ProtectedRoute>
   );
 }

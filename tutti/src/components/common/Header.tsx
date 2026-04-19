@@ -1,47 +1,60 @@
-'use client';
+"use client";
 
-import { COMMON_STYLES } from '@/constants/styles';
+import { Menu } from "lucide-react";
+
+const DEFAULT_HEADER_SUBTITLE =
+  "악기를 선택하고 MIDI를 올리면 생성 준비 화면으로 이어집니다.";
 
 interface HeaderProps {
   onToggleSidebar?: () => void;
   isSidebarCollapsed?: boolean;
   title?: string;
+  /** 부제 생략 시 기본 설명 표시. 부제를 숨기려면 `subtitle=""` */
   subtitle?: string;
   rightContent?: React.ReactNode;
 }
 
-const Header = ({ 
-  onToggleSidebar, 
-  isSidebarCollapsed, 
-  title = 'Workspace / Instrument Setup',
+const Header = ({
+  onToggleSidebar,
+  isSidebarCollapsed,
+  title = "Workspace / Instrument Setup",
   subtitle,
-  rightContent 
+  rightContent,
 }: HeaderProps) => {
+  const description =
+    subtitle === ""
+      ? null
+      : subtitle !== undefined
+        ? subtitle
+        : title === "Workspace / Instrument Setup"
+          ? DEFAULT_HEADER_SUBTITLE
+          : null;
+
   return (
-    <nav className="w-full h-12 md:h-14 bg-[#0f1218]/80 backdrop-blur-md border-b border-[#1e293b] px-3 md:px-5 flex justify-between items-center z-50 sticky top-0">
+    <nav className="sticky top-0 z-50 flex min-h-16 w-full shrink-0 items-center justify-between border-b border-[#1e293b] bg-[#0f1218]/80 px-3 py-2 backdrop-blur-md md:px-5">
       {/* Left */}
-      <div className="flex items-center gap-3 md:gap-5 min-w-0 h-full">
+      <div className="flex min-w-0 items-center gap-3 md:gap-5">
         {isSidebarCollapsed && onToggleSidebar && (
           <button
             onClick={onToggleSidebar}
             className="text-gray-400 hover:text-white transition-colors"
             aria-label="Open sidebar"
           >
-            <span className="material-symbols-outlined text-lg">menu</span>
+            <Menu className="size-5" strokeWidth={1.75} />
           </button>
         )}
-        {subtitle ? (
-          <div className="flex flex-col justify-center min-w-0 h-full">
-            <span className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold leading-tight truncate">
+        {description ? (
+          <div className="flex min-w-0 flex-col justify-center gap-1.5">
+            <span className="truncate text-[11px] font-semibold uppercase leading-snug tracking-widest text-gray-400">
               {title}
             </span>
-            <span className="text-[9px] text-gray-600 leading-tight mt-0.5 truncate">
-              {subtitle}
+            <span className="truncate text-[10px] leading-snug text-gray-500">
+              {description}
             </span>
           </div>
         ) : (
-          <div className="flex items-center min-w-0 h-full">
-            <span className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold leading-tight truncate">
+          <div className="flex min-w-0 items-center">
+            <span className="truncate text-[11px] font-semibold uppercase leading-snug tracking-widest text-gray-400">
               {title}
             </span>
           </div>
@@ -49,13 +62,13 @@ const Header = ({
       </div>
 
       {/* Right */}
-      <div className="flex items-center gap-3 md:gap-4 shrink-0 h-full">
+      <div className="flex shrink-0 items-center gap-3 md:gap-4">
         {rightContent || (
           <>
-            <div className="h-px w-5 bg-[#1e293b] rotate-90 hidden md:block"></div>
-            <button className="px-3 py-1 rounded-full bg-white/5 border border-[#1e293b] text-[11px] font-semibold text-gray-300 hover:bg-white/10 transition-colors">
+            <div className="hidden h-px w-5 rotate-90 bg-[#1e293b] md:block" />
+            <span className="rounded-full border border-[#1e293b] bg-white/5 px-3 py-1 text-[11px] font-semibold text-gray-400 md:text-xs">
               New Project
-            </button>
+            </span>
           </>
         )}
       </div>
