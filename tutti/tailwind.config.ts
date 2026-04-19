@@ -17,7 +17,7 @@ const config: Config = {
         "border-color": "#1e293b",
       },
       fontFamily: {
-        sans: ["var(--font-inter)", "Inter", "sans-serif"],
+        sans: ["var(--font-pretendard)", "Pretendard Variable", "Pretendard", "sans-serif"],
       },
       zIndex: {
         100: "100",

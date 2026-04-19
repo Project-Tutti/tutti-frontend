@@ -7,26 +7,20 @@
   --accent-blue: #3b82f6;
   --accent-glow: rgba(59, 130, 246, 0.5);
   --border-color: #1e293b;
-  --font-inter: var(--font-inter);
 }
 
 @theme inline {
   --color-background: var(--bg-deep);
   --color-foreground: #f8fafc;
-  --font-sans: var(--font-inter);
+  --font-sans: var(--font-pretendard);
   /* 모달·진행 오버레이가 헤더/사이드바 위에 오도록 */
   --z-100: 100;
 }
 
 body {
-  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-family: var(--font-pretendard), 'Pretendard Variable', 'Pretendard', sans-serif;
   background-color: var(--bg-deep);
   color: #f8fafc;
-}
-
-/* Material Symbols 아이콘 스타일 */
-.material-symbols-outlined {
-  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
 /* 사이드바 호버 효과 */
@@ -78,16 +72,3 @@ body {
   background: var(--accent-blue);
 }
 
-/* 생성 진행 오버레이 — 프로그레스 바 쉬머 */
-@keyframes generation-progress-shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-.generation-progress-shimmer {
-  animation: generation-progress-shimmer 1.8s ease-in-out infinite;
-}

@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import QueryClientProviders from "./query-client-providers";
+import ToastProvider from "@/components/common/ToastProvider";
 
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-inter",
+const pretendard = localFont({
+  src: "../assets/fonts/pretendard/PretendardVariable.woff2",
+  variable: "--font-pretendard",
+  display: "swap",
+  weight: "45 920",
 });
 
 export const metadata: Metadata = {
@@ -26,18 +28,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <head>
-        <link
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
-          rel="stylesheet"
-          precedence="default"
-        />
-      </head>
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className={`${pretendard.variable} font-sans antialiased`}>
         <QueryClientProviders>
           {children}
           {modal}
         </QueryClientProviders>
+        <ToastProvider />
       </body>
     </html>
   );
