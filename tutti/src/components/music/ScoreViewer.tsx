@@ -11,6 +11,8 @@ import { OpenSheetMusicDisplay, Cursor } from "opensheetmusicdisplay";
 import JSZip from "jszip";
 import { toast } from "@/components/common/Toast";
 
+const isDev = process.env.NODE_ENV === "development";
+
 interface ScoreViewerProps {
   xmlData?: string | ArrayBuffer | File;
 
@@ -335,9 +337,11 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
         });
 
         instrumentYRangesRef.current = result;
-        console.log(
-          `[ScoreViewer] instrument Y ranges built: ${result.length} instruments`,
-        );
+        if (isDev) {
+          console.log(
+            `[ScoreViewer] instrument Y ranges built: ${result.length} instruments`,
+          );
+        }
       } catch (e) {
         console.error("[ScoreViewer] buildInstrumentYRanges failed:", e);
         instrumentYRangesRef.current = [];
