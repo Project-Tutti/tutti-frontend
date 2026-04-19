@@ -12,7 +12,7 @@ import { useDeleteProjectMutation } from "@api/project/hooks/mutations/useDelete
 import { usePatchProjectNameMutation } from "@api/project/hooks/mutations/usePatchProjectNameMutation";
 import { useLogoutMutation } from "@api/user/hooks/mutations/useLogoutMutation";
 import { useDeleteUserMeMutation } from "@api/user/hooks/mutations/useDeleteUserMeMutation";
-import { useUser } from "@features/auth/hooks/useAuthStore";
+import { useUser, useAuthStoreActions } from "@features/auth/hooks/useAuthStore";
 
 import { Spinner } from "@/components/common/Spinner";
 import {
@@ -35,6 +35,7 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
   const router = useRouter();
   const pathname = usePathname();
   const user = useUser();
+  const { clearAuth } = useAuthStoreActions();
   const scrollRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const hasNextPageRef = useRef(false);
@@ -470,6 +471,7 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
                 type="button"
                 onClick={() => {
                   setIsUserMenuOpen(false);
+                  clearAuth();
                   router.push("/login");
                   logoutMutation.mutate();
                 }}
