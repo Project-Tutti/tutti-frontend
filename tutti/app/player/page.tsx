@@ -13,6 +13,7 @@ import { useProjectScoreQuery } from "@api/project/hooks/queries/useProjectScore
 import { useProjectTracksQuery } from "@api/project/hooks/queries/useProjectTracksQuery";
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
+import { toast } from "@/components/common/Toast";
 
 function PlayerPageContent() {
   const router = useRouter();
@@ -129,7 +130,9 @@ function PlayerPageContent() {
       );
     } catch (e) {
       console.error(e);
-      alert(e instanceof Error ? e.message : "재생성 준비에 실패했습니다.");
+      toast.error(
+        e instanceof Error ? e.message : "재생성 준비에 실패했습니다.",
+      );
     }
   };
 

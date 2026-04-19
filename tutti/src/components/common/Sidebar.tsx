@@ -4,26 +4,21 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import Modal from "@/components/common/Modal";
-
 import { useLibraryListInfiniteQuery } from "@api/library/hooks/queries/useLibraryListInfiniteQuery";
 import { useGeneratableInstrumentCategoriesQuery } from "@api/instruments/hooks/queries/useGeneratableInstrumentCategoriesQuery";
 import { useDeleteProjectMutation } from "@api/project/hooks/mutations/useDeleteProjectMutation";
 import { usePatchProjectNameMutation } from "@api/project/hooks/mutations/usePatchProjectNameMutation";
-import { useLogoutMutation } from "@api/user/hooks/mutations/useLogoutMutation";
-import { useDeleteUserMeMutation } from "@api/user/hooks/mutations/useDeleteUserMeMutation";
-import { useUser, useAuthStoreActions } from "@features/auth/hooks/useAuthStore";
+import { toast } from "@/components/common/Toast";
+import SidebarAccountFooter from "@/components/common/SidebarAccountFooter";
+import SidebarDeleteProjectModal from "@/components/common/SidebarDeleteProjectModal";
 
 import { Spinner } from "@/components/common/Spinner";
 import {
-  ChevronUp,
   CirclePlus,
   LayoutPanelLeft,
-  LogOut,
   MoreHorizontal,
   Pencil,
   Trash2,
-  UserX,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -34,8 +29,6 @@ interface SidebarProps {
 const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
   const router = useRouter();
   const pathname = usePathname();
-  const user = useUser();
-  const { clearAuth } = useAuthStoreActions();
   const scrollRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const hasNextPageRef = useRef(false);
@@ -43,9 +36,6 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
 
   const deleteProjectMutation = useDeleteProjectMutation();
   const patchProjectNameMutation = usePatchProjectNameMutation();
-  const logoutMutation = useLogoutMutation();
-  const deleteUserMeMutation = useDeleteUserMeMutation();
-
   useGeneratableInstrumentCategoriesQuery();
 
   const [openMenuProjectId, setOpenMenuProjectId] = useState<number | null>(
@@ -59,12 +49,6 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
     projectId: number;
     name: string;
   } | null>(null);
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] =
-    useState(false);
-  const [isDeleteSuccessModalOpen, setIsDeleteSuccessModalOpen] =
-    useState(false);
-
   const {
     data,
     fetchNextPage,
@@ -116,7 +100,9 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
       await patchProjectNameMutation.mutateAsync({ projectId, name: next });
     } catch (e) {
       console.error(e);
-      alert(e instanceof Error ? e.message : "이름 변경에 실패했습니다.");
+      toast.error(
+        e instanceof Error ? e.message : "이름 변경에 실패했습니다.",
+      );
     }
   };
 
@@ -137,7 +123,7 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
       }
     } catch (e) {
       console.error(e);
-      alert(e instanceof Error ? e.message : "삭제에 실패했습니다.");
+      toast.error(e instanceof Error ? e.message : "삭제에 실패했습니다.");
     }
   };
 
@@ -209,42 +195,13 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
         ref={scrollRef}
         className="grow flex min-h-0 min-w-54 flex-col space-y-4 overflow-y-auto p-2.5"
       >
-        <Modal
+        <SidebarDeleteProjectModal
           isOpen={deleteConfirmProject != null}
+          projectName={deleteConfirmProject?.name}
           onClose={() => setDeleteConfirmProject(null)}
-          title="프로젝트 삭제"
-        >
-          <div className="space-y-4">
-            <p className="text-xs text-gray-300">
-              정말로{" "}
-              <span className="text-white font-semibold">
-                {deleteConfirmProject?.name ?? ""}
-              </span>
-              을(를) 삭제할까요?
-            </p>
-            <p className="text-[11px] text-gray-500">
-              삭제하면 프로젝트의 모든 버전과 파일이 함께 삭제됩니다.
-            </p>
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setDeleteConfirmProject(null)}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#1e293b] text-gray-200 hover:bg-[#334155] transition-colors"
-                disabled={deleteProjectMutation.isPending}
-              >
-                취소
-              </button>
-              <button
-                type="button"
-                onClick={() => void runDelete()}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-600 text-white hover:bg-red-500 transition-colors disabled:opacity-50"
-                disabled={deleteProjectMutation.isPending}
-              >
-                {deleteProjectMutation.isPending ? "삭제 중…" : "삭제"}
-              </button>
-            </div>
-          </div>
-        </Modal>
+          onConfirm={runDelete}
+          isPending={deleteProjectMutation.isPending}
+        />
 
         <div>
           <div className="flex items-center justify-between mb-3">
@@ -380,140 +337,7 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
         </div>
       </div>
 
-      <div className="relative min-w-54 border-t border-[#1e293b] p-2.5">
-        {/* 계정 삭제 확인 모달 */}
-        <Modal
-          isOpen={isDeleteAccountModalOpen}
-          onClose={() => setIsDeleteAccountModalOpen(false)}
-          title="계정 삭제"
-        >
-          <div className="space-y-4">
-            <p className="text-xs text-gray-300">정말로 계정을 삭제할까요?</p>
-            <p className="text-[11px] text-gray-500">
-              삭제하면 모든 프로젝트와 데이터가 영구적으로 삭제되며 복구할 수
-              없습니다.
-            </p>
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setIsDeleteAccountModalOpen(false)}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#1e293b] text-gray-200 hover:bg-[#334155] transition-colors"
-                disabled={deleteUserMeMutation.isPending}
-              >
-                취소
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  deleteUserMeMutation.mutate(undefined, {
-                    onSuccess: () => {
-                      setIsDeleteAccountModalOpen(false);
-                      setIsDeleteSuccessModalOpen(true);
-                    },
-                  });
-                }}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-600 text-white hover:bg-red-500 transition-colors disabled:opacity-50"
-                disabled={deleteUserMeMutation.isPending}
-              >
-                {deleteUserMeMutation.isPending ? "삭제 중…" : "계정 삭제"}
-              </button>
-            </div>
-          </div>
-        </Modal>
-
-        {/* 계정 삭제 성공 모달 */}
-        <Modal
-          isOpen={isDeleteSuccessModalOpen}
-          onClose={() => {
-            setIsDeleteSuccessModalOpen(false);
-            router.push("/login");
-          }}
-          title="계정 삭제 완료"
-        >
-          <div className="space-y-4">
-            <p className="text-xs text-gray-300">
-              계정이 성공적으로 삭제되었습니다.
-            </p>
-            <div className="flex justify-end pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsDeleteSuccessModalOpen(false);
-                  router.push("/login");
-                }}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#3b82f6] text-white hover:bg-blue-600 transition-colors"
-              >
-                확인
-              </button>
-            </div>
-          </div>
-        </Modal>
-
-        {/* 사용자 메뉴 드롭다운 (위로 열림) */}
-        {isUserMenuOpen && (
-          <div
-            className="absolute inset-x-2.5 bottom-full z-70 mb-1"
-            onMouseLeave={() => setIsUserMenuOpen(false)}
-          >
-            <div className="overflow-hidden rounded-xl border border-[#1e293b] bg-[#0f1218] shadow-xl">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsUserMenuOpen(false);
-                  setIsDeleteAccountModalOpen(true);
-                }}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-[11px] text-red-400 transition-colors hover:bg-red-500/10"
-              >
-                <UserX className="size-4 shrink-0" strokeWidth={1.75} />
-                Delete Account
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsUserMenuOpen(false);
-                  clearAuth();
-                  router.push("/login");
-                  logoutMutation.mutate();
-                }}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-[11px] text-gray-200 transition-colors hover:bg-white/5"
-              >
-                <LogOut className="size-4 shrink-0" strokeWidth={1.75} />
-                Logout
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* 사용자 프로필 (클릭 시 메뉴 토글) */}
-        <button
-          type="button"
-          onClick={() => setIsUserMenuOpen((v) => !v)}
-          className="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-white/5"
-        >
-          {user?.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={user.avatarUrl}
-              alt=""
-              className="h-6 w-6 shrink-0 rounded-full border border-white/20 object-cover"
-            />
-          ) : (
-            <div className="h-6 w-6 shrink-0 rounded-full border border-white/20 bg-linear-to-br from-blue-500 to-indigo-600" />
-          )}
-          <div className="flex min-w-0 flex-1 flex-col text-left">
-            <span className="truncate text-[11px] font-medium text-white">
-              {user?.name ?? "—"}
-            </span>
-            <span className="truncate text-[8px] font-bold tracking-tighter text-gray-500">
-              {user?.email ?? ""}
-            </span>
-          </div>
-          <ChevronUp
-            className={`size-4 shrink-0 text-gray-500 transition-transform ${isUserMenuOpen ? "" : "rotate-180"}`}
-            strokeWidth={1.75}
-          />
-        </button>
-      </div>
+      <SidebarAccountFooter />
     </aside>
   );
 };

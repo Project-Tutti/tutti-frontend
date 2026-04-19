@@ -13,6 +13,7 @@ import Header from "@/components/common/Header";
 import Modal from "@/components/common/Modal";
 import Sidebar from "@/components/common/Sidebar";
 import { Spinner } from "@/components/common/Spinner";
+import { toast } from "@/components/common/Toast";
 import { MoreVertical } from "lucide-react";
 
 interface VersionRow {
@@ -245,7 +246,7 @@ const ProjectVersionsScreen = () => {
                                       );
                                     } catch (e) {
                                       console.error(e);
-                                      alert(
+                                      toast.error(
                                         e instanceof Error
                                           ? e.message
                                           : "버전 이름 변경에 실패했습니다.",
@@ -399,7 +400,7 @@ const ProjectVersionsScreen = () => {
                   setDeleteTarget(null);
                 } catch (e) {
                   console.error(e);
-                  alert(
+                  toast.error(
                     e instanceof Error
                       ? e.message
                       : "버전 삭제에 실패했습니다.",
