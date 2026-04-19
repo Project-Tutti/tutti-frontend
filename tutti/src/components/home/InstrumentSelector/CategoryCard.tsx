@@ -1,10 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { IconType } from "react-icons";
 
 interface CategoryCardProps {
   name: string;
-  icon: string;
+  icon: IconType;
   isSelected: boolean;
   selectedInstrumentName?: string;
   onClick: () => void;
@@ -14,7 +15,7 @@ interface CategoryCardProps {
 
 const CategoryCard = ({
   name,
-  icon,
+  icon: Icon,
   isSelected,
   selectedInstrumentName,
   onClick,
@@ -43,21 +44,18 @@ const CategoryCard = ({
           }
         `}
       >
-        <span
-          className={`material-symbols-outlined text-lg md:text-xl transition-colors duration-300 ${
+        <Icon
+          className={`size-5 md:size-6 transition-colors duration-300 ${
             isSelected ? "text-[#3b82f6]" : "text-gray-400"
           }`}
-          style={{ fontVariationSettings: "'FILL' 1" }}
-        >
-          {icon}
-        </span>
+        />
 
-        <span className="text-[7px] md:text-[9px] font-semibold text-white leading-tight text-center px-1">
+        <span className="px-1 text-center text-[7px] font-semibold leading-tight text-white md:text-[9px]">
           {name}
         </span>
 
         {isSelected && selectedInstrumentName && (
-          <span className="text-[7px] md:text-[8px] text-[#3b82f6] font-medium truncate max-w-full px-1.5 leading-none">
+          <span className="max-w-full truncate px-1.5 text-[7px] font-medium leading-none text-[#3b82f6] md:text-[8px]">
             {selectedInstrumentName}
           </span>
         )}
