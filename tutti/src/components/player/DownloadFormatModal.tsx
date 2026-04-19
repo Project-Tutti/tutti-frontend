@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { X, Music, FileCode, FileText, type LucideIcon } from "lucide-react";
 
 import {
   PROJECT_DOWNLOAD_TYPE,
@@ -18,25 +19,25 @@ const OPTIONS: {
   type: ProjectDownloadType;
   label: string;
   sub: string;
-  icon: string;
+  Icon: LucideIcon;
 }[] = [
   {
     type: PROJECT_DOWNLOAD_TYPE.MIDI,
     label: "MIDI 다운로드",
     sub: "원본 MIDI 파일 (.mid)",
-    icon: "piano",
+    Icon: Music,
   },
   {
     type: PROJECT_DOWNLOAD_TYPE.XML,
     label: "MusicXML 다운로드",
     sub: "악보 데이터 (MusicXML .xml)",
-    icon: "code",
+    Icon: FileCode,
   },
   {
     type: PROJECT_DOWNLOAD_TYPE.PDF,
     label: "PDF 다운로드",
     sub: "악보 PDF 파일 (.pdf)",
-    icon: "picture_as_pdf",
+    Icon: FileText,
   },
 ];
 
@@ -123,10 +124,10 @@ export default function DownloadFormatModal({
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-3 top-3 rounded-lg p-2 text-gray-500 transition-colors hover:bg-[#1e293b] hover:text-[#3b82f6]"
+          className="absolute right-2.5 top-2.5 grid size-9 place-items-center rounded-lg text-gray-500 outline-none ring-0 transition-colors hover:bg-white/8 hover:text-gray-200 focus-visible:bg-white/10 focus-visible:text-gray-200 focus-visible:ring-0"
           aria-label="닫기"
         >
-          <span className="material-symbols-outlined text-2xl">close</span>
+          <X className="size-5" strokeWidth={1.75} aria-hidden />
         </button>
 
         <div className="px-6 pb-8 pt-9 text-center sm:px-8">
@@ -151,12 +152,11 @@ export default function DownloadFormatModal({
                 onClick={() => void handlePick(opt.type)}
                 className="group flex w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-[#1e293b] bg-[#0a0c10] px-5 py-6 transition-all duration-200 hover:border-[#3b82f6]/55 hover:bg-[#3b82f6]/[0.07] hover:shadow-[0_0_20px_-6px_rgba(59,130,246,0.35)] disabled:pointer-events-none disabled:opacity-50"
               >
-                <span
-                  className="material-symbols-outlined text-4xl text-gray-400 transition-colors group-hover:text-[#3b82f6]"
+                <opt.Icon
+                  className="size-9 text-gray-400 transition-colors group-hover:text-[#3b82f6]"
+                  strokeWidth={1.5}
                   aria-hidden
-                >
-                  {opt.icon}
-                </span>
+                />
                 <span className="text-sm font-semibold text-gray-200 transition-colors group-hover:text-white">
                   {pendingType === opt.type ? "준비 중…" : opt.label}
                 </span>

@@ -3,6 +3,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { AudioWaveform } from "lucide-react";
 import FormInput from "./FormInput";
 import GoogleSignInButton from "./GoogleSignInButton";
 import { loginSchema, LoginFormData } from "@/schemas/authSchema";
@@ -64,7 +65,9 @@ const LoginForm = () => {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
     } catch (error: unknown) {
       const message =
-        error instanceof ZodError ? error.errors?.[0]?.message : "유효하지 않은 값입니다.";
+        error instanceof ZodError
+          ? error.errors?.[0]?.message
+          : "유효하지 않은 값입니다.";
       setErrors((prev) => ({ ...prev, [field]: message }));
     }
   };
@@ -97,10 +100,8 @@ const LoginForm = () => {
     <div className="w-full max-w-md space-y-6">
       {/* 모바일 로고 */}
       <div className="lg:hidden flex items-center gap-3 mb-9">
-        <div className="bg-[#3b82f6] p-1.5 rounded-lg">
-          <span className="material-symbols-outlined text-white text-lg">
-            graphic_eq
-          </span>
+        <div className="bg-[#3b82f6] p-2 rounded-lg">
+          <AudioWaveform className="size-5 text-white" strokeWidth={2} />
         </div>
         <span className="text-xl font-bold tracking-tight text-white">
           Tutti
@@ -141,14 +142,14 @@ const LoginForm = () => {
           onChange={handleChange("password")}
           onBlur={handleBlur("password")}
           error={errors.password}
-          rightLabel={
+          /*rightLabel={
             <Link
               href="/forgot-password"
               className="text-[11px] font-semibold text-[#3b82f6] hover:text-blue-400"
             >
               Forgot Password?
-            </Link>
-          }
+            </Link
+            */ // 구현하지 않았음
         />
 
         {/* 로그인 유지 체크박스 */}
@@ -211,7 +212,7 @@ const LoginForm = () => {
           href="/register"
           className="font-bold text-[#3b82f6] hover:text-blue-400"
         >
-          Start free trial
+          Let's Go Sign Up
         </Link>
       </p>
     </div>

@@ -1,3 +1,5 @@
+import { AlertCircle } from "lucide-react";
+
 interface FormInputProps {
   id: string;
   label: string;
@@ -50,7 +52,7 @@ const FormInput = ({
       />
       {error && (
         <p className="mt-1 text-[11px] text-red-400 flex items-center gap-1">
-          <span className="material-symbols-outlined leading-none" style={{ fontSize: "15px" }}>error</span>
+          <AlertCircle className="size-3.5 shrink-0" strokeWidth={2} />
           {error}
         </p>
       )}
