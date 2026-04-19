@@ -8,6 +8,7 @@ import { useMidiStore } from "@features/midi-create/stores/midi-store";
 import { useGeneratableInstrumentCategoriesQuery } from "@api/instruments/hooks/queries/useGeneratableInstrumentCategoriesQuery";
 import { INSTRUMENT_GROUP_ICON } from "@features/midi-create/constants/instrument-grouping";
 import { midiToNoteName } from "@common/utils/midi-utils";
+import { useScrollLock } from "@common/hooks/useScrollLock";
 import NoteRangeStaff from "./NoteRangeStaff";
 
 const GENRE_DEFS = [
@@ -85,6 +86,8 @@ const InstrumentSettingsModal = ({
     return null;
   }, [selectedInstrument, categories]);
 
+  useScrollLock(isOpen);
+
   useEffect(() => {
     if (!isOpen) return;
     const handleEscape = (e: KeyboardEvent) => {
@@ -93,15 +96,6 @@ const InstrumentSettingsModal = ({
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
   }, [isOpen, onClose]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [isOpen]);
 
   const handleMinChange = useCallback(
     (v: number) => {
