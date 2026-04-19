@@ -27,6 +27,8 @@ import { useRegenerateProjectMutation } from "@api/project/hooks/mutations/useRe
 import { useProjectQuery } from "@api/project/hooks/queries/useProjectQuery";
 import { useInstrumentCategoriesQuery } from "@api/instruments/hooks/queries/useInstrumentCategoriesQuery";
 import { useProjectStatusSSE } from "@api/project/hooks/useProjectStatusSSE";
+import ProtectedRoute from "@/components/common/ProtectedRoute";
+import { toast } from "@/components/common/Toast";
 
 const TRACKS_PER_PAGE = 8;
 
@@ -35,16 +37,17 @@ function BeforeCreatePageContent() {
   const searchParams = useSearchParams();
   const {
     tracks,
-    uploadedFile,
     trackMappings,
     genre,
     selectedInstrument,
     noteRange,
     freedom,
+    projectName,
     setSelectedInstrument,
     setNoteRange,
     setGenre,
     setFreedom,
+    setProjectName,
   } = useMidiStore();
 
   const mode = searchParams.get("mode");
@@ -289,6 +292,11 @@ function BeforeCreatePageContent() {
         return;
       }
 
+      if (!projectName.trim()) {
+        toast.error("프로젝트 이름을 입력해주세요.");
+        return;
+      }
+
       const result = await createProjectMutation.mutateAsync();
       startSSE(result.projectId, result.versionId);
     } catch (err) {
@@ -307,14 +315,17 @@ function BeforeCreatePageContent() {
 
   if (tracks.length === 0) return null;
 
+  const projectNameMissing =
+    !isRegenerateMode && !projectName.trim();
+
   return (
-    <div className="h-screen flex flex-row overflow-hidden">
+    <div className="flex h-dvh max-h-dvh flex-row overflow-hidden">
       <Sidebar
         isCollapsed={isSidebarCollapsed}
         onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
 
-      <div className="grow flex flex-col h-screen overflow-hidden">
+      <div className="flex h-dvh max-h-dvh min-h-0 grow flex-col overflow-hidden">
         <Header
           onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           isSidebarCollapsed={isSidebarCollapsed}
@@ -323,14 +334,34 @@ function BeforeCreatePageContent() {
           rightContent={<HeaderContent trackCount={tracks.length} />}
         />
 
-        <main className="grow flex flex-col bg-[#05070a] p-3 md:p-6 overflow-hidden">
-          {/* 상단: 파일명 안내 + 악기/음역대 패널 */}
-          <div className="max-w-3xl mx-auto w-full mb-3 md:mb-4 space-y-2.5">
-            <p className="text-gray-500 text-[10px] md:text-[11px] text-center">
-              {uploadedFile
-                ? `"${uploadedFile.name}" 분석 완료 · ${tracks.length} tracks`
-                : `분석 완료 · ${tracks.length} tracks`}
-            </p>
+        <main className="flex min-h-0 grow flex-col overflow-hidden bg-[#05070a] p-3 md:p-6">
+          {/* 프로젝트 이름 입력 (재생성 모드면 같은 높이 여백만) */}
+          {isRegenerateMode ? (
+            <div className="mx-auto mb-2 h-14 w-full max-w-3xl md:mb-3 md:h-16" />
+          ) : (
+            <div className="mx-auto mb-2 w-full max-w-3xl md:mb-3">
+              <label className="block">
+                <span className="mb-1.5 block text-[11px] font-medium text-gray-400">
+                  프로젝트 이름
+                </span>
+                <input
+                  type="text"
+                  value={projectName}
+                  onChange={(e) => setProjectName(e.target.value)}
+                  placeholder="사용할 프로젝트 이름을 입력하세요."
+                  aria-invalid={projectNameMissing}
+                  className={`w-full rounded-lg border bg-[#0f1218]/60 px-3 py-2 text-sm text-white outline-none transition-colors focus:bg-[#0f1218]/80 placeholder:text-rose-200/45 ${
+                    projectNameMissing
+                      ? "border-red-500/50 focus:border-red-500/60"
+                      : "border-[#1e293b] focus:border-[#3b82f6]/50"
+                  }`}
+                />
+              </label>
+            </div>
+          )}
+
+          {/* 상단: 악기/음역대 패널 */}
+          <div className="mx-auto mb-3 w-full max-w-3xl md:mb-4">
             <InstrumentInfoPanel
               onOpenSettings={() => setIsSettingsModalOpen(true)}
             />
@@ -360,26 +391,18 @@ function BeforeCreatePageContent() {
                   projectQuery.isError
                 : createProjectMutation.isPending)
             }
-            disabled={!genre || selectedInstrument == null}
-            disabledReason={
-              !genre
-                ? "장르를 선택해주세요"
-                : selectedInstrument == null
-                  ? "생성 악기를 선택해주세요"
-                  : undefined
+            disabled={
+              !genre ||
+              selectedInstrument == null ||
+              projectNameMissing
             }
+            errorMessage={createError}
             label={isRegenerateMode ? "Regenerate" : "Generate"}
             pendingLabel={
               isRegenerateMode ? "Regenerating..." : "Generating..."
             }
-            icon={isRegenerateMode ? "autorenew" : "auto_fix_high"}
+            variant={isRegenerateMode ? "regenerate" : "generate"}
           />
-
-          {createError && (
-            <p className="mt-3 text-xs text-red-400 text-center">
-              {createError}
-            </p>
-          )}
         </main>
 
         <Footer />
@@ -410,15 +433,17 @@ function BeforeCreatePageContent() {
 
 export default function BeforeCreatePage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen flex flex-col items-center justify-center gap-2 bg-[#05070a]">
-          <Spinner size="sm" />
-          <p className="text-gray-400 text-xs">페이지 준비 중…</p>
-        </div>
-      }
-    >
-      <BeforeCreatePageContent />
-    </Suspense>
+    <ProtectedRoute>
+      <Suspense
+        fallback={
+          <div className="min-h-screen flex flex-col items-center justify-center gap-2 bg-[#05070a]">
+            <Spinner size="sm" />
+            <p className="text-gray-400 text-xs">페이지 준비 중…</p>
+          </div>
+        }
+      >
+        <BeforeCreatePageContent />
+      </Suspense>
+    </ProtectedRoute>
   );
 }
