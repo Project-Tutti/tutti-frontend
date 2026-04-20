@@ -14,7 +14,7 @@ import queryKeys from "@common/constants/query-key.constants";
 import { useToastStore } from "@/components/common/toast-store";
 import { BrandGraphicEqIcon } from "@/components/login/BrandGraphicEqIcon";
 
-type GuardPhase = "checking" | "resuming" | "idle";
+type GuardPhase = "hydrating" | "resuming" | "idle";
 
 interface AuthRedirectGuardProps {
   children: React.ReactNode;
@@ -37,86 +37,85 @@ export default function AuthRedirectGuard({ children }: AuthRedirectGuardProps) 
   const addToast = useToastStore((s) => s.add);
   const emailHint = useAuthStore((s) => s.user?.email ?? null);
 
-  const [hydrated, setHydrated] = useState(false);
-  const [phase, setPhase] = useState<GuardPhase>("checking");
+  const [phase, setPhase] = useState<GuardPhase>("hydrating");
 
   const attemptedRef = useRef(false);
   const cancelledRef = useRef(false);
-
-  // persist 재수화 대기 (SSR/초기 마운트 시 토큰이 없어 보이는 현상 방지)
-  useEffect(() => {
-    if (useAuthStore.persist.hasHydrated()) {
-      setHydrated(true);
-      return;
-    }
-    const unsub = useAuthStore.persist.onFinishHydration(() => {
-      setHydrated(true);
-    });
-    return unsub;
-  }, []);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    if (!hydrated || attemptedRef.current) return;
-    attemptedRef.current = true;
+    const run = () => {
+      if (attemptedRef.current || cancelledRef.current) return;
+      attemptedRef.current = true;
 
-    const { refreshToken } = useAuthStore.getState();
-    if (!refreshToken) {
-      setPhase("idle");
-      return;
-    }
-
-    setPhase("resuming");
-
-    (async () => {
-      try {
-        await requestRefreshAccessToken();
-        if (cancelledRef.current) return;
-
-        try {
-          const userInfo = await queryClient.fetchQuery({
-            queryKey: queryKeys.user.detail().queryKey,
-            queryFn: getUserInfo,
-          });
-          if (cancelledRef.current) return;
-          setUser(userInfo.result);
-        } catch {
-          // 유저 정보 조회 실패는 치명적이지 않음 — 홈에 도착한 뒤 재시도됨.
-        }
-
-        if (cancelledRef.current) return;
-
-        const redirectTo = safeInternalRedirectPath(
-          searchParams.get("redirect"),
-          "/home",
-        );
-        router.replace(redirectTo);
-      } catch {
-        if (cancelledRef.current) return;
-        clearAuth();
+      const { refreshToken } = useAuthStore.getState();
+      if (!refreshToken) {
         setPhase("idle");
-        addToast({
-          type: "info",
-          message: "세션이 만료되어 다시 로그인해 주세요.",
-        });
+        return;
       }
-    })();
-  }, [
-    hydrated,
-    router,
-    searchParams,
-    queryClient,
-    setUser,
-    clearAuth,
-    addToast,
-  ]);
+
+      setPhase("resuming");
+
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      (async () => {
+        try {
+          await requestRefreshAccessToken({ signal: controller.signal });
+          if (cancelledRef.current) return;
+
+          try {
+            const userInfo = await queryClient.fetchQuery({
+              queryKey: queryKeys.user.detail().queryKey,
+              queryFn: getUserInfo,
+            });
+            if (cancelledRef.current) return;
+            setUser(userInfo.result);
+          } catch {
+            // 유저 정보 조회 실패는 치명적이지 않음 — 홈에 도착한 뒤 재시도됨.
+          }
+
+          if (cancelledRef.current) return;
+
+          const redirectTo = safeInternalRedirectPath(
+            searchParams.get("redirect"),
+            "/home",
+          );
+          router.replace(redirectTo);
+        } catch {
+          if (cancelledRef.current) return;
+          clearAuth();
+          setPhase("idle");
+          addToast({
+            type: "info",
+            message: "세션이 만료되어 다시 로그인해 주세요.",
+          });
+        }
+      })();
+    };
+
+    let unsubscribe: (() => void) | undefined;
+    if (useAuthStore.persist.hasHydrated()) {
+      run();
+    } else {
+      unsubscribe = useAuthStore.persist.onFinishHydration(run);
+    }
+
+    return () => {
+      cancelledRef.current = true;
+      abortRef.current?.abort();
+      unsubscribe?.();
+    };
+  }, [router, searchParams, queryClient, setUser, clearAuth, addToast]);
 
   const handleCancel = () => {
     cancelledRef.current = true;
+    abortRef.current?.abort();
     clearAuth();
     setPhase("idle");
   };
 
-  if (!hydrated || phase === "checking") {
+  if (phase === "hydrating") {
     return null;
   }
 

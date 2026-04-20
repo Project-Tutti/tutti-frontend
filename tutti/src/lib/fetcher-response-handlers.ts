@@ -76,7 +76,9 @@ export const handleResponseError = async (
   throw error;
 };
 
-export const refreshAccessToken = async () => {
+export const refreshAccessToken = async (options?: {
+  signal?: AbortSignal;
+}) => {
   const accessToken = getAccessToken();
   const refreshToken = getRefreshToken();
 
@@ -104,6 +106,7 @@ export const refreshAccessToken = async () => {
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
     },
     body: JSON.stringify({ refreshToken }),
+    signal: options?.signal,
   });
 
   if (!res.ok) {
