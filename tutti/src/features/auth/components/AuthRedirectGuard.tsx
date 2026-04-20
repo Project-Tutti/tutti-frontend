@@ -1,0 +1,186 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
+
+import useAuthStore, {
+  useAuthStoreActions,
+} from "@features/auth/stores/auth-store";
+import { refreshAccessToken as requestRefreshAccessToken } from "@/lib/fetcher-response-handlers";
+import { getUserInfo } from "@api/user/apis/get/get-user-info";
+import { safeInternalRedirectPath } from "@common/utils/safe-internal-path.utils";
+import queryKeys from "@common/constants/query-key.constants";
+import { useToastStore } from "@/components/common/toast-store";
+import { BrandGraphicEqIcon } from "@/components/login/BrandGraphicEqIcon";
+
+type GuardPhase = "checking" | "resuming" | "idle";
+
+interface AuthRedirectGuardProps {
+  children: React.ReactNode;
+}
+
+/**
+ * (auth) 라우트 그룹에서 이미 로그인된 사용자를 홈으로 되돌려 보내는 가드.
+ *
+ * - persist 재수화 전에는 아무것도 렌더하지 않아 로그인 폼 깜빡임을 방지한다.
+ * - refreshToken 이 남아있으면 실제로 재발급을 시도해 서버 관점에서도 유효한지 확인한다.
+ * - 재발급 실패시 이미 fetcher-response-handlers 내부에서 토큰이 정리되므로
+ *   추가로 user 만 비워주고 사용자에게는 조용한 토스트로만 안내한다.
+ */
+export default function AuthRedirectGuard({ children }: AuthRedirectGuardProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
+
+  const { setUser, clearAuth } = useAuthStoreActions();
+  const addToast = useToastStore((s) => s.add);
+  const emailHint = useAuthStore((s) => s.user?.email ?? null);
+
+  const [hydrated, setHydrated] = useState(false);
+  const [phase, setPhase] = useState<GuardPhase>("checking");
+
+  const attemptedRef = useRef(false);
+  const cancelledRef = useRef(false);
+
+  // persist 재수화 대기 (SSR/초기 마운트 시 토큰이 없어 보이는 현상 방지)
+  useEffect(() => {
+    if (useAuthStore.persist.hasHydrated()) {
+      setHydrated(true);
+      return;
+    }
+    const unsub = useAuthStore.persist.onFinishHydration(() => {
+      setHydrated(true);
+    });
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated || attemptedRef.current) return;
+    attemptedRef.current = true;
+
+    const { refreshToken } = useAuthStore.getState();
+    if (!refreshToken) {
+      setPhase("idle");
+      return;
+    }
+
+    setPhase("resuming");
+
+    (async () => {
+      try {
+        await requestRefreshAccessToken();
+        if (cancelledRef.current) return;
+
+        try {
+          const userInfo = await queryClient.fetchQuery({
+            queryKey: queryKeys.user.detail().queryKey,
+            queryFn: getUserInfo,
+          });
+          if (cancelledRef.current) return;
+          setUser(userInfo.result);
+        } catch {
+          // 유저 정보 조회 실패는 치명적이지 않음 — 홈에 도착한 뒤 재시도됨.
+        }
+
+        if (cancelledRef.current) return;
+
+        const redirectTo = safeInternalRedirectPath(
+          searchParams.get("redirect"),
+          "/home",
+        );
+        router.replace(redirectTo);
+      } catch {
+        if (cancelledRef.current) return;
+        clearAuth();
+        setPhase("idle");
+        addToast({
+          type: "info",
+          message: "세션이 만료되어 다시 로그인해 주세요.",
+        });
+      }
+    })();
+  }, [
+    hydrated,
+    router,
+    searchParams,
+    queryClient,
+    setUser,
+    clearAuth,
+    addToast,
+  ]);
+
+  const handleCancel = () => {
+    cancelledRef.current = true;
+    clearAuth();
+    setPhase("idle");
+  };
+
+  if (!hydrated || phase === "checking") {
+    return null;
+  }
+
+  if (phase === "resuming") {
+    return (
+      <ResumingOverlay emailHint={emailHint} onCancel={handleCancel} />
+    );
+  }
+
+  return <>{children}</>;
+}
+
+interface ResumingOverlayProps {
+  emailHint: string | null;
+  onCancel: () => void;
+}
+
+function ResumingOverlay({ emailHint, onCancel }: ResumingOverlayProps) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#05070a]"
+      role="status"
+      aria-live="polite"
+    >
+      <div className="flex flex-col items-center gap-5 px-6 text-center">
+        <div className="flex items-center gap-3">
+          <div className="bg-[#3b82f6] rounded-lg px-2 pt-2 pb-[2px]">
+            <BrandGraphicEqIcon className="text-[26px]" />
+          </div>
+          <span className="text-xl font-bold tracking-tight text-white">
+            Tutti
+          </span>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Spinner />
+          <p className="text-sm font-medium text-white">
+            이전 세션으로 로그인 중입니다…
+          </p>
+        </div>
+
+        {emailHint ? (
+          <p className="text-[12px] text-gray-500">
+            <span className="text-gray-300">{emailHint}</span> 계정으로 복귀합니다
+          </p>
+        ) : null}
+
+        <button
+          type="button"
+          onClick={onCancel}
+          className="mt-4 text-[12px] font-semibold text-gray-400 underline-offset-4 hover:text-white hover:underline"
+        >
+          다른 계정으로 로그인
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Spinner() {
+  return (
+    <span
+      className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white"
+      aria-hidden
+    />
+  );
+}
