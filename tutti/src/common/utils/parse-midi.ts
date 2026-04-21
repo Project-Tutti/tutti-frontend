@@ -1,11 +1,8 @@
 import { Midi } from "@tonejs/midi";
 import { Track } from "@/types/track";
-import {
-  INSTRUMENT_GROUP_ICON_KEY,
-  resolveInstrumentForTrack,
-} from "@features/midi-create/constants/instrument-grouping";
+import { INSTRUMENT_DROP_LIST } from "@features/midi-create/constants/instrument-grouping";
 
-// GM(General MIDI) 악기 패밀리 → 아이콘 키 (그룹 미매칭 시)
+// GM(General MIDI) 악기 패밀리 → 아이콘 키
 const getIconByFamily = (family: string): string => {
   const familyMap: Record<string, string> = {
     piano: "keyboard",
@@ -33,6 +30,22 @@ const formatInstrumentType = (name: string): string => {
   return name.toUpperCase().replace(/_/g, " ");
 };
 
+/** GM 드럼 채널(MIDI 10, 0-based 9) */
+const GM_DRUM_CHANNEL_INDEX = 9;
+/** 드럼 전용 고정 program (프로젝트 전반에서 Drum Kit = 128로 통일) */
+const DRUM_KIT_PROGRAM = 128;
+
+/**
+ * MIDI 파일에서 트랙 목록을 추출한다.
+ *
+ * 악기 매핑 정책:
+ * - 각 트랙은 **원본 GM program 번호**(`track.instrument.number`)를 그대로 `sourceInstrumentId`로 사용한다.
+ *   (이전에는 카테고리 대표번호로 자동 치환했으나, 서버가 개별 program 매핑을 이미 지원하므로
+ *    프런트에서 임의로 묶지 않고 원본을 보존한다. 예: Viola(41) → Viola(41))
+ * - 드럼 채널(MIDI 10)은 예외적으로 128(Standard Drum Kit)로 고정한다.
+ * - `INSTRUMENT_DROP_LIST` 에 해당하는 program 은 자동 매핑 대상에서 제외하고
+ *   `isDropListProgram` 플래그를 세워 사용자가 모달에서 수동 매핑하도록 유도한다.
+ */
 export const parseMidiFile = async (file: File): Promise<Track[]> => {
   const arrayBuffer = await file.arrayBuffer();
   const midi = new Midi(arrayBuffer);
@@ -45,30 +58,21 @@ export const parseMidiFile = async (file: File): Promise<Track[]> => {
   let outIndex = 0;
 
   for (const track of tracksWithNotes) {
-    const isDrumChannel = track.channel === 9;
+    const isDrumChannel = track.channel === GM_DRUM_CHANNEL_INDEX;
     const rawProgram = track.instrument.number;
-    const midiName = track.instrument.name || undefined;
-
-    const resolved = resolveInstrumentForTrack(
-      rawProgram,
-      isDrumChannel,
-      midiName,
-    );
-
-    const instrumentFamily = isDrumChannel
-      ? "percussive"
-      : track.instrument.family || "unknown";
+    const midiName = track.instrument.name?.trim() || undefined;
 
     const tags: string[] = [];
     if (tempo) tags.push(`${Math.round(tempo)} BPM`);
 
-    if (resolved.kind === "drop") {
+    // drop list: 드럼 채널이 아니고 drop 후보인 경우에만 적용
+    if (!isDrumChannel && INSTRUMENT_DROP_LIST.has(rawProgram)) {
       result.push({
         id: `track-${outIndex}`,
         name: track.name || `Track ${outIndex + 1}`,
         icon: "block",
         instrumentType: "Drop",
-        sourceInstrumentId: resolved.rawProgram,
+        sourceInstrumentId: rawProgram,
         isDropListProgram: true,
         channel: track.channel ?? outIndex,
         tags,
@@ -78,13 +82,17 @@ export const parseMidiFile = async (file: File): Promise<Track[]> => {
       continue;
     }
 
-    const sourceInstrumentId = resolved.representative;
-    const instrumentType = formatInstrumentType(resolved.displayName);
+    // 일반 트랙: 원본 program 그대로. 드럼 채널만 128로 고정.
+    const sourceInstrumentId = isDrumChannel ? DRUM_KIT_PROGRAM : rawProgram;
+    const displayName = isDrumChannel
+      ? "Standard Drum Kit"
+      : (midiName ?? "Unknown");
+    const instrumentType = formatInstrumentType(displayName);
 
-    const icon =
-      resolved.kind === "grouped"
-        ? (INSTRUMENT_GROUP_ICON_KEY[resolved.groupKey] ?? "music")
-        : getIconByFamily(instrumentFamily);
+    const instrumentFamily = isDrumChannel
+      ? "percussive"
+      : track.instrument.family || "unknown";
+    const icon = getIconByFamily(instrumentFamily);
 
     result.push({
       id: `track-${outIndex}`,
