@@ -8,7 +8,6 @@ import Modal from "@/components/common/Modal";
 import { Spinner } from "@/components/common/Spinner";
 import { Track } from "@/types/track";
 import { INSTRUMENT_OPTIONS } from "@features/midi-create/constants/instrument-options";
-import { resolveInstrumentDisplayName } from "@features/midi-create/utils/instrument-display-name";
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
 
 interface TrackModalProps {
@@ -16,6 +15,9 @@ interface TrackModalProps {
   track: Track | null;
   onClose: () => void;
 }
+
+const formatDisplayName = (name: string): string =>
+  name.toUpperCase().replace(/_/g, " ");
 
 function MetaRow({
   label,
@@ -69,7 +71,7 @@ const TrackModal = ({ isOpen, track, onClose }: TrackModalProps) => {
       const out = [];
       for (const inst of instruments) {
         const id = inst.midiProgram;
-        if (!Number.isFinite(id) || id < 0 || id > 129 || seen.has(id))
+        if (!Number.isFinite(id) || id < 0 || id > 128 || seen.has(id))
           continue;
         seen.add(id);
         out.push({
@@ -89,12 +91,11 @@ const TrackModal = ({ isOpen, track, onClose }: TrackModalProps) => {
   // API 표준명 우선, 없으면 MIDI 원본 기반 instrumentType fallback.
   const trackDisplayType = useMemo(() => {
     if (!track) return "";
-    return resolveInstrumentDisplayName(
-      undefined,
-      track.sourceInstrumentId,
-      track.instrumentType,
+    const matched = instruments?.find(
+      (inst) => inst.midiProgram === track.sourceInstrumentId,
     );
-  }, [track]);
+    return matched?.name ? formatDisplayName(matched.name) : track.instrumentType;
+  }, [track, instruments]);
 
   const defaultMappedInstrumentId = sourceInstrumentId;
 
@@ -314,7 +315,7 @@ const TrackModal = ({ isOpen, track, onClose }: TrackModalProps) => {
                   htmlFor="custom-instrument-id"
                   className="mb-1 block text-[11px] font-medium text-slate-500"
                 >
-                  직접 입력 <span className="text-slate-600">(0–129)</span>
+                  직접 입력 <span className="text-slate-600">(0–128)</span>
                 </label>
                 <input
                   id="custom-instrument-id"
