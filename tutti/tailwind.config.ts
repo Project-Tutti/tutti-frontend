@@ -17,7 +17,12 @@ const config: Config = {
         "border-color": "#1e293b",
       },
       fontFamily: {
-        sans: ["var(--font-pretendard)", "Pretendard Variable", "Pretendard", "sans-serif"],
+        sans: [
+          "var(--font-pretendard)",
+          "Pretendard Variable",
+          "Pretendard",
+          "sans-serif",
+        ],
       },
       zIndex: {
         100: "100",
@@ -45,6 +50,10 @@ const config: Config = {
           "0%, 100%": { transform: "translateY(0px)" },
           "50%": { transform: "translateY(-8px)" },
         },
+      },
+      spacing: {
+        18: "72px",
+        77: "308px",
       },
     },
   },

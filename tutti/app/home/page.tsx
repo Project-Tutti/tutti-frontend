@@ -7,7 +7,6 @@ import Sidebar from "@/components/common/Sidebar";
 import Header from "@/components/common/Header";
 import StepProgress from "@/components/home/upload/StepProgress";
 import InstrumentSelector from "@/components/home/InstrumentSelector/InstrumentSelector";
-import Footer from "@/components/common/Footer";
 import { parseMidiFile } from "@common/utils/parse-midi";
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
@@ -26,7 +25,9 @@ const HomePage = () => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
-  const [selectedInstrumentName, setSelectedInstrumentName] = useState<string | null>(null);
+  const [selectedInstrumentName, setSelectedInstrumentName] = useState<
+    string | null
+  >(null);
 
   // 홈페이지 진입 시 악기 선택 초기화 (새 프로젝트 시작)
   useEffect(() => {
@@ -96,7 +97,8 @@ const HomePage = () => {
     },
   ];
 
-  const canGenerate = selectedInstrument != null && !!uploadedFile && !isParsing;
+  const canGenerate =
+    selectedInstrument != null && !!uploadedFile && !isParsing;
 
   return (
     <ProtectedRoute>
@@ -110,6 +112,11 @@ const HomePage = () => {
           <Header
             onToggleSidebar={handleToggleSidebar}
             isSidebarCollapsed={isSidebarCollapsed}
+            rightContent={
+              <span className="px-3 py-1 text-[14px] font-semibold text-gray-500">
+                New Project
+              </span>
+            }
           />
 
           <main className="relative flex min-h-0 grow flex-col overflow-hidden">
@@ -172,7 +179,10 @@ const HomePage = () => {
                 {/* 에러 메시지 */}
                 {parseError && (
                   <p className="flex items-center gap-1.5 text-[11px] text-red-400 md:text-xs">
-                    <AlertCircle className="size-3.5 shrink-0" strokeWidth={1.75} />
+                    <AlertCircle
+                      className="size-3.5 shrink-0"
+                      strokeWidth={1.75}
+                    />
                     {parseError}
                   </p>
                 )}
@@ -186,8 +196,6 @@ const HomePage = () => {
               </div>
             </div>
           </main>
-
-          <Footer />
         </div>
       </div>
     </ProtectedRoute>
