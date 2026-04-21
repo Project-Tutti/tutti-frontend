@@ -138,21 +138,7 @@ export const ICON_MAP: Readonly<Record<string, IconType>> = {
 };
 
 /** 그룹 키 → 아이콘 키 */
-export const INSTRUMENT_GROUP_ICON_KEY: Readonly<Record<string, string>> = {
-  Drum: "drum",
-  Keyboard: "keyboard",
-  "Organ and Accordion": "accordion",
-  "Mallet and Bell": "xylophone",
-  "Acoustic and Plucked Guitar": "guitar",
-  "Distorted Guitar": "guitar",
-  Bassline: "bass",
-  "Solo String": "violin",
-  Woodwind: "flute",
-  Saxophone: "saxophone",
-  "Synth Lead": "synth",
-  Brass: "trumpet",
-  "Ensemble and Pad": "ensemble",
-};
+// (removed) INSTRUMENT_GROUP_ICON_KEY: 트랙 파서에서 더 이상 그룹 대표 아이콘을 쓰지 않음
 
 /** 그룹 키 → 아이콘 컴포넌트 (컴포넌트에서 직접 사용) */
 export const INSTRUMENT_GROUP_ICON: Readonly<Record<string, IconType>> = {
@@ -175,79 +161,3 @@ export const INSTRUMENT_GROUP_ICON: Readonly<Record<string, IconType>> = {
 export const getIconComponent = (iconKey: string): IconType => {
   return ICON_MAP[iconKey] ?? GiMusicalNotes;
 };
-
-export type ResolvedInstrument =
-  | {
-      kind: "grouped";
-      groupKey: string;
-      representative: number;
-      displayName: string;
-    }
-  | { kind: "fallback"; representative: number; displayName: string }
-  | { kind: "drop"; rawProgram: number };
-
-const buildMelodicProgramToGroup = (): Map<
-  number,
-  { groupKey: string; representative: number; displayName: string }
-> => {
-  const map = new Map<
-    number,
-    { groupKey: string; representative: number; displayName: string }
-  >();
-  for (const [groupKey, def] of Object.entries(INSTRUMENT_GROUPING)) {
-    if (def.is_drum_channel) continue;
-    for (const p of def.programs) {
-      map.set(p, {
-        groupKey,
-        representative: def.representative,
-        displayName: def.name,
-      });
-    }
-  }
-  return map;
-};
-
-const melodicProgramToGroup = buildMelodicProgramToGroup();
-
-/**
- * MIDI 트랙의 원본 프로그램·채널을 기준으로 representative / 표시명을 정한다.
- * - 드럼 채널(10): 항상 Drum 그룹 representative(128).
- * - 멜로디: drop_list면 별도 표시(drop) + 원본 프로그램 유지(API/기본 매핑용).
- * - 매핑 없으면 원본 프로그램 유지(fallback); 표시명은 파서가 넘긴 MIDI 이름 사용 권장.
- */
-export function resolveInstrumentForTrack(
-  rawProgram: number,
-  isDrumChannel: boolean,
-  midiInstrumentName?: string,
-): ResolvedInstrument {
-  if (isDrumChannel) {
-    const drum = INSTRUMENT_GROUPING.Drum;
-    return {
-      kind: "grouped",
-      groupKey: "Drum",
-      representative: drum.representative,
-      displayName: drum.name,
-    };
-  }
-
-  if (INSTRUMENT_DROP_LIST.has(rawProgram)) {
-    return { kind: "drop", rawProgram };
-  }
-
-  const hit = melodicProgramToGroup.get(rawProgram);
-  if (hit) {
-    return {
-      kind: "grouped",
-      groupKey: hit.groupKey,
-      representative: hit.representative,
-      displayName: hit.displayName,
-    };
-  }
-
-  const name = midiInstrumentName?.trim();
-  return {
-    kind: "fallback",
-    representative: rawProgram,
-    displayName: name && name.length > 0 ? name : "Unknown",
-  };
-}
