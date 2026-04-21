@@ -11,9 +11,21 @@ interface ModalProps {
   title?: string;
   /** 스크롤 영역 아래 고정(예: 안내 문구 + 확인) */
   footer?: React.ReactNode;
+  /** 내부 패널(div) 커스터마이징 (예: max-w-5xl) */
+  panelClassName?: string;
+  /** 본문(content) 영역 커스터마이징 (기본 px-4 py-4) */
+  contentClassName?: string;
 }
 
-const Modal = ({ isOpen, onClose, children, title, footer }: ModalProps) => {
+const Modal = ({
+  isOpen,
+  onClose,
+  children,
+  title,
+  footer,
+  panelClassName,
+  contentClassName,
+}: ModalProps) => {
   useScrollLock(isOpen);
 
   useEffect(() => {
@@ -37,7 +49,12 @@ const Modal = ({ isOpen, onClose, children, title, footer }: ModalProps) => {
         aria-hidden
       />
 
-      <div className="relative mx-auto flex w-full max-w-lg max-h-[min(88vh,720px)] flex-col overflow-hidden rounded-xl border border-[#1e293b] bg-[#0f1218] shadow-2xl animate-fade-in">
+      <div
+        className={[
+          "relative mx-auto flex w-full max-w-lg max-h-[min(88vh,720px)] flex-col overflow-hidden rounded-xl border border-[#1e293b] bg-[#0f1218] shadow-2xl animate-fade-in",
+          panelClassName ?? "",
+        ].join(" ")}
+      >
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#1e293b] px-4 py-3">
           <h2 className="min-w-0 text-sm font-semibold leading-snug tracking-tight text-white">
             {title?.trim() ? title : "알림"}
@@ -53,7 +70,12 @@ const Modal = ({ isOpen, onClose, children, title, footer }: ModalProps) => {
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+          <div
+            className={[
+              "min-h-0 flex-1 overflow-y-auto px-4 py-4",
+              contentClassName ?? "",
+            ].join(" ")}
+          >
             {children}
           </div>
           {footer ? (

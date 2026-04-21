@@ -16,9 +16,9 @@ import TrackGrid from "@/components/before-create/TrackGrid";
 import TrackModal from "@/components/before-create/TrackModal";
 import AnalysisInfo from "@/components/before-create/AnalysisInfo";
 import HeaderContent from "@/components/before-create/HeaderContent";
-import InstrumentInfoPanel from "@/components/before-create/InstrumentInfoPanel";
-import InstrumentSettingsModal from "@/components/before-create/InstrumentSettingsModal";
 import GenerationProgressOverlay from "@/components/before-create/GenerationProgressOverlay";
+import Modal from "@/components/common/Modal";
+import InstrumentSettingsPanel from "@/components/before-create/InstrumentSettingsPanel";
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
 import { Track } from "@/types/track";
 import { useCreateProjectMutation } from "@api/midi/hooks/mutations/useCreateProjectMutation";
@@ -70,7 +70,7 @@ function BeforeCreatePageContent() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [hasHydrated, setHasHydrated] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
-  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isTrackInfoOpen, setIsTrackInfoOpen] = useState(false);
   const [sseProjectId, setSseProjectId] = useState<number | null>(null);
   const [sseVersionId, setSseVersionId] = useState<number | null>(null);
 
@@ -331,7 +331,7 @@ function BeforeCreatePageContent() {
           rightContent={<HeaderContent trackCount={tracks.length} />}
         />
 
-        <main className="flex min-h-0 grow flex-col overflow-hidden bg-[#05070a] p-3 md:p-6">
+        <main className="flex min-h-0 grow flex-col overflow-y-auto bg-[#05070a] p-3 md:p-6">
           {/* 프로젝트 이름 입력 (재생성 모드면 같은 높이 여백만) */}
           {isRegenerateMode ? (
             <div className="mx-auto mb-2 h-14 w-full max-w-3xl md:mb-3 md:h-16" />
@@ -357,23 +357,33 @@ function BeforeCreatePageContent() {
             </div>
           )}
 
-          {/* 상단: 악기/음역대 패널 */}
+          {/* 생성설정: 모달이 아니라 페이지에 바로 노출 */}
           <div className="mx-auto mb-3 w-full max-w-3xl md:mb-4">
-            <InstrumentInfoPanel
-              onOpenSettings={() => setIsSettingsModalOpen(true)}
-            />
+            <InstrumentSettingsPanel />
           </div>
 
-          {/* 트랙 그리드 */}
-          <TrackGrid
-            tracks={currentTracks}
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onTrackClick={handleTrackClick}
-            onNextPage={handleNextPage}
-            onPrevPage={handlePrevPage}
-            onPageChange={setCurrentPage}
-          />
+          {/* 트랙 정보: 클릭해서 모달로 들어가게 */}
+          <div className="mx-auto mb-2 w-full max-w-3xl md:mb-3">
+            <button
+              type="button"
+              onClick={() => setIsTrackInfoOpen(true)}
+              className="w-full rounded-xl border border-[#1e293b] bg-[#0f1218]/35 px-4 py-3 text-left transition-colors hover:bg-[#0f1218]/55"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col">
+                  <span className="text-[11px] font-semibold text-gray-300">
+                    트랙 정보
+                  </span>
+                  <span className="mt-0.5 text-[10px] text-gray-500">
+                    {tracks.length} tracks · 클릭해서 확인/매핑
+                  </span>
+                </div>
+                <span className="text-[10px] font-medium text-[#3b82f6]">
+                  열기
+                </span>
+              </div>
+            </button>
+          </div>
 
           {/* 분석 정보 & Generate 버튼 */}
           <AnalysisInfo
@@ -401,17 +411,34 @@ function BeforeCreatePageContent() {
         </main>
       </div>
 
-      {/* 트랙 모달 */}
+      {/* 트랙 정보 모달 */}
+      <Modal
+        isOpen={isTrackInfoOpen}
+        onClose={() => setIsTrackInfoOpen(false)}
+        title="트랙 정보"
+        panelClassName="max-w-none w-[calc(100vw-32px)] h-[calc(100vh-32px)]"
+        contentClassName="h-full px-0 py-0 overflow-hidden"
+      >
+        <div className="flex h-full items-center justify-center bg-[#05070a] p-3 md:p-6">
+          <div className="w-full max-w-6xl">
+            <TrackGrid
+              tracks={currentTracks}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onTrackClick={handleTrackClick}
+              onNextPage={handleNextPage}
+              onPrevPage={handlePrevPage}
+              onPageChange={setCurrentPage}
+            />
+          </div>
+        </div>
+      </Modal>
+
+      {/* 트랙 모달 (트랙 정보 모달 위에 떠야 함) */}
       <TrackModal
         isOpen={isModalOpen}
         track={selectedTrack}
         onClose={() => setIsModalOpen(false)}
-      />
-
-      {/* 생성 설정 모달 (음역대 / 장르 / 자유도) */}
-      <InstrumentSettingsModal
-        isOpen={isSettingsModalOpen}
-        onClose={() => setIsSettingsModalOpen(false)}
       />
 
       {/* 생성 진행률 오버레이 */}

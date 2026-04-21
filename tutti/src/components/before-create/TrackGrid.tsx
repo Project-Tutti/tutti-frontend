@@ -30,7 +30,7 @@ const TrackGrid = ({
 
   return (
     <div
-      className={`mx-auto flex w-full max-w-5xl min-h-0 flex-1 flex-col items-center ${
+      className={`flex w-full min-h-0 flex-1 flex-col items-center ${
         useGrid ? "justify-start" : "justify-center"
       }`}
     >
@@ -42,7 +42,7 @@ const TrackGrid = ({
             onClick={onPrevPage}
             disabled={currentPage === 0}
             className={`
-              absolute top-1/2 -translate-y-1/2 -left-3 md:-left-5 z-10 p-3 md:p-4 rounded-full 
+              absolute top-1/2 -translate-y-1/2 left-2 md:left-3 z-10 p-3 md:p-4 rounded-full 
               bg-[#0f1218] border border-[#1e293b] 
               shadow-lg transition-all
               ${
@@ -93,7 +93,7 @@ const TrackGrid = ({
             onClick={onNextPage}
             disabled={currentPage === totalPages - 1}
             className={`
-              absolute top-1/2 -translate-y-1/2 -right-3 md:-right-5 z-10 p-3 md:p-4 rounded-full 
+              absolute top-1/2 -translate-y-1/2 right-2 md:right-3 z-10 p-3 md:p-4 rounded-full 
               bg-[#0f1218] border border-[#1e293b] 
               shadow-lg transition-all
               ${
