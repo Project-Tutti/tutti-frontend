@@ -13,6 +13,8 @@ interface ModalProps {
   footer?: React.ReactNode;
   /** 내부 패널(div) 커스터마이징 (예: max-w-5xl) */
   panelClassName?: string;
+  /** 헤더 영역(제목/닫기) 커스터마이징 */
+  headerClassName?: string;
   /** 본문(content) 영역 커스터마이징 (기본 px-4 py-4) */
   contentClassName?: string;
 }
@@ -24,6 +26,7 @@ const Modal = ({
   title,
   footer,
   panelClassName,
+  headerClassName,
   contentClassName,
 }: ModalProps) => {
   useScrollLock(isOpen);
@@ -55,7 +58,12 @@ const Modal = ({
           panelClassName ?? "",
         ].join(" ")}
       >
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#1e293b] px-4 py-3">
+        <div
+          className={[
+            "flex shrink-0 items-center justify-between gap-3 border-b border-[#1e293b] px-4 py-3",
+            headerClassName ?? "",
+          ].join(" ")}
+        >
           <h2 className="min-w-0 text-sm font-semibold leading-snug tracking-tight text-white">
             {title?.trim() ? title : "알림"}
           </h2>

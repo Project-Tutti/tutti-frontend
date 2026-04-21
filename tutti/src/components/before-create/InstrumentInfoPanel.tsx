@@ -90,32 +90,32 @@ const InstrumentInfoPanel = ({ onOpenSettings }: InstrumentInfoPanelProps) => {
         <instrumentInfo.Icon className="size-4 text-[#3b82f6]" />
 
         <div className="flex min-w-0 items-center gap-1.5">
-          <span className="shrink-0 text-[11px] text-gray-400">
+          <span className="shrink-0 text-xs text-gray-400">
             선택된 악기 :
           </span>
-          <span className="truncate text-xs font-semibold text-white">
+          <span className="truncate text-sm font-semibold text-white">
             {instrumentInfo.name}
           </span>
-          <span className="shrink-0 text-[10px] text-gray-600">
+          <span className="shrink-0 text-xs text-gray-600">
             ({instrumentInfo.category})
           </span>
         </div>
 
         <div className="ml-auto flex shrink-0 items-center gap-1.5">
-          <span className="rounded bg-[#1e293b]/60 px-1.5 py-0.5 text-[9px] text-gray-500">
+          <span className="rounded bg-[#1e293b]/60 px-1.5 py-0.5 text-xs text-gray-500">
             {rangeText}
           </span>
           {genre ? (
-            <span className="rounded bg-[#3b82f6]/10 px-1.5 py-0.5 text-[9px] text-[#3b82f6]">
+            <span className="rounded bg-[#3b82f6]/10 px-1.5 py-0.5 text-xs text-[#3b82f6]">
               {genre}
             </span>
           ) : (
-            <span className="rounded bg-red-400/10 px-1.5 py-0.5 text-[9px] text-red-400">
+            <span className="rounded bg-red-400/10 px-1.5 py-0.5 text-xs text-red-400">
               장르 미선택
             </span>
           )}
           {freedom != null && (
-            <span className="rounded bg-[#3b82f6]/10 px-1.5 py-0.5 text-[9px] text-[#3b82f6]">
+            <span className="rounded bg-[#3b82f6]/10 px-1.5 py-0.5 text-xs text-[#3b82f6]">
               자유도 {freedom.toFixed(1)}
             </span>
           )}

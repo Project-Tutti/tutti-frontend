@@ -14,6 +14,7 @@ import ProtectedRoute from "@/components/common/ProtectedRoute";
 const HomePage = () => {
   const router = useRouter();
   const {
+    tracks,
     selectedInstrument,
     setSelectedInstrument,
     setTracks,
@@ -30,9 +31,12 @@ const HomePage = () => {
   >(null);
 
   // 홈페이지 진입 시 악기 선택 초기화 (새 프로젝트 시작)
+  // 단, 뒤로가기 등으로 다시 돌아온 경우(이미 tracks가 있으면) 상태를 유지한다.
   useEffect(() => {
-    setSelectedInstrument(null);
-  }, [setSelectedInstrument]);
+    if (tracks.length === 0) {
+      setSelectedInstrument(null);
+    }
+  }, [tracks.length, setSelectedInstrument]);
 
   const handleToggleSidebar = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);

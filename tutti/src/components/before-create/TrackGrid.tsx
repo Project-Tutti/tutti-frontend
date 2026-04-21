@@ -42,7 +42,7 @@ const TrackGrid = ({
             onClick={onPrevPage}
             disabled={currentPage === 0}
             className={`
-              absolute top-1/2 -translate-y-1/2 left-2 md:left-3 z-10 p-3 md:p-4 rounded-full 
+              absolute top-1/2 -translate-y-1/2 -left-2 md:-left-4 z-10 p-3 md:p-4 rounded-full 
               bg-[#0f1218] border border-[#1e293b] 
               shadow-lg transition-all
               ${
@@ -65,7 +65,7 @@ const TrackGrid = ({
 
         {/* 4개 이상: 전폭 그리드 / 1~3개: flex 중앙 + 동일 카드 크기 */}
         {useGrid ? (
-          <div className="mx-auto grid w-full grid-cols-2 gap-2 px-10 md:grid-cols-4 md:gap-3 md:px-12">
+          <div className="mx-auto grid w-full grid-cols-2 gap-2 px-12 md:grid-cols-4 md:gap-3 md:px-16">
             {tracks.map((track) => (
               <TrackCard
                 key={track.id}
@@ -75,7 +75,7 @@ const TrackGrid = ({
             ))}
           </div>
         ) : (
-          <div className="flex w-full flex-wrap justify-center gap-2 px-10 md:gap-3 md:px-12">
+          <div className="flex w-full flex-wrap justify-center gap-2 px-12 md:gap-3 md:px-16">
             {tracks.map((track) => (
               <div
                 key={track.id}
@@ -93,7 +93,7 @@ const TrackGrid = ({
             onClick={onNextPage}
             disabled={currentPage === totalPages - 1}
             className={`
-              absolute top-1/2 -translate-y-1/2 right-2 md:right-3 z-10 p-3 md:p-4 rounded-full 
+              absolute top-1/2 -translate-y-1/2 -right-2 md:-right-4 z-10 p-3 md:p-4 rounded-full 
               bg-[#0f1218] border border-[#1e293b] 
               shadow-lg transition-all
               ${

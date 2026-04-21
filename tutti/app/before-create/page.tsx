@@ -12,13 +12,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Sidebar from "@/components/common/Sidebar";
 import { Spinner } from "@/components/common/Spinner";
 import Header from "@/components/common/Header";
-import TrackGrid from "@/components/before-create/TrackGrid";
 import TrackModal from "@/components/before-create/TrackModal";
 import AnalysisInfo from "@/components/before-create/AnalysisInfo";
 import HeaderContent from "@/components/before-create/HeaderContent";
 import GenerationProgressOverlay from "@/components/before-create/GenerationProgressOverlay";
-import Modal from "@/components/common/Modal";
 import InstrumentSettingsPanel from "@/components/before-create/InstrumentSettingsPanel";
+import TrackInfoModal from "@/components/before-create/TrackInfoModal";
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
 import { Track } from "@/types/track";
 import { useCreateProjectMutation } from "@api/midi/hooks/mutations/useCreateProjectMutation";
@@ -307,7 +306,7 @@ function BeforeCreatePageContent() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-2 bg-[#05070a]">
         <Spinner size="sm" />
-        <p className="text-gray-400 text-xs">불러오는 중…</p>
+        <p className="text-gray-400 text-sm">불러오는 중…</p>
       </div>
     );
   }
@@ -338,7 +337,7 @@ function BeforeCreatePageContent() {
           ) : (
             <div className="mx-auto mb-2 w-full max-w-3xl md:mb-3">
               <label className="block">
-                <span className="mb-1.5 block text-[11px] font-medium text-gray-400">
+                <span className="mb-1.5 block text-[16px] font-medium text-gray-400">
                   프로젝트 이름
                 </span>
                 <input
@@ -347,7 +346,7 @@ function BeforeCreatePageContent() {
                   onChange={(e) => setProjectName(e.target.value)}
                   placeholder="사용할 프로젝트 이름을 입력하세요."
                   aria-invalid={projectNameMissing}
-                  className={`w-full rounded-lg border bg-[#0f1218]/60 px-3 py-2 text-sm text-white outline-none transition-colors focus:bg-[#0f1218]/80 placeholder:text-rose-200/45 ${
+                  className={`w-full rounded-lg border bg-[#0f1218]/60 px-3 py-2 text-[16px] text-white outline-none transition-colors focus:bg-[#0f1218]/80 placeholder:text-rose-200/45 ${
                     projectNameMissing
                       ? "border-red-500/50 focus:border-red-500/60"
                       : "border-[#1e293b] focus:border-[#3b82f6]/50"
@@ -371,14 +370,14 @@ function BeforeCreatePageContent() {
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="flex flex-col">
-                  <span className="text-[11px] font-semibold text-gray-300">
+                  <span className="text-[16px] font-semibold text-gray-300">
                     트랙 정보
                   </span>
-                  <span className="mt-0.5 text-[10px] text-gray-500">
+                  <span className="mt-0.5 text-[14px] text-gray-500">
                     {tracks.length} tracks · 클릭해서 확인/매핑
                   </span>
                 </div>
-                <span className="text-[10px] font-medium text-[#3b82f6]">
+                <span className="text-[14px] font-medium text-[#3b82f6]">
                   열기
                 </span>
               </div>
@@ -412,27 +411,17 @@ function BeforeCreatePageContent() {
       </div>
 
       {/* 트랙 정보 모달 */}
-      <Modal
+      <TrackInfoModal
         isOpen={isTrackInfoOpen}
         onClose={() => setIsTrackInfoOpen(false)}
-        title="트랙 정보"
-        panelClassName="max-w-none w-[calc(100vw-32px)] h-[calc(100vh-32px)]"
-        contentClassName="h-full px-0 py-0 overflow-hidden"
-      >
-        <div className="flex h-full items-center justify-center bg-[#05070a] p-3 md:p-6">
-          <div className="w-full max-w-6xl">
-            <TrackGrid
-              tracks={currentTracks}
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onTrackClick={handleTrackClick}
-              onNextPage={handleNextPage}
-              onPrevPage={handlePrevPage}
-              onPageChange={setCurrentPage}
-            />
-          </div>
-        </div>
-      </Modal>
+        tracks={currentTracks}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onTrackClick={handleTrackClick}
+        onNextPage={handleNextPage}
+        onPrevPage={handlePrevPage}
+        onPageChange={setCurrentPage}
+      />
 
       {/* 트랙 모달 (트랙 정보 모달 위에 떠야 함) */}
       <TrackModal
@@ -458,7 +447,7 @@ export default function BeforeCreatePage() {
         fallback={
           <div className="min-h-screen flex flex-col items-center justify-center gap-2 bg-[#05070a]">
             <Spinner size="sm" />
-            <p className="text-gray-400 text-xs">페이지 준비 중…</p>
+            <p className="text-gray-400 text-sm">페이지 준비 중…</p>
           </div>
         }
       >

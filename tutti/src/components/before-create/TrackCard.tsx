@@ -27,17 +27,17 @@ const TrackCard = ({ track, onClick }: TrackCardProps) => {
       {/* 상단: 아이콘 + 태그 */}
       <div className="flex items-start justify-between">
         <IconComponent className="size-6 text-[#3b82f6] transition-all group-hover:scale-110 md:size-7" />
-        <span className="rounded bg-[#3b82f6]/10 px-1 py-0.5 text-[7px] font-bold uppercase tracking-wide text-[#3b82f6]/60 md:px-1.5 md:text-[8px]">
+        <span className="rounded bg-[#3b82f6]/10 px-1 py-0.5 text-xs font-bold uppercase tracking-wide text-[#3b82f6]/60 md:px-1.5">
           {displayType}
         </span>
       </div>
 
       {/* 하단: 정보 */}
       <div className="space-y-0.5 text-left">
-        <p className="truncate text-xs font-bold text-white md:text-sm">
+        <p className="truncate text-sm font-bold text-white md:text-base">
           {track.name}
         </p>
-        <p className="text-[7px] font-bold uppercase tracking-widest text-gray-500 md:text-[8px]">
+        <p className="text-xs font-bold uppercase tracking-widest text-gray-500">
           Channel {track.channel} · {track.noteCount} notes
         </p>
 
@@ -46,7 +46,7 @@ const TrackCard = ({ track, onClick }: TrackCardProps) => {
           {track.tags.slice(0, 2).map((tag, index) => (
             <span
               key={index}
-              className="rounded bg-white/5 px-1 py-0.5 text-[6px] uppercase tracking-wide text-gray-400 md:px-1.5 md:text-[7px]"
+              className="rounded bg-white/5 px-1 py-0.5 text-xs uppercase tracking-wide text-gray-400 md:px-1.5"
             >
               {tag}
             </span>
