@@ -6,7 +6,6 @@ import { Download, Loader2, RefreshCw } from "lucide-react";
 import MusicPlayer from "@/components/music/MusicPlayer";
 import Sidebar from "@/components/common/Sidebar";
 import Header from "@/components/common/Header";
-import Footer from "@/components/common/Footer";
 import { Spinner } from "@/components/common/Spinner";
 import { getProject } from "@api/project/apis/get/get-project";
 import { useProjectScoreQuery } from "@api/project/hooks/queries/useProjectScoreQuery";
@@ -162,7 +161,6 @@ function PlayerPageContent() {
           onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           isSidebarCollapsed={isSidebarCollapsed}
           title="Music Player"
-          subtitle={effectiveSubtitle}
           rightContent={
             fetchScoreFromApi ? (
               <div className="flex items-center gap-3 md:gap-4">
@@ -269,8 +267,6 @@ function PlayerPageContent() {
             )}
           </div>
         </main>
-
-        <Footer />
       </div>
     </div>
   );

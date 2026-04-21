@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 
 import { useClickOutside } from "@/common/hooks/useClickOutside";
 import { useRouter } from "next/navigation";
-import { ChevronUp, LogOut, UserX } from "lucide-react";
+import { ChevronUp, LogOut, Settings, UserX } from "lucide-react";
 
 import Modal from "@/components/common/Modal";
 import { useDeleteUserMeMutation } from "@api/user/hooks/mutations/useDeleteUserMeMutation";
@@ -14,7 +14,15 @@ import {
   useUser,
 } from "@features/auth/hooks/useAuthStore";
 
-const SidebarAccountFooter = () => {
+type SidebarAccountFooterVariant = "full" | "icon";
+
+interface SidebarAccountFooterProps {
+  variant?: SidebarAccountFooterVariant;
+}
+
+const SidebarAccountFooter = ({
+  variant = "full",
+}: SidebarAccountFooterProps) => {
   const router = useRouter();
   const user = useUser();
   const { clearAuth } = useAuthStoreActions();
@@ -35,7 +43,11 @@ const SidebarAccountFooter = () => {
   return (
     <div
       ref={accountMenuRootRef}
-      className="relative min-w-54 border-t border-[#1e293b] p-2.5"
+      className={
+        variant === "icon"
+          ? "relative w-full py-2 flex items-center justify-center"
+          : "group relative min-w-54 border-t border-[#1e293b] h-[72px] flex items-stretch"
+      }
     >
       <Modal
         isOpen={isDeleteAccountModalOpen}
@@ -104,65 +116,112 @@ const SidebarAccountFooter = () => {
       </Modal>
 
       {isUserMenuOpen && (
-        <div className="absolute inset-x-2.5 bottom-full z-70 mb-1">
-          <div className="overflow-hidden rounded-xl border border-[#1e293b] bg-[#0f1218] shadow-xl">
-            <button
-              type="button"
-              onClick={() => {
-                setIsUserMenuOpen(false);
-                setIsDeleteAccountModalOpen(true);
-              }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-[11px] text-red-400 transition-colors hover:bg-red-500/10"
-            >
-              <UserX className="size-4 shrink-0" strokeWidth={1.75} />
-              계정 삭제
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setIsUserMenuOpen(false);
-                // 로그아웃 API가 느릴 수 있어 서버 응답 전에 인증을 비우고 이동(낙관적 UX).
-                clearAuth();
-                router.push("/login");
-                logoutMutation.mutate();
-              }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-[11px] text-gray-200 transition-colors hover:bg-white/5"
-            >
-              <LogOut className="size-4 shrink-0" strokeWidth={1.75} />
-              로그아웃
-            </button>
-          </div>
+        <div
+          className={
+            variant === "icon"
+              ? "absolute left-full bottom-2 z-70 ml-2"
+              : "absolute inset-x-2.5 bottom-full z-70 mb-1"
+          }
+        >
+          {variant === "icon" ? (
+            <div className="flex items-center gap-1 whitespace-nowrap rounded-xl border border-[#1e293b] bg-[#0f1218] p-1 shadow-xl">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsUserMenuOpen(false);
+                  setIsDeleteAccountModalOpen(true);
+                }}
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] text-red-400 transition-colors hover:bg-red-500/10 focus:outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6]/60"
+              >
+                <UserX className="size-4 shrink-0" strokeWidth={1.75} />
+                계정 삭제
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsUserMenuOpen(false);
+                  clearAuth();
+                  router.push("/login");
+                  logoutMutation.mutate();
+                }}
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] text-gray-200 transition-colors hover:bg-white/5 focus:outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6]/60"
+              >
+                <LogOut className="size-4 shrink-0" strokeWidth={1.75} />
+                로그아웃
+              </button>
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-xl border border-[#1e293b] bg-[#0f1218] shadow-xl">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsUserMenuOpen(false);
+                  setIsDeleteAccountModalOpen(true);
+                }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-[11px] text-red-400 transition-colors hover:bg-red-500/10"
+              >
+                <UserX className="size-4 shrink-0" strokeWidth={1.75} />
+                계정 삭제
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsUserMenuOpen(false);
+                  // 로그아웃 API가 느릴 수 있어 서버 응답 전에 인증을 비우고 이동(낙관적 UX).
+                  clearAuth();
+                  router.push("/login");
+                  logoutMutation.mutate();
+                }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-[11px] text-gray-200 transition-colors hover:bg-white/5"
+              >
+                <LogOut className="size-4 shrink-0" strokeWidth={1.75} />
+                로그아웃
+              </button>
+            </div>
+          )}
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={() => setIsUserMenuOpen((v) => !v)}
-        className="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-white/5"
-      >
-        {user?.avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={user.avatarUrl}
-            alt=""
-            className="h-6 w-6 shrink-0 rounded-full border border-white/20 object-cover"
+      {variant === "icon" ? (
+        <button
+          type="button"
+          onClick={() => setIsUserMenuOpen((v) => !v)}
+          className="flex size-10 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-white/5 hover:text-white focus:outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6]/60"
+          aria-label="설정"
+          title="설정"
+        >
+          <Settings className="size-5" strokeWidth={1.75} />
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setIsUserMenuOpen((v) => !v)}
+          className="flex h-full w-full items-center gap-3 px-6 transition-colors hover:bg-white/5"
+        >
+          {user?.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={user.avatarUrl}
+              alt=""
+              className="h-6 w-6 shrink-0 rounded-full border border-white/20 object-cover"
+            />
+          ) : (
+            <div className="h-6 w-6 shrink-0 rounded-full border border-white/20 bg-linear-to-br from-blue-500 to-indigo-600" />
+          )}
+          <div className="flex min-w-0 flex-1 flex-col text-left">
+            <span className="truncate text-[14px] font-medium text-white">
+              {user?.name ?? "—"}
+            </span>
+            <span className="truncate text-[12px] font-medium text-gray-500">
+              {user?.email ?? ""}
+            </span>
+          </div>
+          <ChevronUp
+            className={`size-4 shrink-0 text-gray-500 transition-transform ${isUserMenuOpen ? "" : "rotate-180"}`}
+            strokeWidth={1.75}
           />
-        ) : (
-          <div className="h-6 w-6 shrink-0 rounded-full border border-white/20 bg-linear-to-br from-blue-500 to-indigo-600" />
-        )}
-        <div className="flex min-w-0 flex-1 flex-col text-left">
-          <span className="truncate text-[11px] font-medium text-white">
-            {user?.name ?? "—"}
-          </span>
-          <span className="truncate text-[8px] font-bold tracking-tighter text-gray-500">
-            {user?.email ?? ""}
-          </span>
-        </div>
-        <ChevronUp
-          className={`size-4 shrink-0 text-gray-500 transition-transform ${isUserMenuOpen ? "" : "rotate-180"}`}
-          strokeWidth={1.75}
-        />
-      </button>
+        </button>
+      )}
     </div>
   );
 };

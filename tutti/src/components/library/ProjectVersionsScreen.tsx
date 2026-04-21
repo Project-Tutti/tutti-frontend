@@ -121,9 +121,8 @@ const ProjectVersionsScreen = () => {
           onToggleSidebar={() => setIsSidebarCollapsed((v) => !v)}
           isSidebarCollapsed={isSidebarCollapsed}
           title="Library / Versions"
-          subtitle="버전을 눌러 해당 프로젝트 작업 화면으로 이동합니다."
           rightContent={
-            <span className="rounded-full border border-[#1e293b] bg-white/5 px-3 py-1 text-[11px] font-semibold text-gray-300 md:text-xs">
+            <span className="px-3 py-1 text-[14px] font-semibold text-gray-500">
               Library
             </span>
           }

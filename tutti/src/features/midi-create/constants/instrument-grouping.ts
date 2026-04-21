@@ -17,11 +17,6 @@ import {
 
 /** GM 프로그램을 카테고리 대표 번호(representative)로 묶는 규칙 (트랙 분석용) */
 
-export const INSTRUMENT_DROP_LIST: ReadonlySet<number> = new Set([
-  47, 55, 109, 113, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126,
-  127,
-]);
-
 export interface InstrumentGroupDefinition {
   representative: number;
   name: string;

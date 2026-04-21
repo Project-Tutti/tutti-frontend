@@ -51,6 +51,7 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
     projectId: number;
     name: string;
   } | null>(null);
+
   const {
     data,
     fetchNextPage,
@@ -98,7 +99,6 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
       setRenamingProjectId(null);
       return;
     }
-    // 낙관적 업데이트가 있으니 즉시 인풋 종료
     setRenamingProjectId(null);
     try {
       await patchProjectNameMutation.mutateAsync({ projectId, name: next });
@@ -159,38 +159,231 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
         bg-[#0a0c10] border-r border-[#1e293b] flex flex-col
         sticky top-0 h-dvh max-h-dvh shrink-0
         transition-all duration-300 ease-in-out z-60
-        ${isCollapsed ? "w-0 border-r-0" : "w-54"}
+        ${isCollapsed ? "w-18" : "w-77"}
       `}
-      style={{ overflow: isCollapsed ? "hidden" : "visible" }}
     >
-      <div className="flex min-h-16 min-w-54 shrink-0 items-center justify-between border-b border-[#1e293b] px-2.5 py-2">
-        <Link
-          href="/home"
-          className="flex items-center justify-start focus:outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6]/60 rounded-lg"
-          aria-label="홈으로 이동"
-          onClick={() => {
-            closeMenus();
-            setRenamingProjectId(null);
-          }}
-        >
-          <div className="relative h-9 w-[100px] ml-1">
-            <Image
-              src="/logo.svg"
-              alt="tutti"
-              fill
-              sizes="100px"
-              className="object-contain object-left"
-              priority
-            />
+      {/* ── Main content wrapper: overflow-hidden clips during transition ── */}
+      <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
+        {/* 헤더 (토글/로고) */}
+        {isCollapsed ? (
+          <div className="flex w-full flex-col items-start">
+            <div className="flex min-h-17 w-full items-center px-4">
+              <button
+                onClick={onToggle}
+                className="flex size-10 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-white/5 hover:text-white focus:outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6]/60"
+                aria-label="사이드바 열기"
+              >
+                <LayoutPanelLeft className="size-5" strokeWidth={1.75} />
+              </button>
+            </div>
           </div>
-        </Link>
-        <button
-          onClick={onToggle}
-          className="text-gray-500 hover:text-white transition-colors"
-          aria-label="Toggle sidebar"
+        ) : (
+          <div className="flex min-h-17 min-w-77 shrink-0 items-center gap-2 px-4">
+            <button
+              onClick={onToggle}
+              className="flex size-10 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-white/5 hover:text-white focus:outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6]/60"
+              aria-label="사이드바 접기"
+            >
+              <LayoutPanelLeft className="size-5" strokeWidth={1.75} />
+            </button>
+
+            <Link
+              href="/home"
+              className="flex items-center rounded-lg focus:outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6]/60"
+              aria-label="홈으로 이동"
+              onClick={() => {
+                closeMenus();
+                setRenamingProjectId(null);
+              }}
+            >
+              <div className="relative h-7 w-[100px]">
+                <Image
+                  src="/logo.svg"
+                  alt="tutti"
+                  fill
+                  sizes="100px"
+                  className="object-contain object-left"
+                  priority
+                />
+              </div>
+            </Link>
+          </div>
+        )}
+
+        {/* 새 프로젝트: DOM을 하나로 유지해서 토글 시 미세 이동 방지 */}
+        <div
+          className={
+            isCollapsed ? "px-4 pt-2.5 pb-1.5" : "min-w-77 px-4 pt-2.5 pb-1"
+          }
         >
-          <LayoutPanelLeft className="size-5" strokeWidth={1.75} />
-        </button>
+          <Link
+            href="/home"
+            onClick={() => {
+              closeMenus();
+              setRenamingProjectId(null);
+            }}
+            className={[
+              "group flex items-center rounded-full py-2 text-[14px] font-semibold text-gray-200 transition-colors hover:bg-white/5 hover:text-white focus:outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6]/60",
+              isCollapsed ? "w-10 justify-center" : "w-full gap-2 pr-3",
+            ].join(" ")}
+            aria-label="새 프로젝트"
+            title="새 프로젝트"
+          >
+            <span className="flex size-10 shrink-0 items-center justify-center">
+              <CirclePlus
+                className="size-5 text-gray-400 group-hover:text-[#3b82f6]"
+                strokeWidth={1.75}
+              />
+            </span>
+            {!isCollapsed && <span className="truncate">새 프로젝트</span>}
+          </Link>
+        </div>
+
+        {!isCollapsed && (
+          <>
+            {/* ✅ 프로젝트 목록 스크롤 영역 */}
+            <div
+              ref={scrollRef}
+              className="grow flex min-h-0 min-w-77 flex-col space-y-4 overflow-y-auto px-0 pt-1 pb-4"
+            >
+              <div>
+                <div className="space-y-1">
+                  {isPending && (
+                    <div className="px-9 py-2">
+                      <Spinner size="sm" label="불러오는 중…" />
+                    </div>
+                  )}
+                  {isError && (
+                    <p className="px-6 py-2 text-[14px] text-red-400/90">
+                      목록을 불러오지 못했습니다.
+                    </p>
+                  )}
+                  {!isPending && !isError && projects.length === 0 && (
+                    <p className="px-6 py-2 text-[14px] text-gray-500">
+                      저장된 프로젝트가 없습니다.
+                    </p>
+                  )}
+
+                  {projects.map((item) => (
+                    <div key={item.projectId} className="px-6">
+                      <div
+                        ref={
+                          openMenuProjectId === item.projectId
+                            ? projectMenuHostRef
+                            : undefined
+                        }
+                        className="group relative flex items-center gap-2 rounded-full px-1.5 py-2 text-[14px] sidebar-item transition-colors hover:bg-white/5"
+                      >
+                        {renamingProjectId === item.projectId ? (
+                          <input
+                            autoFocus
+                            value={renameDraft}
+                            onChange={(e) => setRenameDraft(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Escape") {
+                                setRenamingProjectId(null);
+                              }
+                              if (e.key === "Enter") {
+                                void submitRename(item.projectId, item.name);
+                              }
+                            }}
+                            onBlur={() => setRenamingProjectId(null)}
+                            className="w-full bg-transparent outline-none text-[14px] text-gray-100 placeholder:text-gray-600"
+                            disabled={patchProjectNameMutation.isPending}
+                          />
+                        ) : (
+                          <Link
+                            href={`/library/${item.projectId}?name=${encodeURIComponent(item.name)}`}
+                            className="block min-w-0 flex-1 text-left text-[14px] leading-snug text-gray-200 transition-colors truncate"
+                          >
+                            {item.name}
+                          </Link>
+                        )}
+
+                        <button
+                          type="button"
+                          aria-label="프로젝트 메뉴"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setOpenMenuProjectId((prev) =>
+                              prev === item.projectId ? null : item.projectId,
+                            );
+                          }}
+                          className="flex size-7 shrink-0 items-center justify-center rounded-full p-0 text-gray-400 opacity-100 transition-colors hover:bg-white/5 hover:text-white"
+                        >
+                          <MoreHorizontal
+                            className="size-5"
+                            strokeWidth={1.75}
+                          />
+                        </button>
+
+                        {openMenuProjectId === item.projectId && (
+                          <div className="absolute inset-x-0 top-full z-70 pt-1">
+                            <div className="flex justify-end px-2">
+                              <div className="w-36 overflow-hidden rounded-xl border border-[#1e293b] bg-[#0f1218] shadow-xl">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    startRename(item.projectId, item.name);
+                                  }}
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-[14px] text-gray-200 transition-colors hover:bg-white/5"
+                                >
+                                  <Pencil
+                                    className="size-[18px] shrink-0 text-gray-400"
+                                    strokeWidth={1.75}
+                                  />
+                                  이름 바꾸기
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    confirmDelete(item.projectId, item.name);
+                                  }}
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-[14px] text-red-400 transition-colors hover:bg-red-500/10"
+                                >
+                                  <Trash2
+                                    className="size-[18px] shrink-0"
+                                    strokeWidth={1.75}
+                                  />
+                                  삭제
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  {isFetchingNextPage && (
+                    <div className="px-9 py-1.5">
+                      <Spinner size="xs" label="더 불러오는 중…" />
+                    </div>
+                  )}
+                  <div
+                    ref={sentinelRef}
+                    className="h-1 w-full shrink-0"
+                    aria-hidden
+                  />
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* ── Footer: overflow-hidden 밖에 배치 → 드롭다운이 잘리지 않음 ── */}
+      <div className="shrink-0">
+        {isCollapsed ? (
+          <SidebarAccountFooter variant="icon" />
+        ) : (
+          <SidebarAccountFooter />
+        )}
       </div>
 
       <SidebarDeleteProjectModal
@@ -200,148 +393,6 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
         onConfirm={runDelete}
         isPending={deleteProjectMutation.isPending}
       />
-
-      <div
-        ref={scrollRef}
-        className="grow flex min-h-0 min-w-54 flex-col space-y-4 overflow-y-auto p-2.5"
-      >
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">
-              프로젝트 히스토리
-            </h2>
-            <Link
-              href="/home"
-              className="text-gray-500 hover:text-[#3b82f6] transition-colors"
-              aria-label="새 프로젝트"
-            >
-              <CirclePlus className="size-4" strokeWidth={1.75} />
-            </Link>
-          </div>
-
-          {isPending && (
-            <div className="py-2">
-              <Spinner size="sm" label="불러오는 중…" />
-            </div>
-          )}
-          {isError && (
-            <p className="py-2 text-[11px] text-red-400/90">
-              목록을 불러오지 못했습니다.
-            </p>
-          )}
-          {!isPending && !isError && projects.length === 0 && (
-            <p className="py-2 text-[11px] text-gray-500">
-              저장된 프로젝트가 없습니다.
-            </p>
-          )}
-
-          <div className="space-y-0.5">
-            {projects.map((item) => (
-              <div
-                key={item.projectId}
-                ref={
-                  openMenuProjectId === item.projectId
-                    ? projectMenuHostRef
-                    : undefined
-                }
-                className="group relative flex items-center gap-1.5 py-1.5 rounded-lg sidebar-item hover:bg-white/5 transition-colors"
-              >
-                {renamingProjectId === item.projectId ? (
-                  <input
-                    autoFocus
-                    value={renameDraft}
-                    onChange={(e) => setRenameDraft(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Escape") {
-                        setRenamingProjectId(null);
-                      }
-                      if (e.key === "Enter") {
-                        void submitRename(item.projectId, item.name);
-                      }
-                    }}
-                    onBlur={() => setRenamingProjectId(null)}
-                    className="w-full bg-[#05070a] border border-[#1e293b] rounded-md px-1.5 py-0.5 text-[11px] text-gray-100 focus:outline-none focus:border-[#3b82f6]"
-                    disabled={patchProjectNameMutation.isPending}
-                  />
-                ) : (
-                  <Link
-                    href={`/library/${item.projectId}?name=${encodeURIComponent(item.name)}`}
-                    className="block min-w-0 flex-1 text-left text-[11px] leading-snug text-gray-300 hover:text-white transition-colors truncate"
-                  >
-                    {item.name}
-                  </Link>
-                )}
-
-                <button
-                  type="button"
-                  aria-label="프로젝트 메뉴"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setOpenMenuProjectId((prev) =>
-                      prev === item.projectId ? null : item.projectId,
-                    );
-                  }}
-                  className="flex size-7 shrink-0 items-center justify-center rounded-md p-0 text-gray-500 opacity-0 transition-opacity hover:text-white group-hover:opacity-100"
-                >
-                  <MoreHorizontal className="size-5" strokeWidth={1.75} />
-                </button>
-
-                {openMenuProjectId === item.projectId && (
-                  <div className="absolute inset-x-0 top-full z-70 pt-1">
-                    <div className="flex justify-end px-2">
-                      <div className="w-36 overflow-hidden rounded-xl border border-[#1e293b] bg-[#0f1218] shadow-xl">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            startRename(item.projectId, item.name);
-                          }}
-                          className="flex w-full items-center gap-1.5 px-2.5 py-1.5 text-left text-[11px] text-gray-200 transition-colors hover:bg-white/5"
-                        >
-                          <Pencil
-                            className="size-[18px] shrink-0 text-gray-400"
-                            strokeWidth={1.75}
-                          />
-                          이름 바꾸기
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            confirmDelete(item.projectId, item.name);
-                          }}
-                          className="flex w-full items-center gap-1.5 px-2.5 py-1.5 text-left text-[11px] text-red-400 transition-colors hover:bg-red-500/10"
-                        >
-                          <Trash2
-                            className="size-[18px] shrink-0"
-                            strokeWidth={1.75}
-                          />
-                          삭제
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-            {isFetchingNextPage && (
-              <div className="py-1.5">
-                <Spinner size="xs" label="더 불러오는 중…" />
-              </div>
-            )}
-            <div
-              ref={sentinelRef}
-              className="h-1 w-full shrink-0"
-              aria-hidden
-            />
-          </div>
-        </div>
-      </div>
-
-      <SidebarAccountFooter />
     </aside>
   );
 };

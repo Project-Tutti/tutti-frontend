@@ -12,7 +12,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Sidebar from "@/components/common/Sidebar";
 import { Spinner } from "@/components/common/Spinner";
 import Header from "@/components/common/Header";
-import Footer from "@/components/common/Footer";
 import TrackGrid from "@/components/before-create/TrackGrid";
 import TrackModal from "@/components/before-create/TrackModal";
 import AnalysisInfo from "@/components/before-create/AnalysisInfo";
@@ -315,8 +314,7 @@ function BeforeCreatePageContent() {
 
   if (tracks.length === 0) return null;
 
-  const projectNameMissing =
-    !isRegenerateMode && !projectName.trim();
+  const projectNameMissing = !isRegenerateMode && !projectName.trim();
 
   return (
     <div className="flex h-dvh max-h-dvh flex-row overflow-hidden">
@@ -329,8 +327,7 @@ function BeforeCreatePageContent() {
         <Header
           onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           isSidebarCollapsed={isSidebarCollapsed}
-          title="Identified Tracks"
-          subtitle="Analysis Complete"
+          title="Workspace / Instrument Setup"
           rightContent={<HeaderContent trackCount={tracks.length} />}
         />
 
@@ -392,9 +389,7 @@ function BeforeCreatePageContent() {
                 : createProjectMutation.isPending)
             }
             disabled={
-              !genre ||
-              selectedInstrument == null ||
-              projectNameMissing
+              !genre || selectedInstrument == null || projectNameMissing
             }
             errorMessage={createError}
             label={isRegenerateMode ? "Regenerate" : "Generate"}
@@ -404,8 +399,6 @@ function BeforeCreatePageContent() {
             variant={isRegenerateMode ? "regenerate" : "generate"}
           />
         </main>
-
-        <Footer />
       </div>
 
       {/* 트랙 모달 */}
