@@ -4,7 +4,6 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import type { ProjectVersionMappingResponseDto } from "@api/project/types/api.types";
 
 import { Track } from "@/types/track";
-import { DROP_CATEGORY_PROGRAM } from "@common/utils/midi-utils";
 
 /** 생성 설정 모달 등에서 기본 선택 장르 */
 export const DEFAULT_GENRE = "POP";
@@ -73,10 +72,6 @@ export const useMidiStore = create<MidiStore>()(
 
           const nextMappings: Record<string, number> = {};
           tracks.forEach((track) => {
-            if (track.isDropListProgram) {
-              nextMappings[track.id] = DROP_CATEGORY_PROGRAM;
-              return;
-            }
             const idx = trackIndexFromId(track.id);
             const mapped =
               idx != null && mappingsByIndex.has(idx)

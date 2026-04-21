@@ -2,22 +2,22 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import { useInstrumentCategoriesQuery } from "@api/instruments/hooks/queries/useInstrumentCategoriesQuery";
+import { useInstrumentsQuery } from "@api/instruments/hooks/queries/useInstrumentsQuery";
 
 import Modal from "@/components/common/Modal";
 import { Spinner } from "@/components/common/Spinner";
 import { Track } from "@/types/track";
 import { INSTRUMENT_OPTIONS } from "@features/midi-create/constants/instrument-options";
-import { flattenInstrumentCategoriesToMappingOptions } from "@features/midi-create/utils/instrument-category-mapping-options";
-import { resolveInstrumentDisplayName } from "@features/midi-create/utils/instrument-display-name";
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
-import { DROP_CATEGORY_PROGRAM } from "@common/utils/midi-utils";
 
 interface TrackModalProps {
   isOpen: boolean;
   track: Track | null;
   onClose: () => void;
 }
+
+const formatDisplayName = (name: string): string =>
+  name.toUpperCase().replace(/_/g, " ");
 
 function MetaRow({
   label,
@@ -28,7 +28,9 @@ function MetaRow({
 }) {
   return (
     <div className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
-      <dt className="shrink-0 text-[11px] font-medium text-slate-500">{label}</dt>
+      <dt className="shrink-0 text-[11px] font-medium text-slate-500">
+        {label}
+      </dt>
       <dd className="min-w-0 text-xs leading-snug text-slate-200 sm:text-right">
         {children}
       </dd>
@@ -56,50 +58,53 @@ const TrackModal = ({ isOpen, track, onClose }: TrackModalProps) => {
   const sourceInstrumentId = track?.sourceInstrumentId ?? 0;
 
   const {
-    data: categories,
-    isPending: categoriesPending,
-    isError: categoriesError,
-  } = useInstrumentCategoriesQuery();
+    data: instruments,
+    isPending: instrumentsPending,
+    isError: instrumentsError,
+  } = useInstrumentsQuery();
 
-  const categoriesLoadingWithoutData = categoriesPending && !categories;
+  const instrumentsLoadingWithoutData = instrumentsPending && !instruments;
 
   const mappingOptions = useMemo(() => {
-    const fromApi = categories?.length
-      ? flattenInstrumentCategoriesToMappingOptions(categories)
-      : [];
-    if (fromApi.length > 0) return fromApi;
+    if (Array.isArray(instruments) && instruments.length > 0) {
+      const seen = new Set<number>();
+      const out = [];
+      for (const inst of instruments) {
+        const id = inst.midiProgram;
+        if (!Number.isFinite(id) || id < 0 || id > 128 || seen.has(id))
+          continue;
+        seen.add(id);
+        out.push({
+          id,
+          label: `${inst.name} · General MIDI ${id}`,
+        });
+      }
+      out.sort((a, b) => a.id - b.id);
+      return out;
+    }
     return INSTRUMENT_OPTIONS.map((o) => ({
       id: o.id,
       label: o.label,
     }));
-  }, [categories]);
+  }, [instruments]);
 
   // API 표준명 우선, 없으면 MIDI 원본 기반 instrumentType fallback.
-  // drop 트랙은 "Drop" 라벨을 그대로 유지한다.
   const trackDisplayType = useMemo(() => {
     if (!track) return "";
-    if (track.isDropListProgram) return track.instrumentType;
-    return resolveInstrumentDisplayName(
-      categories,
-      track.sourceInstrumentId,
-      track.instrumentType,
+    const matched = instruments?.find(
+      (inst) => inst.midiProgram === track.sourceInstrumentId,
     );
-  }, [categories, track]);
+    return matched?.name ? formatDisplayName(matched.name) : track.instrumentType;
+  }, [track, instruments]);
 
-  const defaultMappedInstrumentId = track?.isDropListProgram
-    ? DROP_CATEGORY_PROGRAM
-    : sourceInstrumentId;
+  const defaultMappedInstrumentId = sourceInstrumentId;
 
   const currentMappedInstrumentId =
     trackMappings[trackId] ?? defaultMappedInstrumentId;
 
   useEffect(() => {
     if (!track) return;
-    const initialId =
-      trackMappings[track.id] ??
-      (track.isDropListProgram
-        ? DROP_CATEGORY_PROGRAM
-        : track.sourceInstrumentId);
+    const initialId = trackMappings[track.id] ?? track.sourceInstrumentId;
     setInputValue(String(initialId));
     setSearchText("");
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 모달 열림 시 초기값 세팅 목적; trackMappings 변경에 반응하면 안 됨
@@ -127,7 +132,7 @@ const TrackModal = ({ isOpen, track, onClose }: TrackModalProps) => {
     if (!track) return;
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) return;
-    if (parsed < 0 || parsed > 129) return;
+    if (parsed < 0 || parsed > 128) return;
     setTrackMapping(trackId, parsed);
   };
 
@@ -153,7 +158,10 @@ const TrackModal = ({ isOpen, track, onClose }: TrackModalProps) => {
       }
     >
       <div className="space-y-4">
-        <section className={sectionClass} aria-labelledby="track-summary-heading">
+        <section
+          className={sectionClass}
+          aria-labelledby="track-summary-heading"
+        >
           <h3 id="track-summary-heading" className={sectionTitleClass}>
             요약
           </h3>
@@ -194,30 +202,17 @@ const TrackModal = ({ isOpen, track, onClose }: TrackModalProps) => {
             현재 매핑
           </h3>
           <div className="space-y-2.5 text-xs leading-relaxed text-slate-300">
-            {track.isDropListProgram ? (
-              <>
-                <p>
-                  <span className="text-slate-500">원본 분류</span>{" "}
-                  <span className="font-medium text-amber-300/95">Drop</span>
-                </p>
-                <p className="text-[11px] leading-relaxed text-slate-500">
-                  자동 변환에서 제외되는 악기군입니다. 아래에서 원하는 악기로 바꿀
-                  수 있습니다.
-                </p>
-              </>
-            ) : (
-              <p>
-                <span className="text-slate-500">원본 GM 번호</span>{" "}
-                <span className="font-mono font-medium text-white tabular-nums">
-                  {track.sourceInstrumentId}
-                </span>
-              </p>
-            )}
             <p>
-              <span className="text-slate-500">
-                {track.isDropListProgram ? "선택한 악기" : "매핑된 악기"}
-              </span>{" "}
-              <span className="font-medium text-white">{mappedOptionLabel}</span>
+              <span className="text-slate-500">원본 GM 번호</span>{" "}
+              <span className="font-mono font-medium text-white tabular-nums">
+                {track.sourceInstrumentId}
+              </span>
+            </p>
+            <p>
+              <span className="text-slate-500">매핑된 악기</span>{" "}
+              <span className="font-medium text-white">
+                {mappedOptionLabel}
+              </span>
               <span className="ml-1.5 font-mono text-[11px] text-slate-500 tabular-nums">
                 (#{currentMappedInstrumentId})
               </span>
@@ -229,17 +224,13 @@ const TrackModal = ({ isOpen, track, onClose }: TrackModalProps) => {
           <button
             type="button"
             onClick={() => {
-              const resetId = track.isDropListProgram
-                ? DROP_CATEGORY_PROGRAM
-                : track.sourceInstrumentId;
+              const resetId = track.sourceInstrumentId;
               setInputValue(String(resetId));
               setTrackMapping(track.id, resetId);
             }}
             className="mt-3 text-xs font-medium text-blue-400 transition-colors hover:text-blue-300"
           >
-            {track.isDropListProgram
-              ? "기본 매핑으로 되돌리기"
-              : "원본 악기 번호로 되돌리기"}
+            원본 악기 번호로 되돌리기
           </button>
         </section>
 
@@ -251,17 +242,17 @@ const TrackModal = ({ isOpen, track, onClose }: TrackModalProps) => {
             악기 변경
           </h3>
 
-          {categoriesLoadingWithoutData && (
+          {instrumentsLoadingWithoutData && (
             <div className="flex justify-center py-10">
               <Spinner size="sm" label="악기 목록 불러오는 중" />
             </div>
           )}
 
-          {!categoriesLoadingWithoutData && (
+          {!instrumentsLoadingWithoutData && (
             <>
-              {categoriesError && (
+              {instrumentsError && (
                 <p className="mb-2.5 rounded-lg border border-amber-500/25 bg-amber-500/10 px-2.5 py-2 text-xs text-amber-200/95">
-                  카테고리를 불러오지 못해 기본 GM 목록을 표시합니다.
+                  악기 목록을 불러오지 못해 기본 GM 목록을 표시합니다.
                 </p>
               )}
 
@@ -324,13 +315,13 @@ const TrackModal = ({ isOpen, track, onClose }: TrackModalProps) => {
                   htmlFor="custom-instrument-id"
                   className="mb-1 block text-[11px] font-medium text-slate-500"
                 >
-                  직접 입력 <span className="text-slate-600">(0–129)</span>
+                  직접 입력 <span className="text-slate-600">(0–128)</span>
                 </label>
                 <input
                   id="custom-instrument-id"
                   type="number"
                   min={0}
-                  max={129}
+                  max={128}
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onBlur={(e) => applyMappingValue(e.target.value)}

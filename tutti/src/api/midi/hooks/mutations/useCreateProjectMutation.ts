@@ -7,7 +7,6 @@ import type {
 } from "@api/midi/types/api.types";
 
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
-import { DROP_CATEGORY_PROGRAM } from "@common/utils/midi-utils";
 
 const INITIAL_VERSION_NAME = "v1";
 
@@ -59,11 +58,7 @@ export const useCreateProjectMutation = () => {
         maxNote,
         mappings: tracks.map((track, index) => ({
           trackIndex: index,
-          targetInstrumentId:
-            trackMappings[track.id] ??
-            (track.isDropListProgram
-              ? DROP_CATEGORY_PROGRAM
-              : track.sourceInstrumentId),
+          targetInstrumentId: trackMappings[track.id] ?? track.sourceInstrumentId,
         })),
         tracks: tracks.map((track, index) => ({
           trackIndex: index,

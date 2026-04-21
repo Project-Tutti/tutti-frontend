@@ -14,5 +14,3 @@ export function midiToNoteName(midi: number): string {
   const octave = Math.floor(midi / 12) - 1;
   return `${note}${octave}(${octave}옥타브 ${NOTE_KO[note] ?? note})`;
 }
-
-export const DROP_CATEGORY_PROGRAM = 129;
