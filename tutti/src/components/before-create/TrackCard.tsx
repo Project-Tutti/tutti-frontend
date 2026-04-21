@@ -13,14 +13,11 @@ const TrackCard = ({ track, onClick }: TrackCardProps) => {
   const IconComponent = getIconComponent(track.icon);
 
   // API 표준명 우선, 없으면 MIDI 원본 기반 instrumentType fallback.
-  // drop 트랙은 "Drop" 라벨을 그대로 유지한다.
   const standardName = useInstrumentDisplayName(
     track.sourceInstrumentId,
     track.instrumentType,
   );
-  const displayType = track.isDropListProgram
-    ? track.instrumentType
-    : standardName;
+  const displayType = standardName;
 
   return (
     <button

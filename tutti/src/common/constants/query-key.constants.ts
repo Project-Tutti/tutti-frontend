@@ -24,6 +24,7 @@ const queryKeys = createQueryKeyStore({
   instruments: {
     all: null,
     /** query-key-factory는 최소 1개의 key segment가 필요함 */
+    list: () => ["all"],
     categories: () => ["list"],
     generatableCategories: () => ["generatable"],
   },
