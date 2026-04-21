@@ -2,6 +2,7 @@
 
 import { Track } from "@/types/track";
 import { getIconComponent } from "@features/midi-create/constants/instrument-grouping";
+import { useInstrumentDisplayName } from "@features/midi-create/utils/instrument-display-name";
 
 interface TrackCardProps {
   track: Track;
@@ -10,6 +11,16 @@ interface TrackCardProps {
 
 const TrackCard = ({ track, onClick }: TrackCardProps) => {
   const IconComponent = getIconComponent(track.icon);
+
+  // API 표준명 우선, 없으면 MIDI 원본 기반 instrumentType fallback.
+  // drop 트랙은 "Drop" 라벨을 그대로 유지한다.
+  const standardName = useInstrumentDisplayName(
+    track.sourceInstrumentId,
+    track.instrumentType,
+  );
+  const displayType = track.isDropListProgram
+    ? track.instrumentType
+    : standardName;
 
   return (
     <button
@@ -20,7 +31,7 @@ const TrackCard = ({ track, onClick }: TrackCardProps) => {
       <div className="flex items-start justify-between">
         <IconComponent className="size-6 text-[#3b82f6] transition-all group-hover:scale-110 md:size-7" />
         <span className="rounded bg-[#3b82f6]/10 px-1 py-0.5 text-[7px] font-bold uppercase tracking-wide text-[#3b82f6]/60 md:px-1.5 md:text-[8px]">
-          {track.instrumentType}
+          {displayType}
         </span>
       </div>
 

@@ -9,6 +9,7 @@ import { Spinner } from "@/components/common/Spinner";
 import { Track } from "@/types/track";
 import { INSTRUMENT_OPTIONS } from "@features/midi-create/constants/instrument-options";
 import { flattenInstrumentCategoriesToMappingOptions } from "@features/midi-create/utils/instrument-category-mapping-options";
+import { resolveInstrumentDisplayName } from "@features/midi-create/utils/instrument-display-name";
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
 import { DROP_CATEGORY_PROGRAM } from "@common/utils/midi-utils";
 
@@ -72,6 +73,18 @@ const TrackModal = ({ isOpen, track, onClose }: TrackModalProps) => {
       label: o.label,
     }));
   }, [categories]);
+
+  // API 표준명 우선, 없으면 MIDI 원본 기반 instrumentType fallback.
+  // drop 트랙은 "Drop" 라벨을 그대로 유지한다.
+  const trackDisplayType = useMemo(() => {
+    if (!track) return "";
+    if (track.isDropListProgram) return track.instrumentType;
+    return resolveInstrumentDisplayName(
+      categories,
+      track.sourceInstrumentId,
+      track.instrumentType,
+    );
+  }, [categories, track]);
 
   const defaultMappedInstrumentId = track?.isDropListProgram
     ? DROP_CATEGORY_PROGRAM
@@ -148,7 +161,7 @@ const TrackModal = ({ isOpen, track, onClose }: TrackModalProps) => {
             <MetaRow label="트랙 이름">
               <span className="font-medium text-white/95">{track.name}</span>
             </MetaRow>
-            <MetaRow label="악기 유형">{track.instrumentType}</MetaRow>
+            <MetaRow label="악기 유형">{trackDisplayType}</MetaRow>
             <MetaRow label="채널">{track.channel}</MetaRow>
             <MetaRow label="음표 수">
               {(track.noteCount ?? 0).toLocaleString("ko-KR")}

@@ -25,6 +25,34 @@ const getIconByFamily = (family: string): string => {
   return familyMap[family] ?? "music";
 };
 
+/**
+ * GM program 번호 → family 보조 매핑.
+ *
+ * `@tonejs/midi` 가 `family` 를 주지 않거나 `"unknown"` 으로 내려줄 때 사용한다.
+ * GM 스펙상 프로그램은 8개 단위로 family 가 고정되어 있으므로 번호만으로 안전하게 유추 가능.
+ *
+ * 참고: https://en.wikipedia.org/wiki/General_MIDI#Program_change_events
+ */
+const getFamilyByProgram = (program: number): string => {
+  if (!Number.isFinite(program) || program < 0 || program > 127) return "unknown";
+  if (program <= 7) return "piano";
+  if (program <= 15) return "chromatic_perc";
+  if (program <= 23) return "organ";
+  if (program <= 31) return "guitar";
+  if (program <= 39) return "bass";
+  if (program <= 47) return "strings";
+  if (program <= 55) return "ensemble";
+  if (program <= 63) return "brass";
+  if (program <= 71) return "reed";
+  if (program <= 79) return "pipe";
+  if (program <= 87) return "synth_lead";
+  if (program <= 95) return "synth_pad";
+  if (program <= 103) return "synth_effects";
+  if (program <= 111) return "ethnic";
+  if (program <= 119) return "percussive";
+  return "sound_effects";
+};
+
 const formatInstrumentType = (name: string): string => {
   if (!name || name === "Unknown") return "UNKNOWN";
   return name.toUpperCase().replace(/_/g, " ");
@@ -46,6 +74,7 @@ const DRUM_KIT_PROGRAM = 128;
  * - `INSTRUMENT_DROP_LIST` 에 해당하는 program 은 자동 매핑 대상에서 제외하고
  *   `isDropListProgram` 플래그를 세워 사용자가 모달에서 수동 매핑하도록 유도한다.
  */
+
 export const parseMidiFile = async (file: File): Promise<Track[]> => {
   const arrayBuffer = await file.arrayBuffer();
   const midi = new Midi(arrayBuffer);
@@ -89,9 +118,12 @@ export const parseMidiFile = async (file: File): Promise<Track[]> => {
       : (midiName ?? "Unknown");
     const instrumentType = formatInstrumentType(displayName);
 
+    const familyFromMidi = track.instrument.family;
     const instrumentFamily = isDrumChannel
       ? "percussive"
-      : track.instrument.family || "unknown";
+      : familyFromMidi && familyFromMidi !== "unknown"
+        ? familyFromMidi
+        : getFamilyByProgram(rawProgram);
     const icon = getIconByFamily(instrumentFamily);
 
     result.push({
