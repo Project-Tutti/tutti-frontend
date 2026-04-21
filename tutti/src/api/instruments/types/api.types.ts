@@ -7,6 +7,9 @@ export interface InstrumentDto {
   maxNote: number;
 }
 
+/** @deprecated InstrumentDto 를 사용하세요 (동일 구조) */
+export type GeneratableInstrumentDto = InstrumentDto;
+
 /** `/instruments/categories` 응답 — 카테고리 단위 */
 export interface InstrumentCategoryDto {
   representativeProgram: number;
@@ -15,19 +18,10 @@ export interface InstrumentCategoryDto {
   instruments: InstrumentDto[] | null;
 }
 
-/** 생성 가능 카테고리 API — 카테고리 내 개별 악기 (InstrumentDto와 동일 구조) */
-export interface GeneratableInstrumentDto {
-  midiProgram: number;
-  name: string;
-  categoryId: number;
-  minNote: number;
-  maxNote: number;
-}
-
 /** 생성 가능 카테고리 API — 카테고리 단위 */
 export interface GeneratableInstrumentCategoryDto {
   representativeProgram: number;
   name: string;
   generatable: boolean;
-  instruments: GeneratableInstrumentDto[];
+  instruments: InstrumentDto[];
 }
