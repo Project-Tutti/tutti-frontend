@@ -94,11 +94,14 @@ export const parseMidiFile = async (file: File): Promise<Track[]> => {
     const tags: string[] = [];
     if (tempo) tags.push(`${Math.round(tempo)} BPM`);
 
+    // 트랙 이름은 항상 "Track N" 형식으로 통일 (MIDI 원본 이름 무시)
+    const trackName = `Track ${outIndex + 1}`;
+
     // drop list: 드럼 채널이 아니고 drop 후보인 경우에만 적용
     if (!isDrumChannel && INSTRUMENT_DROP_LIST.has(rawProgram)) {
       result.push({
         id: `track-${outIndex}`,
-        name: track.name || `Track ${outIndex + 1}`,
+        name: trackName,
         icon: "block",
         instrumentType: "Drop",
         sourceInstrumentId: rawProgram,
@@ -128,7 +131,7 @@ export const parseMidiFile = async (file: File): Promise<Track[]> => {
 
     result.push({
       id: `track-${outIndex}`,
-      name: track.name || `Track ${outIndex + 1}`,
+      name: trackName,
       icon,
       instrumentType,
       sourceInstrumentId,
