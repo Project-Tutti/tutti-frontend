@@ -7,11 +7,6 @@ import { useInstrumentCategoriesQuery } from "@api/instruments/hooks/queries/use
 
 /**
  * `/instruments/categories` 응답에서 특정 midi program 에 해당하는 "표준 악기명" 을 찾는다.
- *
- * API 응답의 `instruments[]` 원소는 서버 스키마 진화를 고려해 아래 필드들을 관대하게 허용한다:
- * - program 번호: `midiProgram` | `program` | `instrumentId`
- * - 이름: `name` | `label`
- *
  * 매칭이 없으면 `fallback` 을 반환한다 (예: MIDI 원본에서 파싱한 이름).
  */
 export function resolveInstrumentDisplayName(
@@ -21,32 +16,12 @@ export function resolveInstrumentDisplayName(
 ): string {
   if (!categories) return fallback;
 
-  for (const c of categories) {
-    const items = c.instruments;
-    if (!Array.isArray(items)) continue;
+  for (const cat of categories) {
+    const instruments = cat.instruments;
+    if (!instruments) continue;
 
-    for (const raw of items) {
-      if (!raw || typeof raw !== "object") continue;
-      const o = raw as Record<string, unknown>;
-
-      const id =
-        typeof o.midiProgram === "number"
-          ? o.midiProgram
-          : typeof o.program === "number"
-            ? o.program
-            : typeof o.instrumentId === "number"
-              ? o.instrumentId
-              : null;
-      if (id !== programId) continue;
-
-      const name =
-        typeof o.name === "string"
-          ? o.name
-          : typeof o.label === "string"
-            ? o.label
-            : null;
-      if (name && name.trim().length > 0) return name;
-    }
+    const found = instruments.find((inst) => inst.midiProgram === programId);
+    if (found?.name) return found.name;
   }
 
   return fallback;
