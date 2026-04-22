@@ -1,22 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 
-import { useClickOutside } from "@/common/hooks/useClickOutside";
-
-import { useDeleteProjectVersionMutation } from "@api/project/hooks/mutations/useDeleteProjectVersionMutation";
-import { usePatchProjectVersionNameMutation } from "@api/project/hooks/mutations/usePatchProjectVersionNameMutation";
 import { useProjectQuery } from "@api/project/hooks/queries/useProjectQuery";
+import { getProjectTracks } from "@api/project/apis/get/get-project-tracks";
 import type { ProjectVersionResponseDto } from "@api/project/types/api.types";
 
+import { useClickOutside } from "@/common/hooks/useClickOutside";
 import Header from "@/components/common/Header";
 import Modal from "@/components/common/Modal";
 import Sidebar from "@/components/common/Sidebar";
 import { Spinner } from "@/components/common/Spinner";
 import { toast } from "@/components/common/Toast";
-import { MoreVertical } from "lucide-react";
+import { useMidiStore } from "@features/midi-create/stores/midi-store";
+import { MoreVertical, RefreshCw } from "lucide-react";
+
+import { useDeleteProjectVersionMutation } from "@api/project/hooks/mutations/useDeleteProjectVersionMutation";
+import { usePatchProjectVersionNameMutation } from "@api/project/hooks/mutations/usePatchProjectVersionNameMutation";
 
 interface VersionRow {
   id: string;
@@ -67,6 +69,7 @@ function mapVersionsToRows(
 const ProjectVersionsScreen = () => {
   const params = useParams();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const projectIdParam = String(params.projectId ?? "");
   const rawName = searchParams.get("name");
   const fallbackName = rawName
@@ -87,6 +90,8 @@ const ProjectVersionsScreen = () => {
   );
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const { setTracks, setUploadedFile } = useMidiStore();
+
   const [openMenuVersionId, setOpenMenuVersionId] = useState<string | null>(
     null,
   );
@@ -109,6 +114,61 @@ const ProjectVersionsScreen = () => {
   const patchVersionNameMutation = usePatchProjectVersionNameMutation();
   const deleteVersionMutation = useDeleteProjectVersionMutation();
 
+  const [regeneratingVersionId, setRegeneratingVersionId] = useState<
+    string | null
+  >(null);
+
+  const handleRegenerateFromLibrary = async (versionId: string) => {
+    if (!projectIdParam) return;
+    const versionMeta = result?.versions?.find(
+      (v) => String(v.versionId) === String(versionId),
+    );
+    if (!versionMeta) {
+      toast.error("선택한 버전을 찾을 수 없습니다.");
+      return;
+    }
+
+    setRegeneratingVersionId(versionId);
+    try {
+      const res = await getProjectTracks(projectIdParam);
+      if (!res.isSuccess || !res.result?.tracks?.length) {
+        throw new Error(res.message ?? "트랙 정보를 불러오지 못했습니다.");
+      }
+
+      setUploadedFile(null);
+      setTracks(
+        res.result.tracks.map((t) => ({
+          id: `track-${t.trackIndex}`,
+          name: `Track ${t.trackIndex + 1}`,
+          icon: "music_note",
+          instrumentType: "MIDI",
+          sourceInstrumentId: t.sourceInstrumentId,
+          channel: t.trackIndex,
+          tags: ["original"],
+        })),
+        {
+          instrumentId: versionMeta.instrumentId,
+          mappings: versionMeta.mappings ?? [],
+          genre: versionMeta.genre,
+          minNote: versionMeta.minNote,
+          maxNote: versionMeta.maxNote,
+          temperature: versionMeta.temperature,
+        },
+      );
+
+      router.push(
+        `/before-create?mode=regenerate&projectId=${encodeURIComponent(projectIdParam)}&versionId=${encodeURIComponent(versionId)}`,
+      );
+    } catch (e) {
+      console.error(e);
+      toast.error(
+        e instanceof Error ? e.message : "재생성 준비에 실패했습니다.",
+      );
+    } finally {
+      setRegeneratingVersionId(null);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-row overflow-x-hidden bg-[#05070a]">
       <Sidebar
@@ -130,23 +190,19 @@ const ProjectVersionsScreen = () => {
 
         <main className="grow px-4 md:px-6 py-6 md:py-8">
           <div className="max-w-xl mx-auto w-full">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500 mb-2">
-              <span>LIBRARY</span>
-              <span className="text-gray-600">{" > "}</span>
-              <span className="text-gray-400 truncate">
-                {projectName.toUpperCase()}
-              </span>
+            <p className="text-[14px] font-medium text-gray-500">
+              저장된 프로젝트의 버전 목록입니다.
             </p>
 
-            <h1 className="mb-1 text-xl font-bold tracking-tight text-foreground md:text-2xl">
+            <h1 className="mb-1 text-[30px] font-bold tracking-tight text-foreground">
               {projectName}
             </h1>
             {result?.originalFileName && (
-              <p className="text-[11px] text-gray-600 mb-1 truncate">
+              <p className="text-[14px] text-gray-600 mb-1 truncate">
                 원본 파일: {result.originalFileName}
               </p>
             )}
-            <p className="text-xs text-gray-500 mb-6">
+            <p className="text-[13px] text-gray-500 mb-6">
               버전 행을 클릭하면 해당 버전으로 이동합니다.
             </p>
 
@@ -156,12 +212,12 @@ const ProjectVersionsScreen = () => {
               </div>
             )}
             {isError && (
-              <p className="text-xs text-red-400/90 py-8">
+              <p className="text-[14px] text-red-400/90 py-8">
                 프로젝트를 불러오지 못했습니다.
               </p>
             )}
             {!isPending && !isError && rows.length === 0 && (
-              <p className="text-xs text-gray-500 py-8">버전이 없습니다.</p>
+              <p className="text-[14px] text-gray-500 py-8">버전이 없습니다.</p>
             )}
 
             {!isPending && !isError && rows.length > 0 && (
@@ -178,11 +234,12 @@ const ProjectVersionsScreen = () => {
                           ? versionMenuHostRef
                           : undefined
                       }
+                      className="group flex items-center gap-3"
                     >
                       <Link
                         href={href}
                         className={[
-                          "group flex w-full min-w-0 items-start gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors",
+                          "flex min-w-0 flex-1 items-start gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors",
                           "outline-none hover:bg-white/5 focus-visible:bg-white/6",
                           v.isMaster
                             ? "border-[#1e293b] bg-[#0f1218]"
@@ -196,7 +253,7 @@ const ProjectVersionsScreen = () => {
                       >
                         <span
                           className={[
-                            "text-sm tabular-nums w-7 shrink-0 pt-0.5",
+                            "text-[16px] tabular-nums w-7 shrink-0 pt-0.5",
                             v.isMaster ? "text-[#3b82f6]" : "text-gray-500",
                           ].join(" ")}
                         >
@@ -206,15 +263,15 @@ const ProjectVersionsScreen = () => {
                         <div className="min-w-0 flex-1 pr-2">
                           {!isRenaming ? (
                             <>
-                              <div className="text-[13px] text-gray-200 group-hover:text-white leading-snug truncate transition-colors">
+                              <div className="text-[16px] text-gray-200 group-hover:text-white leading-snug truncate transition-colors">
                                 {v.versionLabel}
                               </div>
-                              <p className="mt-0.5 text-[10px] text-gray-500 truncate">
+                              <p className="mt-0.5 text-[12px] text-gray-500 truncate">
                                 {v.genre} · 자유도 {v.temperature}
                               </p>
                             </>
                           ) : (
-                            <div className="flex min-w-0 items-center gap-1 text-[13px] leading-snug">
+                            <div className="flex min-w-0 items-center gap-1 text-[14px] leading-snug">
                               <span className="text-gray-400 shrink-0">
                                 {projectName} -
                               </span>
@@ -270,7 +327,7 @@ const ProjectVersionsScreen = () => {
                                 autoFocus
                                 className={[
                                   "min-w-0 flex-1 bg-black/30 border border-[#1e293b] rounded-md px-2 py-1",
-                                  "text-[13px] text-gray-100 outline-none",
+                                  "text-[14px] text-gray-100 outline-none",
                                   "focus:ring-1 focus:ring-[#3b82f6]/60 focus:border-[#3b82f6]/60",
                                 ].join(" ")}
                                 aria-label="버전 이름 변경"
@@ -278,14 +335,14 @@ const ProjectVersionsScreen = () => {
                             </div>
                           )}
                           {v.isMaster && (
-                            <span className="inline-block mt-1 text-[9px] font-bold uppercase tracking-wider text-[#3b82f6]">
+                            <span className="inline-block mt-1 text-[10px] font-bold uppercase tracking-wider text-[#3b82f6]">
                               최신 버전
                             </span>
                           )}
                         </div>
 
-                        <div className="relative flex shrink-0 items-start gap-2 pt-0.5">
-                          <span className="whitespace-nowrap text-[11px] tabular-nums text-gray-500">
+                        <div className="relative flex shrink-0 items-center gap-2">
+                          <span className="whitespace-nowrap text-[12px] tabular-nums text-gray-500">
                             {v.savedAt}
                           </span>
 
@@ -371,6 +428,38 @@ const ProjectVersionsScreen = () => {
                           )}
                         </div>
                       </Link>
+
+                      <button
+                        type="button"
+                        className={[
+                          "hidden sm:inline-flex w-[88px] items-center justify-center gap-1.5",
+                          "h-9 rounded-xl border px-3.5 text-[14px] font-semibold tabular-nums",
+                          "border-[#3b82f6]/35 bg-[#0b1220] text-blue-100 shadow-sm",
+                          "opacity-0 pointer-events-none transition-all duration-150",
+                          "group-hover:opacity-100 group-hover:pointer-events-auto",
+                          "hover:border-[#3b82f6]/55 hover:bg-[#0e172a] active:scale-[0.98]",
+                          regeneratingVersionId === v.id
+                            ? "opacity-60 pointer-events-none"
+                            : "",
+                        ].join(" ")}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          void handleRegenerateFromLibrary(v.id);
+                        }}
+                        aria-label="재생성"
+                      >
+                        <RefreshCw
+                          className="size-4"
+                          strokeWidth={2}
+                          aria-hidden
+                        />
+                        <span className="whitespace-nowrap">
+                          {regeneratingVersionId === v.id
+                            ? "준비 중…"
+                            : "재생성"}
+                        </span>
+                      </button>
                     </li>
                   );
                 })}
