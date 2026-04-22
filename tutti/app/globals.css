@@ -81,3 +81,24 @@ body {
   height: 0px; /* WebKit */
 }
 
+/* ScoreViewer(OSMD) 스타일: App Router에서도 안정적인 정적 CSS로 적용 */
+.score-viewer-root .osmd-active-measure-highlight,
+.score-viewer-root .osmd-hover-measure-highlight {
+  shape-rendering: crispEdges;
+}
+
+.score-viewer-root .osmd-active-top-highlight,
+.score-viewer-root .osmd-active-bottom-highlight {
+  shape-rendering: geometricPrecision;
+}
+
+/* OSMD만 대상 — 전역 svg 선택자는 Lucide 등 사이드바 아이콘까지 칠함 */
+.score-viewer-root .osmdSvgPage,
+.score-viewer-root svg {
+  scroll-snap-align: start;
+  flex: 0 0 auto;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+

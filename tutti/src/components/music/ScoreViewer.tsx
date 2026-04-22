@@ -999,23 +999,6 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           ) : null}
         </div>
 
-        <style jsx global>{`
-          .${ACTIVE_CLASS}, .${HOVER_CLASS} {
-            shape-rendering: crispEdges;
-          }
-          .${ACTIVE_TOP_CLASS}, .${ACTIVE_BOTTOM_CLASS} {
-            shape-rendering: geometricPrecision;
-          }
-          /* OSMD만 대상 — 전역 svg 선택자는 Lucide 등 사이드바 아이콘까지 칠함 */
-          .score-viewer-root .osmdSvgPage,
-          .score-viewer-root svg {
-            scroll-snap-align: start;
-            flex: 0 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
-          }
-        `}</style>
       </div>
     );
   },

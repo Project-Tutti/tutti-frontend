@@ -83,7 +83,6 @@ function BeforeCreatePageContent() {
   const regenerateMutation = useRegenerateProjectMutation();
 
   // GlobalGenerationWidget drives the SSE; we just read state from the store
-  const sseOverlayState = sseState;
   const projectQuery = useProjectQuery(
     parsedRegenerateProjectId,
     isRegenerateMode,
@@ -204,13 +203,6 @@ function BeforeCreatePageContent() {
     if (currentPage > 0) setCurrentPage(currentPage - 1);
   };
 
-  const startSSE = useCallback(
-    (projectId: number, versionId: number) => {
-      genStart(projectId, versionId);
-    },
-    [genStart],
-  );
-
   const handleCancelSSE = useCallback(() => {
     genClear();
   }, [genClear]);
@@ -267,7 +259,7 @@ function BeforeCreatePageContent() {
           throw new Error(res.message ?? "재생성 실패");
         }
 
-        startSSE(res.result.projectId, res.result.versionId);
+        genStart(res.result.projectId, res.result.versionId);
         return;
       }
 
@@ -277,7 +269,7 @@ function BeforeCreatePageContent() {
       }
 
       const result = await createProjectMutation.mutateAsync();
-      startSSE(result.projectId, result.versionId);
+      genStart(result.projectId, result.versionId);
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : "프로젝트 생성 실패");
     }
@@ -414,7 +406,7 @@ function BeforeCreatePageContent() {
       {/* 생성 진행률 오버레이 (최소화 상태면 GlobalGenerationWidget이 대신 표시) */}
       {!genIsMinimized && (
         <GenerationProgressOverlay
-          state={sseOverlayState}
+          state={sseState}
           onRetry={retryFn ?? undefined}
           onCancel={handleCancelSSE}
           onMinimize={genMinimize}

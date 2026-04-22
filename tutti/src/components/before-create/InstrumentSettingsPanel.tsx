@@ -236,7 +236,7 @@ const InstrumentSettingsPanel = () => {
                         onChange={(e) =>
                           handleMinChange(Number(e.target.value))
                         }
-                        className={`${NOTE_RANGE_SLIDER_CLASS} pointer-events-none`}
+                        className={NOTE_RANGE_SLIDER_CLASS}
                         style={{ zIndex: noteRangeSliderVisual.minThumbZIndex }}
                       />
                       <input
@@ -247,7 +247,7 @@ const InstrumentSettingsPanel = () => {
                         onChange={(e) =>
                           handleMaxChange(Number(e.target.value))
                         }
-                        className={`${NOTE_RANGE_SLIDER_CLASS} pointer-events-none`}
+                        className={NOTE_RANGE_SLIDER_CLASS}
                         style={{ zIndex: 4 }}
                       />
                     </div>
