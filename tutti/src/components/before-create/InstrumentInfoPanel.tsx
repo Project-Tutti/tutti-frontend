@@ -13,7 +13,8 @@ interface InstrumentInfoPanelProps {
 }
 
 const InstrumentInfoPanel = ({ onOpenSettings }: InstrumentInfoPanelProps) => {
-  const { selectedInstrument, noteRange, setNoteRange, genre } = useMidiStore();
+  const { selectedInstrument, noteRange, setNoteRange, genre, freedom } =
+    useMidiStore();
   const { data: categories } = useGeneratableInstrumentCategoriesQuery();
 
   const instrumentInfo = useMemo(() => {
@@ -111,6 +112,11 @@ const InstrumentInfoPanel = ({ onOpenSettings }: InstrumentInfoPanelProps) => {
           ) : (
             <span className="rounded bg-red-400/10 px-1.5 py-0.5 text-xs text-red-400">
               장르 미선택
+            </span>
+          )}
+          {freedom != null && (
+            <span className="rounded bg-[#3b82f6]/10 px-1.5 py-0.5 text-xs text-[#3b82f6]">
+              자유도 {freedom.toFixed(1)}
             </span>
           )}
 

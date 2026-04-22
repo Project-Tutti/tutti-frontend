@@ -34,6 +34,17 @@ const NOTE_RANGE_SLIDER_CLASS =
   "[&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:-mt-[1px] [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-[#3b82f6] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-[0_0_6px_rgba(59,130,246,0.55)] " +
   "[&::-moz-range-track]:h-2 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-transparent [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:box-border [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:bg-[#3b82f6] [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:shadow-[0_0_6px_rgba(59,130,246,0.55)]";
 
+const FREEDOM_MIN = 0.5;
+const FREEDOM_MAX = 2.0;
+const FREEDOM_DEFAULT = 1.0;
+
+const FREEDOM_PRESETS = [
+  { value: 0.5, label: "낮음" },
+  { value: 1.0, label: "기본" },
+  { value: 1.5, label: "높음" },
+  { value: 2.0, label: "최대" },
+] as const;
+
 const InstrumentSettingsPanel = () => {
   const {
     selectedInstrument,
@@ -41,6 +52,8 @@ const InstrumentSettingsPanel = () => {
     setNoteRange,
     genre,
     setGenre,
+    freedom,
+    setFreedom,
   } = useMidiStore();
 
   const { data: categories } = useGeneratableInstrumentCategoriesQuery();
@@ -137,6 +150,13 @@ const InstrumentSettingsPanel = () => {
       max: instrumentInfo.defaultMax,
     });
   }, [instrumentInfo, setNoteRange]);
+
+  const handleFreedomSlider = useCallback(
+    (v: number) => {
+      setFreedom(Math.round(v * 10) / 10);
+    },
+    [setFreedom],
+  );
 
   const noteRangeSliderVisual = useMemo(() => {
     if (!instrumentInfo || !noteRange) return null;
@@ -303,6 +323,61 @@ const InstrumentSettingsPanel = () => {
               장르 선택이 필요합니다
             </p>
           ) : null}
+        </section>
+
+        <div className="h-px bg-[#1e293b]" />
+
+        {/* 3. 자유도 선택 */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <h3 className="text-[16px] font-bold uppercase tracking-wider text-gray-300">
+              Freedom
+            </h3>
+            <span className="text-sm font-medium tabular-nums text-white">
+              {(freedom ?? FREEDOM_DEFAULT).toFixed(1)}
+            </span>
+          </div>
+          <p className="text-[14px] text-gray-500">
+            생성되는 음표의 양을 조절합니다. 낮을수록 단조롭고, 높을수록 음표가
+            많아집니다.
+          </p>
+
+          <div className="flex gap-3">
+            {FREEDOM_PRESETS.map((p) => {
+              const isSelected = freedom === p.value;
+              return (
+                <button
+                  key={p.value}
+                  type="button"
+                  onClick={() => setFreedom(p.value)}
+                  className={`flex-1 rounded-lg border py-3 text-xs font-medium transition-all ${
+                    isSelected
+                      ? "bg-[#3b82f6]/20 border-[#3b82f6] text-[#3b82f6]"
+                      : "bg-[#0f1218] border-[#1e293b] text-gray-400 hover:border-gray-500 hover:text-gray-300"
+                  }`}
+                >
+                  <div>{p.label}</div>
+                  <div className="text-xs opacity-60">{p.value}</div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="relative space-y-2 pt-1">
+            <input
+              type="range"
+              min={FREEDOM_MIN}
+              max={FREEDOM_MAX}
+              step={0.1}
+              value={freedom ?? FREEDOM_DEFAULT}
+              onChange={(e) => handleFreedomSlider(Number(e.target.value))}
+              className="h-4 w-full cursor-pointer appearance-none bg-transparent [&::-moz-range-thumb]:box-border [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:bg-[#3b82f6] [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-track]:h-1.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-[#1e293b] [&::-webkit-slider-thumb]:-mt-[3px] [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-[#3b82f6] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-[0_0_6px_rgba(59,130,246,0.5)] [&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-[#1e293b]"
+            />
+            <div className="flex justify-between">
+              <span className="text-xs text-gray-600">{FREEDOM_MIN}</span>
+              <span className="text-xs text-gray-600">{FREEDOM_MAX}</span>
+            </div>
+          </div>
         </section>
       </div>
     </section>
