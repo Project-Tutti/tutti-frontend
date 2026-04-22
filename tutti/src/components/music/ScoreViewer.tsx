@@ -88,6 +88,11 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
   ) => {
     const scrollRef = useRef<HTMLDivElement>(null);
     const renderRef = useRef<HTMLDivElement>(null);
+    const [scrollHint, setScrollHint] = React.useState<{
+      hasOverflow: boolean;
+      leftRatio: number;
+      thumbRatio: number;
+    }>({ hasOverflow: false, leftRatio: 0, thumbRatio: 1 });
 
     const osmdRef = useRef<OpenSheetMusicDisplay | null>(null);
     const cursorRef = useRef<Cursor | null>(null);
@@ -116,6 +121,46 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
       onMeasureClickRef.current = onMeasureClick;
       onMeasureHoverRef.current = onMeasureHover;
     }, [onScoreLoaded, onMeasureClick, onMeasureHover]);
+
+    useEffect(() => {
+      const el = scrollRef.current;
+      if (!el) return;
+
+      let raf = 0;
+      const update = () => {
+        const client = el.clientWidth;
+        const total = el.scrollWidth;
+        const left = el.scrollLeft;
+        const hasOverflow = total > client + 1;
+
+        if (!hasOverflow) {
+          setScrollHint({ hasOverflow: false, leftRatio: 0, thumbRatio: 1 });
+          return;
+        }
+
+        const maxLeft = Math.max(1, total - client);
+        const leftRatio = Math.min(1, Math.max(0, left / maxLeft));
+        const thumbRatio = Math.min(1, Math.max(0.12, client / total));
+        setScrollHint({ hasOverflow: true, leftRatio, thumbRatio });
+      };
+
+      const schedule = () => {
+        cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(update);
+      };
+
+      update();
+      el.addEventListener("scroll", schedule, { passive: true });
+
+      const ro = new ResizeObserver(schedule);
+      ro.observe(el);
+
+      return () => {
+        cancelAnimationFrame(raf);
+        el.removeEventListener("scroll", schedule);
+        ro.disconnect();
+      };
+    }, []);
 
     // -----------------------------
     // Utils
@@ -920,18 +965,38 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
 
     return (
       <div className="score-viewer-root w-full">
-        <div
-          ref={scrollRef}
-          className="w-full overflow-x-auto overflow-y-hidden"
-          style={{
-            scrollSnapType: "x mandatory",
-            WebkitOverflowScrolling: "touch",
-          }}
-        >
+        <div className="relative w-full">
           <div
-            ref={renderRef}
-            className="flex flex-row gap-6 items-start py-4 px-4"
-          />
+            ref={scrollRef}
+            className="score-scroll w-full overflow-x-auto overflow-y-hidden"
+            style={{
+              scrollSnapType: "x mandatory",
+              WebkitOverflowScrolling: "touch",
+            }}
+          >
+            <div
+              ref={renderRef}
+              className="flex flex-row gap-6 items-start py-4 px-4"
+            />
+          </div>
+
+          {scrollHint.hasOverflow ? (
+            <div
+              className="pointer-events-none absolute inset-x-4 bottom-1.5 h-2"
+              aria-hidden
+            >
+              <div className="h-full w-full rounded-full bg-white/8" />
+              <div
+                className="absolute top-0 h-2 rounded-full bg-white/28"
+                style={{
+                  width: `${Math.round(scrollHint.thumbRatio * 100)}%`,
+                  left: `${Math.round(
+                    scrollHint.leftRatio * (100 - scrollHint.thumbRatio * 100),
+                  )}%`,
+                }}
+              />
+            </div>
+          ) : null}
         </div>
 
         <style jsx global>{`

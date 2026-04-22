@@ -72,3 +72,12 @@ body {
   background: var(--accent-blue);
 }
 
+/* 악보(ScoreViewer): 기본 가로 스크롤바는 숨기고, 별도 인디케이터만 사용 */
+.score-scroll {
+  scrollbar-width: none; /* Firefox */
+}
+
+.score-scroll::-webkit-scrollbar {
+  height: 0px; /* WebKit */
+}
+
