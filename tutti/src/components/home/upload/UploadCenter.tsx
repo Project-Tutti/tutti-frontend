@@ -51,7 +51,7 @@ const UploadCenter = ({ onFileUpload, uploadedFile }: UploadCenterProps) => {
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       className={[
-        "relative flex h-125 w-full cursor-pointer flex-col items-center justify-center gap-5",
+        "relative flex h-142 w-full cursor-pointer flex-col items-center justify-center gap-5",
         "overflow-hidden rounded-2xl border-2 border-dashed transition-all duration-500",
         isUploaded
           ? "border-[#3b82f6]/60 bg-blue-500/8 shadow-[0_0_80px_rgba(59,130,246,0.12)]"
@@ -69,7 +69,7 @@ const UploadCenter = ({ onFileUpload, uploadedFile }: UploadCenterProps) => {
 
       {isUploaded ? (
         <>
-          <div className="relative rounded-2xl border border-[#3b82f6]/30 bg-blue-500/15 p-5">
+          <div className="relative rounded-2xl border border-[#3b82f6]/30 bg-blue-500/15 p-6">
             <FileMusic className="size-12 text-[#3b82f6]" strokeWidth={1.5} />
           </div>
           <div className="relative text-center">

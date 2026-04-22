@@ -29,7 +29,7 @@ const GENRES = [...GENRE_DEFS].sort((a, b) =>
 const NOTE_RANGE_RAIL_INSET_REM = 0.5;
 
 const NOTE_RANGE_SLIDER_CLASS =
-  "absolute inset-x-0 top-0 h-10 w-full cursor-pointer appearance-none bg-transparent " +
+  "absolute inset-x-0 top-0 h-10 w-full appearance-none bg-transparent pointer-events-none " +
   "[&::-webkit-slider-runnable-track]:h-2 [&::-webkit-slider-runnable-track]:appearance-none [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-transparent " +
   "[&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:-mt-[1px] [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-[#3b82f6] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-[0_0_6px_rgba(59,130,246,0.55)] " +
   "[&::-moz-range-track]:h-2 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-transparent [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:box-border [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:bg-[#3b82f6] [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:shadow-[0_0_6px_rgba(59,130,246,0.55)]";
@@ -148,9 +148,22 @@ const InstrumentSettingsPanel = () => {
     const t = NOTE_RANGE_RAIL_INSET_REM;
     const railGap = `${2 * t}rem`;
     const railPad = `${t}rem`;
-    const minThumbZIndex =
-      noteRange.min > hi - Math.max(4, span * 0.08) ? 5 : 3;
-    return { lo, hi, fillLeft, fillWidth, railGap, railPad, minThumbZIndex };
+    // 두 thumb가 가까워지면(또는 겹치면) 왼쪽(min) thumb를 위로 올려
+    // 왼쪽 thumb를 드래그하려다 오른쪽(max) thumb가 잡히는 현상 방지
+    const overlapThreshold = Math.max(2, Math.round(span * 0.02));
+    const isOverlapping = noteRange.max - noteRange.min <= overlapThreshold;
+    const minThumbZIndex = isOverlapping ? 6 : 3;
+    const maxThumbZIndex = isOverlapping ? 5 : 4;
+    return {
+      lo,
+      hi,
+      fillLeft,
+      fillWidth,
+      railGap,
+      railPad,
+      minThumbZIndex,
+      maxThumbZIndex,
+    };
   }, [instrumentInfo, noteRange]);
 
   return (
@@ -248,7 +261,7 @@ const InstrumentSettingsPanel = () => {
                           handleMaxChange(Number(e.target.value))
                         }
                         className={NOTE_RANGE_SLIDER_CLASS}
-                        style={{ zIndex: 4 }}
+                        style={{ zIndex: noteRangeSliderVisual.maxThumbZIndex }}
                       />
                     </div>
                   </div>

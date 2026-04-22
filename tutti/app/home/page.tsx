@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
 import {
   AlertCircle,
   ChevronRight,
@@ -10,7 +12,6 @@ import {
   Music,
 } from "lucide-react";
 import Sidebar from "@/components/common/Sidebar";
-import Header from "@/components/common/Header";
 import UploadCenter from "@/components/home/upload/UploadCenter";
 import InstrumentSelector from "@/components/home/InstrumentSelector/InstrumentSelector";
 import { parseMidiFile } from "@common/utils/parse-midi";
@@ -52,6 +53,7 @@ const HomePage = () => {
   const handleFileUpload = (file: File) => {
     setUploadedFile(file);
     setParseError(null);
+    setSelectedInstrument(null); // 새 파일 업로드 시 이전 세션 악기 선택 초기화
   };
 
   const handleGenerate = async () => {
@@ -92,16 +94,24 @@ const HomePage = () => {
         />
 
         <div className="flex h-dvh max-h-dvh min-h-0 grow flex-col overflow-hidden">
-          <Header
-            onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            isSidebarCollapsed={isSidebarCollapsed}
-            rightContent={
-              <span className="px-3 py-1 text-sm font-semibold text-gray-500">
-                New Project
-              </span>
-            }
-          />
-
+          <div className="flex min-h-17 shrink-0 items-center px-4">
+            <Link
+              href="/home"
+              className="flex items-center rounded-lg focus:outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6]/60"
+              aria-label="홈으로 이동"
+            >
+              <div className="relative h-7 w-[100px]">
+                <Image
+                  src="/logo.svg"
+                  alt="tutti"
+                  fill
+                  sizes="100px"
+                  className="object-contain object-left"
+                  priority
+                />
+              </div>
+            </Link>
+          </div>
           <main className="relative flex min-h-0 grow flex-col overflow-y-auto bg-[#05070a]">
             {/* 배경 그라데이션 */}
             <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -117,7 +127,7 @@ const HomePage = () => {
             </div>
 
             {/* 콘텐츠 중앙 정렬 */}
-            <div className="relative z-10 flex min-h-full flex-col items-center justify-center px-4 py-8">
+            <div className="relative z-10 flex min-h-full flex-col items-center px-4 pt-14 pb-8">
               <div className="w-full max-w-2xl">
                 {/* 스텝 인디케이터 */}
                 <div className="mb-10 flex items-center gap-3">
@@ -237,6 +247,7 @@ const HomePage = () => {
                     <InstrumentSelector
                       selectedInstrument={selectedInstrument}
                       onInstrumentSelect={handleInstrumentSelect}
+                      isSidebarCollapsed={isSidebarCollapsed}
                     />
 
                     <div className="flex flex-col items-center gap-3">

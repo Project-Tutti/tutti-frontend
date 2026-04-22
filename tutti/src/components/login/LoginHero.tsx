@@ -24,9 +24,8 @@ const LoginHero = () => {
           </span>
         </div>
         <h2 className="text-[26px] font-light text-gray-300 tracking-wide leading-tight">
-          AI-Powered{" "}
-          <span className="text-white font-semibold">Orchestration</span> for
-          the Modern Composer.
+          멜로디에 당신의{" "}
+          <span className="text-white font-semibold">악기를 더하세요.</span>
         </h2>
       </div>
 

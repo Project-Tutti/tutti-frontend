@@ -13,7 +13,6 @@ import Header from "@/components/common/Header";
 import TrackModal from "@/components/before-create/TrackModal";
 import AnalysisInfo from "@/components/before-create/AnalysisInfo";
 import HeaderContent from "@/components/before-create/HeaderContent";
-import GenerationProgressOverlay from "@/components/before-create/GenerationProgressOverlay";
 import InstrumentSettingsPanel from "@/components/before-create/InstrumentSettingsPanel";
 import TrackInfoModal from "@/components/before-create/TrackInfoModal";
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
@@ -59,16 +58,7 @@ function BeforeCreatePageContent() {
     return Number.isFinite(n) ? n : null;
   }, [isRegenerateMode, regenerateVersionId]);
 
-  const {
-    projectId: genProjectId,
-    versionId: genVersionId,
-    isMinimized: genIsMinimized,
-    sseState,
-    retryFn,
-    start: genStart,
-    minimize: genMinimize,
-    clear: genClear,
-  } = useGenerationStore();
+  const { entries, start: genStart } = useGenerationStore();
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
@@ -152,17 +142,6 @@ function BeforeCreatePageContent() {
     setGenre,
     setNoteRange,
   ]);
-
-  // overlay 표시 중(isMinimized=false) 완료 시 직접 navigate — GlobalGenerationWidget은 최소화 상태만 처리
-  useEffect(() => {
-    if (!sseState.isComplete) return;
-    if (genIsMinimized) return; // 최소화 상태면 GlobalGenerationWidget이 처리
-    if (genProjectId == null || genVersionId == null) return;
-    router.push(
-      `/player?projectId=${encodeURIComponent(String(genProjectId))}&versionId=${encodeURIComponent(String(genVersionId))}`,
-    );
-    genClear();
-  }, [sseState.isComplete, genIsMinimized, genProjectId, genVersionId, router, genClear]);
 
   // persist 재수화 전에는 tracks가 비어 있어 오인하지 않도록 대기
   useEffect(() => {
@@ -254,7 +233,8 @@ function BeforeCreatePageContent() {
           throw new Error(res.message ?? "재생성 실패");
         }
 
-        genStart(res.result.projectId, res.result.versionId);
+        const regenProjectName = projectQuery.data?.result?.name ?? `Project #${parsedRegenerateProjectId}`;
+        genStart(res.result.projectId, res.result.versionId, false, `${regenProjectName} · ${nextVersionName}`);
         return;
       }
 
@@ -264,7 +244,7 @@ function BeforeCreatePageContent() {
       }
 
       const result = await createProjectMutation.mutateAsync();
-      genStart(result.projectId, result.versionId);
+      genStart(result.projectId, result.versionId, false, projectName.trim());
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : "프로젝트 생성 실패");
     }
@@ -294,7 +274,7 @@ function BeforeCreatePageContent() {
         <Header
           onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           isSidebarCollapsed={isSidebarCollapsed}
-          title="Workspace / Instrument Setup"
+          title=""
           rightContent={<HeaderContent trackCount={tracks.length} />}
         />
 
@@ -358,7 +338,14 @@ function BeforeCreatePageContent() {
               void handleGenerate();
             }}
             isPending={
-              genProjectId != null ||
+              (isRegenerateMode && parsedRegenerateProjectId != null
+                ? Object.values(entries).some(
+                    (e) =>
+                      e.projectId === parsedRegenerateProjectId &&
+                      !e.sseState.isComplete &&
+                      !e.sseState.isFailed,
+                  )
+                : false) ||
               (isRegenerateMode
                 ? regenerateMutation.isPending ||
                   projectQuery.isPending ||
@@ -398,15 +385,6 @@ function BeforeCreatePageContent() {
         onClose={() => setIsModalOpen(false)}
       />
 
-      {/* 생성 진행률 오버레이 (최소화 상태면 GlobalGenerationWidget이 대신 표시) */}
-      {!genIsMinimized && (
-        <GenerationProgressOverlay
-          state={sseState}
-          onRetry={retryFn ?? undefined}
-          onCancel={genClear}
-          onMinimize={genMinimize}
-        />
-      )}
     </div>
   );
 }
