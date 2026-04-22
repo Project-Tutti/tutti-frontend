@@ -32,7 +32,7 @@ const AnalysisInfo = ({
           type="button"
           onClick={onGenerate}
           disabled={isDisabled}
-          className="flex w-full max-w-sm items-center justify-center gap-2 rounded-lg border border-blue-600/35 bg-[#3b82f6] px-5 py-3 text-base font-medium text-white transition-colors hover:border-blue-500/50 hover:bg-[#2563eb] active:bg-[#1d4ed8] disabled:pointer-events-none disabled:opacity-50 md:py-3.5"
+          className="flex w-full max-w-3xl items-center justify-center gap-2 rounded-lg border border-blue-600/35 bg-[#3b82f6] px-5 py-3 text-base font-medium text-white transition-colors hover:border-blue-500/50 hover:bg-[#2563eb] active:bg-[#1d4ed8] disabled:pointer-events-none disabled:opacity-50 md:py-3.5"
         >
           {isPending ? (
             <Loader2
@@ -57,7 +57,7 @@ const AnalysisInfo = ({
           ) : null}
         </button>
         {hasError ? (
-          <div className="flex w-full max-w-sm justify-center px-1" aria-live="polite">
+          <div className="flex w-full max-w-3xl justify-center px-1" aria-live="polite">
             <p className="flex items-start gap-1.5 text-center text-xs leading-snug text-red-400 md:text-sm">
               <AlertCircle
                 className="mt-0.5 size-3.5 shrink-0"

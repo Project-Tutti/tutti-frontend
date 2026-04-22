@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import QueryClientProviders from "./query-client-providers";
 import ToastProvider from "@/components/common/ToastProvider";
+import GlobalGenerationWidget from "@/components/common/GlobalGenerationWidget";
 
 const pretendard = localFont({
   src: "../assets/fonts/pretendard/PretendardVariable.woff2",
@@ -32,6 +33,7 @@ export default function RootLayout({
         <QueryClientProviders>
           {children}
           {modal}
+          <GlobalGenerationWidget />
         </QueryClientProviders>
         <ToastProvider />
       </body>

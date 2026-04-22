@@ -5,7 +5,6 @@ import {
   useMemo,
   useState,
   useCallback,
-  useRef,
   Suspense,
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -19,12 +18,12 @@ import GenerationProgressOverlay from "@/components/before-create/GenerationProg
 import InstrumentSettingsPanel from "@/components/before-create/InstrumentSettingsPanel";
 import TrackInfoModal from "@/components/before-create/TrackInfoModal";
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
+import { useGenerationStore } from "@features/midi-create/stores/generation-store";
 import { Track } from "@/types/track";
 import { useCreateProjectMutation } from "@api/midi/hooks/mutations/useCreateProjectMutation";
 import { useRegenerateProjectMutation } from "@api/project/hooks/mutations/useRegenerateProjectMutation";
 import { useProjectQuery } from "@api/project/hooks/queries/useProjectQuery";
 import { useInstrumentCategoriesQuery } from "@api/instruments/hooks/queries/useInstrumentCategoriesQuery";
-import { useProjectStatusSSE } from "@api/project/hooks/useProjectStatusSSE";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { toast } from "@/components/common/Toast";
 
@@ -63,6 +62,17 @@ function BeforeCreatePageContent() {
     return Number.isFinite(n) ? n : null;
   }, [isRegenerateMode, regenerateVersionId]);
 
+  const {
+    projectId: genProjectId,
+    versionId: genVersionId,
+    isMinimized: genIsMinimized,
+    sseState,
+    retryFn,
+    start: genStart,
+    minimize: genMinimize,
+    clear: genClear,
+  } = useGenerationStore();
+
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
@@ -70,31 +80,12 @@ function BeforeCreatePageContent() {
   const [hasHydrated, setHasHydrated] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [isTrackInfoOpen, setIsTrackInfoOpen] = useState(false);
-  const [sseProjectId, setSseProjectId] = useState<number | null>(null);
-  const [sseVersionId, setSseVersionId] = useState<number | null>(null);
 
   const createProjectMutation = useCreateProjectMutation();
   const regenerateMutation = useRegenerateProjectMutation();
-  const {
-    reset: sseReset,
-    retry: sseRetry,
-    status: sseStatus,
-    progress: sseProgress,
-    message: sseMessage,
-    error: sseError,
-    isComplete: sseIsComplete,
-    isFailed: sseIsFailed,
-  } = useProjectStatusSSE(sseProjectId, sseVersionId);
 
-  const sseOverlayState = {
-    status: sseStatus,
-    progress: sseProgress,
-    message: sseMessage,
-    error: sseError,
-    isComplete: sseIsComplete,
-    isFailed: sseIsFailed,
-  };
-  const hasNavigatedRef = useRef(false);
+  // GlobalGenerationWidget drives the SSE; we just read state from the store
+  const sseOverlayState = sseState;
   const projectQuery = useProjectQuery(
     parsedRegenerateProjectId,
     isRegenerateMode,
@@ -169,16 +160,16 @@ function BeforeCreatePageContent() {
     setFreedom,
   ]);
 
-  // SSE complete → player 페이지로 이동
+  // overlay 표시 중(isMinimized=false) 완료 시 직접 navigate — GlobalGenerationWidget은 최소화 상태만 처리
   useEffect(() => {
-    if (!sseIsComplete) return;
-    if (sseProjectId == null || sseVersionId == null) return;
-    if (hasNavigatedRef.current) return;
-    hasNavigatedRef.current = true;
+    if (!sseState.isComplete) return;
+    if (genIsMinimized) return; // 최소화 상태면 GlobalGenerationWidget이 처리
+    if (genProjectId == null || genVersionId == null) return;
     router.push(
-      `/player?projectId=${encodeURIComponent(String(sseProjectId))}&versionId=${encodeURIComponent(String(sseVersionId))}`,
+      `/player?projectId=${encodeURIComponent(String(genProjectId))}&versionId=${encodeURIComponent(String(genVersionId))}`,
     );
-  }, [sseIsComplete, sseProjectId, sseVersionId, router]);
+    genClear();
+  }, [sseState.isComplete, genIsMinimized, genProjectId, genVersionId, router, genClear]);
 
   // persist 재수화 전에는 tracks가 비어 있어 오인하지 않도록 대기
   useEffect(() => {
@@ -220,19 +211,14 @@ function BeforeCreatePageContent() {
 
   const startSSE = useCallback(
     (projectId: number, versionId: number) => {
-      hasNavigatedRef.current = false;
-      sseReset();
-      setSseProjectId(projectId);
-      setSseVersionId(versionId);
+      genStart(projectId, versionId);
     },
-    [sseReset],
+    [genStart],
   );
 
   const handleCancelSSE = useCallback(() => {
-    sseReset();
-    setSseProjectId(null);
-    setSseVersionId(null);
-  }, [sseReset]);
+    genClear();
+  }, [genClear]);
 
   const handleGenerate = async () => {
     setCreateError(null);
@@ -390,7 +376,7 @@ function BeforeCreatePageContent() {
               void handleGenerate();
             }}
             isPending={
-              sseProjectId != null ||
+              genProjectId != null ||
               (isRegenerateMode
                 ? regenerateMutation.isPending ||
                   projectQuery.isPending ||
@@ -401,9 +387,9 @@ function BeforeCreatePageContent() {
               !genre || selectedInstrument == null || projectNameMissing
             }
             errorMessage={createError}
-            label={isRegenerateMode ? "Regenerate" : "Generate"}
+            label={isRegenerateMode ? "악보 재생성하기" : "악보 생성하기"}
             pendingLabel={
-              isRegenerateMode ? "Regenerating..." : "Generating..."
+              isRegenerateMode ? "재생성 중…" : "생성 중…"
             }
             variant={isRegenerateMode ? "regenerate" : "generate"}
           />
@@ -430,12 +416,15 @@ function BeforeCreatePageContent() {
         onClose={() => setIsModalOpen(false)}
       />
 
-      {/* 생성 진행률 오버레이 */}
-      <GenerationProgressOverlay
-        state={sseOverlayState}
-        onRetry={sseRetry}
-        onCancel={handleCancelSSE}
-      />
+      {/* 생성 진행률 오버레이 (최소화 상태면 GlobalGenerationWidget이 대신 표시) */}
+      {!genIsMinimized && (
+        <GenerationProgressOverlay
+          state={sseOverlayState}
+          onRetry={retryFn ?? undefined}
+          onCancel={handleCancelSSE}
+          onMinimize={genMinimize}
+        />
+      )}
     </div>
   );
 }
