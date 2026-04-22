@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { LogoLink } from "@/components/common/LogoLink";
 import { useMemo, useRef, useState } from "react";

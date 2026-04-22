@@ -799,7 +799,7 @@ export default function MusicPlayer({
     } catch {}
   }, []);
 
-  const jumpToMeasure = useCallback(async (
+  const jumpToMeasure = async (
     measure: number,
     autoplay = true,
     source: JumpSource = "control",
@@ -854,7 +854,7 @@ export default function MusicPlayer({
     }
 
     if (autoplay) await p.play();
-  }, []); // refs만 사용하므로 deps 없음
+  };
 
   // ============================================================
   // ✅ 악기 믹서 핸들러
@@ -889,6 +889,12 @@ export default function MusicPlayer({
     onControlBarRef.current = onControlBar;
   }, [onControlBar]);
 
+  // 매 렌더마다 재생성되는 jumpToMeasure를 ref로 유지해 effect 의존성 문제 회피
+  const jumpToMeasureRef = useRef(jumpToMeasure);
+  useEffect(() => {
+    jumpToMeasureRef.current = jumpToMeasure;
+  });
+
   useEffect(() => {
     onControlBarRef.current?.(
       state === "loading" ? null : (
@@ -899,7 +905,7 @@ export default function MusicPlayer({
           onPlay={play}
           onPause={pause}
           onStop={stop}
-          onJumpToMeasure={(mm) => jumpToMeasure(mm, true, "control")}
+          onJumpToMeasure={(mm) => jumpToMeasureRef.current(mm, true, "control")}
           onChangeFile={onRequestChangeFile}
         />
       ),
@@ -911,7 +917,6 @@ export default function MusicPlayer({
     play,
     pause,
     stop,
-    jumpToMeasure,
     onRequestChangeFile,
   ]);
 
