@@ -10,36 +10,94 @@ const INITIAL_SSE: ProjectStatusState = {
   isFailed: false,
 };
 
-interface GenerationStore {
-  projectId: number | null;
-  versionId: number | null;
+export function genKey(pid: number, vid: number) {
+  return `${pid}-${vid}`;
+}
+
+export type GenEntry = {
+  projectId: number;
+  versionId: number;
   isMinimized: boolean;
   sseState: ProjectStatusState;
-  /** GlobalGenerationWidget이 주입하는 retry 함수 */
   retryFn: (() => void) | null;
+  label?: string;
+};
 
-  start: (projectId: number, versionId: number) => void;
-  minimize: () => void;
-  maximize: () => void;
-  clear: () => void;
-  /** GlobalGenerationWidget 전용 — SSE 상태 동기화 */
-  _updateSse: (state: ProjectStatusState) => void;
-  _setRetryFn: (fn: () => void) => void;
+interface GenerationStore {
+  entries: Record<string, GenEntry>;
+  start: (projectId: number, versionId: number, minimized?: boolean, label?: string) => void;
+  minimize: (projectId: number, versionId: number) => void;
+  maximize: (projectId: number, versionId: number) => void;
+  clear: (projectId: number, versionId: number) => void;
+  clearAll: () => void;
+  _updateSse: (projectId: number, versionId: number, state: ProjectStatusState) => void;
+  _setRetryFn: (projectId: number, versionId: number, fn: () => void) => void;
 }
 
 export const useGenerationStore = create<GenerationStore>((set) => ({
-  projectId: null,
-  versionId: null,
-  isMinimized: false,
-  sseState: INITIAL_SSE,
-  retryFn: null,
+  entries: {},
 
-  start: (projectId, versionId) =>
-    set({ projectId, versionId, isMinimized: false, sseState: INITIAL_SSE, retryFn: null }),
-  minimize: () => set({ isMinimized: true }),
-  maximize: () => set({ isMinimized: false }),
-  clear: () =>
-    set({ projectId: null, versionId: null, isMinimized: false, sseState: INITIAL_SSE, retryFn: null }),
-  _updateSse: (sseState) => set({ sseState }),
-  _setRetryFn: (retryFn) => set({ retryFn }),
+  start: (projectId, versionId, minimized = false, label) => {
+    const key = genKey(projectId, versionId);
+    set((s) => ({
+      entries: {
+        ...s.entries,
+        [key]: {
+          projectId,
+          versionId,
+          isMinimized: minimized,
+          sseState: INITIAL_SSE,
+          retryFn: null,
+          label,
+        },
+      },
+    }));
+  },
+
+  minimize: (projectId, versionId) => {
+    const key = genKey(projectId, versionId);
+    set((s) => {
+      const entry = s.entries[key];
+      if (!entry) return s;
+      return { entries: { ...s.entries, [key]: { ...entry, isMinimized: true } } };
+    });
+  },
+
+  maximize: (projectId, versionId) => {
+    const key = genKey(projectId, versionId);
+    set((s) => {
+      const entry = s.entries[key];
+      if (!entry) return s;
+      return { entries: { ...s.entries, [key]: { ...entry, isMinimized: false } } };
+    });
+  },
+
+  clear: (projectId, versionId) => {
+    const key = genKey(projectId, versionId);
+    set((s) => {
+      const next = { ...s.entries };
+      delete next[key];
+      return { entries: next };
+    });
+  },
+
+  clearAll: () => set({ entries: {} }),
+
+  _updateSse: (projectId, versionId, sseState) => {
+    const key = genKey(projectId, versionId);
+    set((s) => {
+      const entry = s.entries[key];
+      if (!entry) return s;
+      return { entries: { ...s.entries, [key]: { ...entry, sseState } } };
+    });
+  },
+
+  _setRetryFn: (projectId, versionId, retryFn) => {
+    const key = genKey(projectId, versionId);
+    set((s) => {
+      const entry = s.entries[key];
+      if (!entry) return s;
+      return { entries: { ...s.entries, [key]: { ...entry, retryFn } } };
+    });
+  },
 }));
