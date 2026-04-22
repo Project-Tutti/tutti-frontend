@@ -43,11 +43,11 @@ const InstrumentDetailOverlay = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.25 }}
+      transition={{ duration: 0.2 }}
     >
       {/* backdrop */}
       <motion.div
-        className="absolute inset-0 bg-black/60 backdrop-blur-md"
+        className="absolute inset-0 bg-black/70 backdrop-blur-md"
         onClick={onClose}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -56,98 +56,102 @@ const InstrumentDetailOverlay = ({
 
       {/* panel */}
       <motion.div
-        className="relative w-full max-w-sm overflow-hidden rounded-3xl border border-[#1e293b] bg-[#0c0e14]/95 shadow-2xl backdrop-blur-xl"
-        initial={{ opacity: 0, scale: 0.92, y: 20 }}
+        className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-[#1e293b] bg-[#0c0e14]/97 shadow-2xl backdrop-blur-xl"
+        initial={{ opacity: 0, scale: 0.93, y: 24 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.92, y: 20 }}
+        exit={{ opacity: 0, scale: 0.93, y: 24 }}
         transition={{ type: "spring", stiffness: 350, damping: 30 }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* glow accent */}
-        <div className="pointer-events-none absolute -top-24 left-1/2 h-48 w-64 -translate-x-1/2 rounded-full bg-[#3b82f6]/8 blur-[80px]" />
+        {/* 상단 글로우 */}
+        <div className="pointer-events-none absolute -top-24 left-1/2 h-48 w-72 -translate-x-1/2 rounded-full bg-[#3b82f6]/10 blur-[80px]" />
+        {/* 상단 액센트 바 */}
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#3b82f6]/50 to-transparent" />
 
         {/* header */}
-        <div className="relative flex items-center gap-3 px-6 pb-4 pt-6">
-          <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-[#3b82f6]/20 bg-[#3b82f6]/10">
-            <IconComponent className="size-5 text-[#3b82f6]" />
+        <div className="relative flex items-center gap-4 px-7 pb-5 pt-7">
+          <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl border border-[#3b82f6]/25 bg-[#3b82f6]/12 shadow-[0_0_20px_rgba(59,130,246,0.12)]">
+            <IconComponent className="size-7 text-[#3b82f6]" />
           </div>
           <div className="min-w-0">
-            <h3 className="text-lg font-bold leading-tight text-white">
+            <h3 className="text-xl font-bold leading-tight text-white">
               {category.name}
             </h3>
-            <p className="mt-0.5 text-[11px] text-gray-500">
+            <p className="mt-0.5 text-sm text-gray-500">
               {category.instruments.length}개 악기 선택 가능
             </p>
           </div>
           <button
             onClick={onClose}
-            className="ml-auto flex size-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-white/5 hover:text-white"
+            className="ml-auto flex size-9 items-center justify-center rounded-xl border border-white/8 text-gray-500 transition-colors hover:bg-white/6 hover:text-white"
           >
             <X className="size-5" strokeWidth={1.75} />
           </button>
         </div>
 
         {/* divider */}
-        <div className="mx-5 h-px bg-linear-to-r from-transparent via-[#1e293b] to-transparent" />
+        <div className="mx-6 h-px bg-gradient-to-r from-transparent via-[#1e293b] to-transparent" />
 
         {/* instruments grid */}
-        <div className="px-5 py-5 grid grid-cols-2 gap-2.5">
-          {category.instruments.map((inst, idx) => {
-            const isActive = currentSelection === inst.midiProgram;
-            const minLabel = midiToNoteName(inst.minNote);
-            const maxLabel = midiToNoteName(inst.maxNote);
+        <div className="max-h-[60vh] overflow-y-auto px-6 py-6">
+          <div className="grid grid-cols-2 gap-3">
+            {category.instruments.map((inst, idx) => {
+              const isActive = currentSelection === inst.midiProgram;
+              const minLabel = midiToNoteName(inst.minNote);
+              const maxLabel = midiToNoteName(inst.maxNote);
 
-            return (
-              <motion.button
-                key={inst.midiProgram}
-                onClick={() => onSelect(inst.midiProgram, inst.name)}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{
-                  delay: 0.08 + idx * 0.04,
-                  type: "spring",
-                  stiffness: 400,
-                  damping: 25,
-                }}
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                className={`
-                  relative px-3.5 py-3 rounded-xl border text-left
-                  transition-colors duration-200 cursor-pointer
-                  ${
+              return (
+                <motion.button
+                  key={inst.midiProgram}
+                  onClick={() => onSelect(inst.midiProgram, inst.name)}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{
+                    delay: 0.06 + idx * 0.03,
+                    type: "spring",
+                    stiffness: 400,
+                    damping: 25,
+                  }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={[
+                    "relative rounded-xl border px-4 py-4 text-left transition-colors duration-200 cursor-pointer",
                     isActive
-                      ? "border-[#3b82f6] bg-[#3b82f6]/10 shadow-[0_0_12px_rgba(59,130,246,0.15)]"
-                      : "border-[#1e293b] bg-[#080a0f] hover:border-[#3b82f6]/40 hover:bg-[#0f1218]"
-                  }
-                `}
-              >
-                {isActive && (
-                  <CheckCircle className="absolute right-2 top-2 size-4 text-[#3b82f6]" strokeWidth={2} />
-                )}
-                <span
-                  className={`block text-sm font-semibold leading-tight ${
-                    isActive ? "text-white" : "text-gray-200"
-                  }`}
+                      ? "border-[#3b82f6]/60 bg-[#3b82f6]/12 shadow-[0_0_16px_rgba(59,130,246,0.15)]"
+                      : "border-[#1e293b] bg-[#080a0f] hover:border-[#3b82f6]/35 hover:bg-[#0f1218]",
+                  ].join(" ")}
                 >
-                  {inst.name}
-                </span>
-                <span className="mt-1 block space-y-0.5 text-[10px] leading-snug text-gray-500 tabular-nums">
-                  <span className="block">
-                    <span className="text-gray-600">최소 음 :</span>{" "}
-                    <span className="text-gray-400">{minLabel}</span>
+                  {isActive && (
+                    <CheckCircle
+                      className="absolute right-3 top-3 size-4 text-[#3b82f6]"
+                      strokeWidth={2}
+                    />
+                  )}
+                  <span
+                    className={[
+                      "block text-sm font-bold leading-tight",
+                      isActive ? "text-white" : "text-gray-200",
+                    ].join(" ")}
+                  >
+                    {inst.name}
                   </span>
-                  <span className="block">
-                    <span className="text-gray-600">최대 음 :</span>{" "}
-                    <span className="text-gray-400">{maxLabel}</span>
+                  <span className="mt-2 block space-y-1 text-xs leading-snug text-gray-500 tabular-nums">
+                    <span className="block">
+                      <span className="text-gray-600">최소 음</span>{" "}
+                      <span className="font-medium text-gray-400">{minLabel}</span>
+                    </span>
+                    <span className="block">
+                      <span className="text-gray-600">최대 음</span>{" "}
+                      <span className="font-medium text-gray-400">{maxLabel}</span>
+                    </span>
                   </span>
-                </span>
-              </motion.button>
-            );
-          })}
+                </motion.button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* bottom padding */}
-        <div className="h-1" />
+        <div className="h-2" />
       </motion.div>
     </motion.div>,
     document.body,

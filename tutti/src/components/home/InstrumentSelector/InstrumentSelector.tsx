@@ -3,36 +3,27 @@
 import { useState, useMemo } from "react";
 import { AnimatePresence } from "framer-motion";
 import { GiMusicalNotes } from "react-icons/gi";
+import { Check, ChevronRight } from "lucide-react";
 
 import { useGeneratableInstrumentCategoriesQuery } from "@api/instruments/hooks/queries/useGeneratableInstrumentCategoriesQuery";
 import { INSTRUMENT_GROUP_ICON } from "@features/midi-create/constants/instrument-grouping";
 import { Spinner } from "@/components/common/Spinner";
-
-import UploadCenter from "../upload/UploadCenter";
-import CategoryCard from "./CategoryCard";
 import InstrumentDetailOverlay from "./InstrumentDetailOverlay";
-
-const ORBIT_RADIUS_PCT = 40;
-const START_ANGLE = -(Math.PI * 3) / 4;
 
 interface InstrumentSelectorProps {
   selectedInstrument: number | null;
   onInstrumentSelect: (midiProgram: number, name: string) => void;
-  onFileUpload: (file: File) => void;
-  isFileUploaded: boolean;
 }
 
 const InstrumentSelector = ({
   selectedInstrument,
   onInstrumentSelect,
-  onFileUpload,
-  isFileUploaded,
 }: InstrumentSelectorProps) => {
   const { data: categories, isPending } =
     useGeneratableInstrumentCategoriesQuery();
-  const [expandedCategoryIdx, setExpandedCategoryIdx] = useState<
-    number | null
-  >(null);
+  const [expandedCategoryIdx, setExpandedCategoryIdx] = useState<number | null>(
+    null,
+  );
 
   const safeCategories = useMemo(() => categories ?? [], [categories]);
 
@@ -48,91 +39,101 @@ const InstrumentSelector = ({
     return null;
   }, [selectedInstrument, safeCategories]);
 
-  const count = safeCategories.length;
+  if (isPending && !categories) {
+    return (
+      <div className="flex h-48 w-full items-center justify-center">
+        <Spinner size="sm" label="악기 불러오는 중…" />
+      </div>
+    );
+  }
 
   return (
-    <div className="relative w-[290px] h-[290px] md:w-[440px] md:h-[440px] flex items-center justify-center">
-      {/* SVG 궤도 링 — 카드 중심을 관통하는 원 + 얇은 연결선 */}
-      <svg
-        className="absolute inset-0 w-full h-full pointer-events-none"
-        viewBox="0 0 100 100"
-      >
-        {/* 메인 궤도 원 */}
-        <circle
-          cx="50"
-          cy="50"
-          r={ORBIT_RADIUS_PCT}
-          fill="none"
-          stroke="rgba(30,41,59,0.35)"
-          strokeWidth="0.3"
-          strokeDasharray="1.5 1.5"
-        />
-        {/* 궤도 글로우 */}
-        <circle
-          cx="50"
-          cy="50"
-          r={ORBIT_RADIUS_PCT}
-          fill="none"
-          stroke="rgba(59,130,246,0.06)"
-          strokeWidth="1.2"
-        />
-
-        {/* 각 카드 위치에 작은 점(노드) */}
-        {count > 0 &&
-          safeCategories.map((cat, idx) => {
-            const angle = (idx / count) * Math.PI * 2 + START_ANGLE;
-            const cx = 50 + Math.cos(angle) * ORBIT_RADIUS_PCT;
-            const cy = 50 + Math.sin(angle) * ORBIT_RADIUS_PCT;
-            return (
-              <circle
-                key={cat.representativeProgram ?? idx}
-                cx={cx}
-                cy={cy}
-                r="1"
-                fill="rgba(59,130,246,0.25)"
-              />
-            );
-          })}
-      </svg>
-
-      {/* upload center */}
-      <UploadCenter onFileUpload={onFileUpload} isUploaded={isFileUploaded} />
-
-      {/* category cards — 대각선(◇) 배치, 궤도 위에 위치 */}
-      {isPending && !categories ? (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2">
-          <Spinner size="sm" label="악기 불러오는 중…" />
-        </div>
-      ) : (
-        safeCategories.map((cat, idx) => {
-          const angle = (idx / count) * Math.PI * 2 + START_ANGLE;
-          const xPct = 50 + Math.cos(angle) * ORBIT_RADIUS_PCT;
-          const yPct = 50 + Math.sin(angle) * ORBIT_RADIUS_PCT;
-
-          const isThisCatSelected = selectedInfo?.categoryName === cat.name;
+    <div className="relative w-full">
+      <div className="grid grid-cols-2 gap-4">
+        {safeCategories.map((cat, idx) => {
+          const Icon = INSTRUMENT_GROUP_ICON[cat.name] ?? GiMusicalNotes;
+          const isSelected = selectedInfo?.categoryName === cat.name;
 
           return (
-            <CategoryCard
-              key={cat.representativeProgram}
-              name={cat.name}
-              icon={INSTRUMENT_GROUP_ICON[cat.name] ?? GiMusicalNotes}
-              isSelected={isThisCatSelected}
-              selectedInstrumentName={
-                isThisCatSelected ? selectedInfo?.instrumentName : undefined
-              }
+            <button
+              key={cat.representativeProgram ?? idx}
+              type="button"
               onClick={() => setExpandedCategoryIdx(idx)}
-              style={{
-                left: `${xPct}%`,
-                top: `${yPct}%`,
-                transform: "translate(-50%, -50%)",
-              }}
-              floatDelay={idx * 1.5}
-            />
-          );
-        })
-      )}
+              className={[
+                "group relative flex flex-col items-center gap-4 overflow-hidden rounded-2xl border px-4 py-10 text-center",
+                "transition-all duration-300",
+                isSelected
+                  ? "border-[#3b82f6]/50 bg-blue-500/10 shadow-[0_0_32px_rgba(59,130,246,0.15)]"
+                  : "border-[#1e293b] bg-[#0f1218]/60 hover:border-[#3b82f6]/30 hover:bg-[#0f1218]/90 hover:shadow-[0_0_20px_rgba(59,130,246,0.06)]",
+              ].join(" ")}
+            >
+              {/* 선택된 카드 상단 액센트 바 */}
+              {isSelected && (
+                <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-[#3b82f6]/70 to-transparent" />
+              )}
 
-      {/* detail overlay */}
+              {/* 호버 시 하단 글로우 */}
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#3b82f6]/0 opacity-0 transition-opacity duration-300 group-hover:from-[#3b82f6]/6 group-hover:opacity-100" />
+
+              {/* 아이콘 */}
+              <div
+                className={[
+                  "relative rounded-2xl p-4 transition-all duration-300",
+                  isSelected
+                    ? "bg-blue-500/25 shadow-[0_0_24px_rgba(59,130,246,0.25)]"
+                    : "bg-[#1e293b]/70 group-hover:bg-[#1e293b] group-hover:shadow-[0_0_16px_rgba(59,130,246,0.08)]",
+                ].join(" ")}
+              >
+                <Icon
+                  className={[
+                    "size-8 transition-colors duration-300",
+                    isSelected
+                      ? "text-[#3b82f6]"
+                      : "text-gray-400 group-hover:text-gray-200",
+                  ].join(" ")}
+                />
+              </div>
+
+              {/* 텍스트 */}
+              <div className="w-full min-w-0 space-y-1.5">
+                <p
+                  className={[
+                    "text-base font-bold leading-tight transition-colors",
+                    isSelected
+                      ? "text-white"
+                      : "text-gray-300 group-hover:text-white",
+                  ].join(" ")}
+                >
+                  {cat.name}
+                </p>
+                {isSelected && selectedInfo?.instrumentName ? (
+                  <p className="truncate text-sm font-medium text-[#3b82f6]">
+                    {selectedInfo.instrumentName}
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-400 group-hover:text-gray-300">
+                    악기 선택하기
+                  </p>
+                )}
+              </div>
+
+              {/* 하단 인디케이터 */}
+              {isSelected ? (
+                <Check
+                  className="size-4 shrink-0 text-[#3b82f6]"
+                  strokeWidth={2.5}
+                />
+              ) : (
+                <ChevronRight
+                  className="size-4 shrink-0 text-gray-600 transition-colors group-hover:text-gray-400"
+                  strokeWidth={2}
+                />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
       <AnimatePresence>
         {expandedCategoryIdx !== null &&
           safeCategories[expandedCategoryIdx] && (

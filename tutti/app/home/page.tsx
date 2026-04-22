@@ -2,10 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, ChevronRight, Loader2 } from "lucide-react";
+import {
+  AlertCircle,
+  ChevronRight,
+  Loader2,
+  ArrowLeft,
+  Music,
+} from "lucide-react";
 import Sidebar from "@/components/common/Sidebar";
 import Header from "@/components/common/Header";
-import StepProgress from "@/components/home/upload/StepProgress";
+import UploadCenter from "@/components/home/upload/UploadCenter";
 import InstrumentSelector from "@/components/home/InstrumentSelector/InstrumentSelector";
 import { parseMidiFile } from "@common/utils/parse-midi";
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
@@ -29,18 +35,13 @@ const HomePage = () => {
   const [selectedInstrumentName, setSelectedInstrumentName] = useState<
     string | null
   >(null);
+  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
 
-  // 홈페이지 진입 시 악기 선택 초기화 (새 프로젝트 시작)
-  // 단, 뒤로가기 등으로 다시 돌아온 경우(이미 tracks가 있으면) 상태를 유지한다.
   useEffect(() => {
     if (tracks.length === 0) {
       setSelectedInstrument(null);
     }
   }, [tracks.length, setSelectedInstrument]);
-
-  const handleToggleSidebar = () => {
-    setIsSidebarCollapsed(!isSidebarCollapsed);
-  };
 
   const handleInstrumentSelect = (midiProgram: number, name: string) => {
     const isDeselect = selectedInstrument === midiProgram;
@@ -55,24 +56,19 @@ const HomePage = () => {
 
   const handleGenerate = async () => {
     if (!uploadedFile || selectedInstrument == null) return;
-
     try {
       setIsParsing(true);
       setParseError(null);
-
-      const tracks = await parseMidiFile(uploadedFile);
-
-      if (tracks.length === 0) {
+      const parsed = await parseMidiFile(uploadedFile);
+      if (parsed.length === 0) {
         setParseError(
           "트랙을 찾을 수 없습니다. 다른 MIDI 파일을 시도해주세요.",
         );
         return;
       }
-
-      setTracks(tracks);
+      setTracks(parsed);
       setStoreFile(uploadedFile);
       setProjectName(uploadedFile.name.replace(/\.[^.]+$/, ""));
-
       router.push("/before-create");
     } catch (e) {
       console.error("MIDI 파싱 실패:", e);
@@ -84,119 +80,214 @@ const HomePage = () => {
     }
   };
 
-  const steps: {
-    label: string;
-    icon: "check" | "upload";
-    isActive: boolean;
-  }[] = [
-    {
-      label: "Instrument Selection",
-      icon: "check",
-      isActive: selectedInstrument != null,
-    },
-    {
-      label: "File Upload",
-      icon: uploadedFile ? "check" : "upload",
-      isActive: !!uploadedFile,
-    },
-  ];
-
   const canGenerate =
     selectedInstrument != null && !!uploadedFile && !isParsing;
 
   return (
     <ProtectedRoute>
-      <div className="flex max-h-dvh h-dvh flex-row overflow-hidden">
+      <div className="flex h-dvh max-h-dvh flex-row overflow-hidden">
         <Sidebar
           isCollapsed={isSidebarCollapsed}
-          onToggle={handleToggleSidebar}
+          onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         />
 
-        <div className="flex max-h-dvh h-dvh min-h-0 grow flex-col overflow-hidden">
+        <div className="flex h-dvh max-h-dvh min-h-0 grow flex-col overflow-hidden">
           <Header
-            onToggleSidebar={handleToggleSidebar}
+            onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
             isSidebarCollapsed={isSidebarCollapsed}
             rightContent={
-              <span className="px-3 py-1 text-[14px] font-semibold text-gray-500">
+              <span className="px-3 py-1 text-sm font-semibold text-gray-500">
                 New Project
               </span>
             }
           />
 
-          <main className="relative flex min-h-0 grow flex-col overflow-hidden">
-            {/* 배경 그라데이션 효과 */}
-            <div className="pointer-events-none absolute inset-0 left-1/2 top-0 h-full w-full max-w-6xl -translate-x-1/2 overflow-hidden">
-              <div className="absolute top-[-10%] left-[10%] h-[400px] w-[400px] rounded-full bg-blue-900/10 blur-[120px]" />
-              <div className="absolute bottom-[20%] right-[10%] h-[300px] w-[300px] rounded-full bg-indigo-900/10 blur-[100px]" />
+          <main className="relative flex min-h-0 grow flex-col overflow-y-auto bg-[#05070a]">
+            {/* 배경 그라데이션 */}
+            <div className="pointer-events-none absolute inset-0 overflow-hidden">
+              <div className="absolute left-[10%] top-[-10%] h-[500px] w-[500px] rounded-full bg-blue-900/8 blur-[140px]" />
+              <div className="absolute bottom-[10%] right-[10%] h-[400px] w-[400px] rounded-full bg-indigo-900/8 blur-[120px]" />
+              {/* 파일 업로드 시 중앙 글로우 */}
+              <div
+                className={[
+                  "absolute left-1/2 top-1/2 h-[500px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[120px] transition-opacity duration-700",
+                  uploadedFile ? "bg-blue-600/8 opacity-100" : "opacity-0",
+                ].join(" ")}
+              />
             </div>
 
-            {/* flex-1 + justify-center: 남는 높이 안에서 세로 중앙(스크롤 없음 — 넘치면 잘림) */}
-            <div className="relative z-10 mx-auto box-border flex min-h-0 w-full max-w-6xl flex-1 flex-col items-center justify-center overflow-hidden px-4 py-6 md:py-8">
-              {/* 타이틀 섹션 */}
-              <div className="mb-5 text-center">
-                <h1 className="mb-2 text-2xl font-extrabold tracking-tight text-white md:text-3xl">
-                  Configure Your Ensemble
-                </h1>
-                <p className="mx-auto max-w-xl text-xs text-gray-400 md:text-sm">
-                  악보를 업로드하고 원하는 악기를 선택하여 악보를 생성하세요
-                </p>
-              </div>
-
-              {/* 진행 단계 */}
-              <StepProgress steps={steps} />
-
-              {/* 악기 선택 영역 */}
-              <InstrumentSelector
-                selectedInstrument={selectedInstrument}
-                onInstrumentSelect={handleInstrumentSelect}
-                onFileUpload={handleFileUpload}
-                isFileUploaded={!!uploadedFile}
-              />
-
-              {/* 액션 버튼 */}
-              <div className="relative z-10 mt-8 flex flex-col items-center gap-3">
-                <button
-                  type="button"
-                  onClick={handleGenerate}
-                  disabled={!canGenerate}
-                  className={`flex items-center justify-center gap-1.5 rounded-lg border border-blue-600/35 bg-[#3b82f6] px-6 py-2.5 text-sm font-medium text-white transition-colors hover:border-blue-500/50 hover:bg-[#2563eb] active:bg-[#1d4ed8] md:px-7 md:py-3 md:text-[15px] ${
-                    !canGenerate ? "cursor-not-allowed opacity-50" : ""
-                  }`}
-                >
-                  {isParsing ? (
-                    <Loader2
-                      className="size-4 shrink-0 animate-spin"
-                      strokeWidth={1.75}
-                      aria-hidden
+            {/* 콘텐츠 중앙 정렬 */}
+            <div className="relative z-10 flex min-h-full flex-col items-center justify-center px-4 py-8">
+              <div className="w-full max-w-2xl">
+                {/* 스텝 인디케이터 */}
+                <div className="mb-10 flex items-center gap-3">
+                  <div
+                    className={[
+                      "flex size-9 items-center justify-center rounded-full text-sm font-bold",
+                      currentStep === 1
+                        ? "bg-[#3b82f6] text-white shadow-[0_0_16px_rgba(59,130,246,0.4)]"
+                        : "bg-[#3b82f6]/20 text-[#3b82f6]",
+                    ].join(" ")}
+                  >
+                    1
+                  </div>
+                  <div className="flex flex-1 items-center gap-2">
+                    <div
+                      className={[
+                        "h-px flex-1 transition-colors duration-500",
+                        uploadedFile ? "bg-[#3b82f6]/50" : "bg-[#1e293b]",
+                      ].join(" ")}
                     />
-                  ) : null}
-                  <span>{isParsing ? "분석 중…" : "Generate Partials"}</span>
-                  {!isParsing ? (
-                    <ChevronRight
-                      className="size-4 shrink-0 opacity-75"
-                      strokeWidth={1.75}
-                      aria-hidden
+                    <span
+                      className={[
+                        "text-xs font-medium transition-colors duration-300",
+                        uploadedFile ? "text-[#3b82f6]" : "text-gray-600",
+                      ].join(" ")}
+                    >
+                      {uploadedFile ? "완료" : ""}
+                    </span>
+                    <div
+                      className={[
+                        "h-px flex-1 transition-colors duration-500",
+                        uploadedFile ? "bg-[#3b82f6]/50" : "bg-[#1e293b]",
+                      ].join(" ")}
                     />
-                  ) : null}
-                </button>
+                  </div>
+                  <div
+                    className={[
+                      "flex size-9 items-center justify-center rounded-full text-sm font-bold transition-all duration-300",
+                      currentStep === 2
+                        ? "bg-[#3b82f6] text-white shadow-[0_0_16px_rgba(59,130,246,0.4)]"
+                        : "bg-[#1e293b] text-gray-500",
+                    ].join(" ")}
+                  >
+                    2
+                  </div>
+                </div>
 
-                {/* 에러 메시지 */}
-                {parseError && (
-                  <p className="flex items-center gap-1.5 text-[11px] text-red-400 md:text-xs">
-                    <AlertCircle
-                      className="size-3.5 shrink-0"
-                      strokeWidth={1.75}
+                {/* ── Step 1: 파일 업로드 ── */}
+                {currentStep === 1 && (
+                  <div className="flex flex-col gap-7">
+                    <div>
+                      <h1 className="text-3xl font-extrabold tracking-tight text-white md:text-4xl">
+                        MIDI 파일 업로드
+                      </h1>
+                      <p className="mt-2.5 text-base text-gray-400">
+                        생성할 악보의 MIDI 파일을 업로드하세요
+                      </p>
+                    </div>
+
+                    <UploadCenter
+                      onFileUpload={handleFileUpload}
+                      uploadedFile={uploadedFile}
                     />
-                    {parseError}
-                  </p>
+
+                    <button
+                      type="button"
+                      onClick={() => setCurrentStep(2)}
+                      disabled={!uploadedFile}
+                      className={[
+                        "flex w-full items-center justify-center gap-2 rounded-xl py-4 text-base font-semibold transition-all",
+                        uploadedFile
+                          ? "bg-[#3b82f6] text-white hover:bg-[#2563eb] active:bg-[#1d4ed8]"
+                          : "cursor-not-allowed bg-[#1e293b] text-gray-500",
+                      ].join(" ")}
+                    >
+                      다음 단계
+                      <ChevronRight className="size-5" strokeWidth={2} />
+                    </button>
+                  </div>
                 )}
 
-                <p className="mt-1 max-w-sm text-center text-[11px] leading-relaxed text-gray-500 md:max-w-md md:text-xs">
-                  {selectedInstrumentName
-                    ? `${selectedInstrumentName} 선택됨`
-                    : "악기를 선택해주세요"}
-                  {uploadedFile && ` · ${uploadedFile.name}`}
-                </p>
+                {/* ── Step 2: 악기 선택 ── */}
+                {currentStep === 2 && (
+                  <div className="flex flex-col gap-7">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <h1 className="text-3xl font-extrabold tracking-tight text-white md:text-4xl">
+                          악기 선택
+                        </h1>
+                        <p className="mt-2.5 text-base text-gray-400">
+                          생성할 대표 악기를 선택하세요
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setCurrentStep(1)}
+                        className="flex shrink-0 items-center gap-1.5 rounded-lg border border-[#3b82f6]/40 bg-blue-500/8 px-3.5 py-2.5 text-sm font-medium text-[#3b82f6] transition-colors hover:bg-blue-500/15 hover:border-[#3b82f6]/60"
+                      >
+                        <ArrowLeft className="size-4" strokeWidth={2} />
+                        이전
+                      </button>
+                    </div>
+
+                    {/* 업로드된 파일 뱃지 */}
+                    {uploadedFile && (
+                      <div className="flex items-center gap-2.5 rounded-xl border border-[#1e293b] bg-[#0f1218]/60 px-4 py-3">
+                        <Music
+                          className="size-4 shrink-0 text-[#3b82f6]"
+                          strokeWidth={2}
+                        />
+                        <span className="min-w-0 truncate text-sm text-gray-300">
+                          {uploadedFile.name}
+                        </span>
+                      </div>
+                    )}
+
+                    <InstrumentSelector
+                      selectedInstrument={selectedInstrument}
+                      onInstrumentSelect={handleInstrumentSelect}
+                    />
+
+                    <div className="flex flex-col items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={handleGenerate}
+                        disabled={!canGenerate}
+                        className={[
+                          "flex w-full items-center justify-center gap-2 rounded-xl py-4 text-base font-semibold transition-all",
+                          canGenerate
+                            ? "bg-[#3b82f6] text-white hover:bg-[#2563eb] active:bg-[#1d4ed8]"
+                            : "cursor-not-allowed bg-[#1e293b] text-gray-500",
+                        ].join(" ")}
+                      >
+                        {isParsing ? (
+                          <Loader2
+                            className="size-5 shrink-0 animate-spin"
+                            strokeWidth={1.75}
+                          />
+                        ) : null}
+                        {isParsing ? "분석 중…" : "악보 생성하기"}
+                        {!isParsing && (
+                          <ChevronRight
+                            className="size-5 shrink-0 opacity-75"
+                            strokeWidth={1.75}
+                          />
+                        )}
+                      </button>
+
+                      {!selectedInstrumentName && (
+                        <p className="text-sm text-gray-500">
+                          악기를 선택해주세요
+                        </p>
+                      )}
+                      {selectedInstrumentName && (
+                        <p className="text-sm text-gray-400">
+                          {selectedInstrumentName} 선택됨
+                        </p>
+                      )}
+                      {parseError && (
+                        <p className="flex items-center gap-1.5 text-sm text-red-400">
+                          <AlertCircle
+                            className="size-4 shrink-0"
+                            strokeWidth={1.75}
+                          />
+                          {parseError}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </main>
