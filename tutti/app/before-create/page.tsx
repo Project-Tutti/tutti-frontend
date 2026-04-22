@@ -38,12 +38,10 @@ function BeforeCreatePageContent() {
     genre,
     selectedInstrument,
     noteRange,
-    freedom,
     projectName,
     setSelectedInstrument,
     setNoteRange,
     setGenre,
-    setFreedom,
     setProjectName,
   } = useMidiStore();
 
@@ -144,7 +142,6 @@ function BeforeCreatePageContent() {
     if (!genre) setGenre(latest.genre);
     if (noteRange == null)
       setNoteRange({ min: latest.minNote, max: latest.maxNote });
-    if (freedom == null) setFreedom(latest.temperature);
   }, [
     isRegenerateMode,
     hasHydrated,
@@ -153,11 +150,9 @@ function BeforeCreatePageContent() {
     selectedInstrument,
     genre,
     noteRange,
-    freedom,
     setSelectedInstrument,
     setGenre,
     setNoteRange,
-    setFreedom,
   ]);
 
   // overlay 표시 중(isMinimized=false) 완료 시 직접 navigate — GlobalGenerationWidget은 최소화 상태만 처리
@@ -263,7 +258,7 @@ function BeforeCreatePageContent() {
             minNote: noteRange?.min ?? 0,
             maxNote: noteRange?.max ?? 127,
             genre,
-            temperature: freedom ?? 1.0,
+            temperature: 1.0,
             mappings,
           },
         });
