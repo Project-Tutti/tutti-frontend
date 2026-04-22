@@ -16,7 +16,7 @@ import SidebarDeleteProjectModal from "@/components/common/SidebarDeleteProjectM
 import { Spinner } from "@/components/common/Spinner";
 import {
   CirclePlus,
-  LayoutPanelLeft,
+  Menu,
   MoreHorizontal,
   Pencil,
   Trash2,
@@ -173,7 +173,7 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
                 className="flex size-10 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-white/5 hover:text-white focus:outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6]/60"
                 aria-label="사이드바 열기"
               >
-                <LayoutPanelLeft className="size-5" strokeWidth={1.75} />
+                <Menu className="size-5" strokeWidth={1.75} />
               </button>
             </div>
           </div>
@@ -184,7 +184,7 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
               className="flex size-10 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-white/5 hover:text-white focus:outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6]/60"
               aria-label="사이드바 접기"
             >
-              <LayoutPanelLeft className="size-5" strokeWidth={1.75} />
+              <Menu className="size-5" strokeWidth={1.75} />
             </button>
 
             <Link
