@@ -27,7 +27,7 @@ const FormInput = ({
     <div>
       <div className="flex items-center justify-between mb-1.5">
         <label 
-          className="block text-xs font-bold text-gray-500 uppercase tracking-widest" 
+          className="block text-[13px] font-bold text-gray-500 uppercase tracking-widest" 
           htmlFor={id}
         >
           {label}
@@ -42,7 +42,7 @@ const FormInput = ({
         onChange={onChange}
         onBlur={onBlur}
         className={`
-          w-full bg-[#0f1218] border rounded-xl px-3.5 py-2.5 text-[13px] text-white 
+          w-full bg-[#0f1218] border rounded-xl px-4 py-3 text-[14px] text-white 
           focus:ring-2 focus:border-transparent transition-all placeholder-gray-600
           ${error 
             ? 'border-red-500 focus:ring-red-500' 
@@ -51,8 +51,8 @@ const FormInput = ({
         `}
       />
       {error && (
-        <p className="mt-1 text-[11px] text-red-400 flex items-center gap-1">
-          <AlertCircle className="size-3.5 shrink-0" strokeWidth={2} />
+        <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1.5">
+          <AlertCircle className="size-4 shrink-0" strokeWidth={2} />
           {error}
         </p>
       )}

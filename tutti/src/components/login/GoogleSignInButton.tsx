@@ -19,7 +19,7 @@ interface GoogleSignInButtonProps {
 }
 
 const GoogleSignInButton = ({
-  text = "Sign in with Google",
+  text = "Google로 로그인",
   postAuthRedirect = "/home",
   disabled = false,
 }: GoogleSignInButtonProps) => {
