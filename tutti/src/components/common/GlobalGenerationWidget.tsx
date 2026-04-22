@@ -70,7 +70,6 @@ function GenerationEntryConnector({
 }
 
 function MiniWidget({ entry }: { entry: GenEntry }) {
-  const minimize = useGenerationStore((s) => s.minimize);
   const maximize = useGenerationStore((s) => s.maximize);
   const clear = useGenerationStore((s) => s.clear);
   const { projectId, versionId, sseState } = entry;

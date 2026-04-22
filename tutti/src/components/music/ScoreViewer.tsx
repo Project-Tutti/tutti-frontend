@@ -250,13 +250,13 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
       }
 
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        /* eslint-disable @typescript-eslint/no-explicit-any */
         const sheet = osmd.Sheet as any;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const graphic =
           (osmd as any).graphicSheet ??
           (osmd as any).GraphicSheet ??
           (osmd as any).graphic;
+        /* eslint-enable @typescript-eslint/no-explicit-any */
 
         const instruments = sheet?.Instruments ?? sheet?.instruments ?? [];
         const pages = graphic?.MusicPages ?? graphic?.musicPages ?? [];
@@ -373,11 +373,12 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
         if (!osmd) return null;
 
         try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          /* eslint-disable @typescript-eslint/no-explicit-any */
           const graphic =
             (osmd as any).graphicSheet ??
             (osmd as any).GraphicSheet ??
             (osmd as any).graphic;
+          /* eslint-enable @typescript-eslint/no-explicit-any */
           const pages = graphic?.MusicPages ?? graphic?.musicPages ?? [];
           const svgs = getAllSvgs();
 

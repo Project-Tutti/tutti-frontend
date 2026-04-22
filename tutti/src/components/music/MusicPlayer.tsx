@@ -911,8 +911,9 @@ export default function MusicPlayer({
     play,
     pause,
     stop,
+    jumpToMeasure,
     onRequestChangeFile,
-  ]); // eslint-disable-line react-hooks/exhaustive-deps
+  ]);
 
   // ============================================================
   // ✅ cleanup

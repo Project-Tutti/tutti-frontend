@@ -13,8 +13,6 @@ interface HeaderProps {
 }
 
 const Header = ({
-  onToggleSidebar,
-  isSidebarCollapsed,
   title = "Workspace / Instrument Setup",
   centerContent,
   rightContent,
