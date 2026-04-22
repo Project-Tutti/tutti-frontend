@@ -37,7 +37,6 @@ interface MidiStore {
   trackMappings: Record<string, number>;
   noteRange: NoteRange | null;
   genre: string | null;
-  freedom: number | null;
   projectName: string;
   setTracks: (tracks: Track[], seed?: RegenerateVersionSeed | null) => void;
   setSelectedInstrument: (id: number | null) => void;
@@ -45,7 +44,6 @@ interface MidiStore {
   setTrackMapping: (trackId: string, targetInstrumentId: number) => void;
   setNoteRange: (range: NoteRange | null) => void;
   setGenre: (genre: string | null) => void;
-  setFreedom: (freedom: number | null) => void;
   setProjectName: (name: string) => void;
   reset: () => void;
 }
@@ -59,7 +57,6 @@ export const useMidiStore = create<MidiStore>()(
       trackMappings: {},
       noteRange: null,
       genre: DEFAULT_GENRE,
-      freedom: 1.0,
       projectName: "",
       setTracks: (tracks, seed) =>
         set(() => {
@@ -86,7 +83,6 @@ export const useMidiStore = create<MidiStore>()(
               trackMappings: nextMappings,
               selectedInstrument: seed.instrumentId,
               genre: seed.genre,
-              freedom: seed.temperature,
               noteRange: { min: seed.minNote, max: seed.maxNote },
             };
           }
@@ -95,7 +91,6 @@ export const useMidiStore = create<MidiStore>()(
             tracks,
             trackMappings: nextMappings,
             genre: DEFAULT_GENRE,
-            freedom: 1.0,
             noteRange: null,
           };
         }),
@@ -110,7 +105,6 @@ export const useMidiStore = create<MidiStore>()(
         })),
       setNoteRange: (range) => set({ noteRange: range }),
       setGenre: (genre) => set({ genre }),
-      setFreedom: (freedom) => set({ freedom }),
       setProjectName: (name) => set({ projectName: name }),
       reset: () =>
         set({
@@ -120,7 +114,6 @@ export const useMidiStore = create<MidiStore>()(
           trackMappings: {},
           noteRange: null,
           genre: DEFAULT_GENRE,
-          freedom: 1.0,
           projectName: "",
         }),
     }),
@@ -134,7 +127,6 @@ export const useMidiStore = create<MidiStore>()(
         selectedInstrument: state.selectedInstrument,
         noteRange: state.noteRange,
         genre: state.genre,
-        freedom: state.freedom,
         projectName: state.projectName,
       }),
       merge: (persistedState, currentState) => {

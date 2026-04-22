@@ -110,11 +110,11 @@ const LoginForm = () => {
 
       {/* 타이틀 */}
       <div>
-        <h1 className="text-[26px] font-bold text-white tracking-tight">
-          Welcome Back
+        <h1 className="text-[30px] font-bold text-white tracking-tight">
+          다시 만나서 반가워요
         </h1>
-        <p className="text-gray-400 mt-1.5 text-[13px]">
-          Sign in to your professional workspace
+        <p className="text-gray-400 mt-1.5 text-[14px]">
+          Tutti에 로그인하고 작업을 이어가세요
         </p>
       </div>
 
@@ -123,9 +123,9 @@ const LoginForm = () => {
         {/* 이메일 */}
         <FormInput
           id="email"
-          label="Email Address"
+          label="이메일"
           type="email"
-          placeholder="name@company.com"
+          placeholder="name@example.com"
           value={formData.email}
           onChange={handleChange("email")}
           onBlur={handleBlur("email")}
@@ -135,7 +135,7 @@ const LoginForm = () => {
         {/* 비밀번호 */}
         <FormInput
           id="password"
-          label="Password"
+          label="비밀번호"
           type="password"
           placeholder="••••••••"
           value={formData.password}
@@ -157,19 +157,19 @@ const LoginForm = () => {
           type="submit"
           disabled={isPending}
           className={`
-            w-full bg-[#3b82f6] text-white font-bold py-3 rounded-xl text-[13px]
+            w-full bg-[#3b82f6] text-white font-bold py-3.5 rounded-xl text-[14px]
             shadow-lg transition-all
             ${isPending ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-600 hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:-translate-y-0.5"}
           `}
         >
-          {isPending ? "Signing In..." : "Sign In"}
+          {isPending ? "로그인 중..." : "로그인"}
         </button>
 
         {submitError ? (
-          <p className="text-[13px] text-red-400">{submitError}</p>
+          <p className="text-[14px] text-red-400">{submitError}</p>
         ) : null}
         {oauthBanner ? (
-          <p className="text-[13px] text-red-400">{oauthBanner}</p>
+          <p className="text-[14px] text-red-400">{oauthBanner}</p>
         ) : null}
       </form>
 
@@ -178,10 +178,8 @@ const LoginForm = () => {
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-[#1e293b]"></div>
         </div>
-        <div className="relative flex justify-center text-[11px] uppercase tracking-widest font-bold">
-          <span className="bg-[#05070a] px-4 text-gray-500">
-            Or continue with
-          </span>
+        <div className="relative flex justify-center text-[12px] uppercase tracking-widest font-bold">
+          <span className="bg-[#05070a] px-4 text-gray-500">또는</span>
         </div>
       </div>
 
@@ -194,13 +192,13 @@ const LoginForm = () => {
       />
 
       {/* 회원가입 링크 */}
-      <p className="text-center text-[13px] text-gray-500 pt-3">
-        Don&apos;t have an account?{" "}
+      <p className="text-center text-[14px] text-gray-500 pt-3">
+        아직 계정이 없나요?{" "}
         <Link
           href="/register"
           className="font-bold text-[#3b82f6] hover:text-blue-400"
         >
-          Let&apos;s Go Sign Up
+          회원가입
         </Link>
       </p>
     </div>

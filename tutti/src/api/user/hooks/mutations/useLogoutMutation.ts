@@ -10,8 +10,6 @@ import queryKeys from "@common/constants/query-key.constants";
 import { ApiError } from "@/common/errors/ApiError";
 
 import { useAuthStoreActions } from "@features/auth/hooks/useAuthStore";
-import { toast } from "@/components/common/Toast";
-
 export const useLogoutMutation = () => {
   const queryClient = useQueryClient();
   const { clearAuth } = useAuthStoreActions();
@@ -29,7 +27,7 @@ export const useLogoutMutation = () => {
       console.error("로그아웃 실패:", err);
       // 서버 로그아웃 실패해도 로컬 auth는 클리어 (보안상 더 안전)
       clearAuth();
-      toast.error("로그아웃 처리 중 문제가 발생했습니다.");
+      // 로그아웃은 best-effort: 로컬 인증을 비우는 순간 사용자 관점에서는 성공 처리.
     },
   });
 };

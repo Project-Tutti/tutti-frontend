@@ -75,6 +75,9 @@ const ACTIVE_TOP_CLASS = "osmd-active-top-highlight"; // 위쪽 트랙
 const ACTIVE_BOTTOM_CLASS = "osmd-active-bottom-highlight"; // generated 트랙
 const HOVER_CLASS = "osmd-hover-measure-highlight";
 
+/** 마디 하이라이트 좌측 여백 (SVG units) — 왼쪽 마디 침범 방지 */
+const HIGHLIGHT_X_INSET = 4;
+
 const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
   (
     {
@@ -88,6 +91,11 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
   ) => {
     const scrollRef = useRef<HTMLDivElement>(null);
     const renderRef = useRef<HTMLDivElement>(null);
+    const [scrollHint, setScrollHint] = React.useState<{
+      hasOverflow: boolean;
+      leftRatio: number;
+      thumbRatio: number;
+    }>({ hasOverflow: false, leftRatio: 0, thumbRatio: 1 });
 
     const osmdRef = useRef<OpenSheetMusicDisplay | null>(null);
     const cursorRef = useRef<Cursor | null>(null);
@@ -116,6 +124,51 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
       onMeasureClickRef.current = onMeasureClick;
       onMeasureHoverRef.current = onMeasureHover;
     }, [onScoreLoaded, onMeasureClick, onMeasureHover]);
+
+    /** highlightHover ref — event handler 클로저에서 최신값 참조용 */
+    const highlightHoverRef = useRef<
+      ((measureNumber: number | null) => void) | null
+    >(null);
+
+    useEffect(() => {
+      const el = scrollRef.current;
+      if (!el) return;
+
+      let raf = 0;
+      const update = () => {
+        const client = el.clientWidth;
+        const total = el.scrollWidth;
+        const left = el.scrollLeft;
+        const hasOverflow = total > client + 1;
+
+        if (!hasOverflow) {
+          setScrollHint({ hasOverflow: false, leftRatio: 0, thumbRatio: 1 });
+          return;
+        }
+
+        const maxLeft = Math.max(1, total - client);
+        const leftRatio = Math.min(1, Math.max(0, left / maxLeft));
+        const thumbRatio = Math.min(1, Math.max(0.12, client / total));
+        setScrollHint({ hasOverflow: true, leftRatio, thumbRatio });
+      };
+
+      const schedule = () => {
+        cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(update);
+      };
+
+      update();
+      el.addEventListener("scroll", schedule, { passive: true });
+
+      const ro = new ResizeObserver(schedule);
+      ro.observe(el);
+
+      return () => {
+        cancelAnimationFrame(raf);
+        el.removeEventListener("scroll", schedule);
+        ro.disconnect();
+      };
+    }, []);
 
     // -----------------------------
     // Utils
@@ -420,16 +473,16 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
     // Rect 삽입
     // ============================================================
     const insertRect = useCallback(
-      (box: MeasureBox, className: string, fill: string) => {
+      (box: MeasureBox, className: string, fill: string, xInset = 0) => {
         const svg = box.svg;
 
         const rect = document.createElementNS(
           "http://www.w3.org/2000/svg",
           "rect",
         );
-        rect.setAttribute("x", String(box.x));
+        rect.setAttribute("x", String(box.x + xInset));
         rect.setAttribute("y", String(box.y));
-        rect.setAttribute("width", String(box.w));
+        rect.setAttribute("width", String(Math.max(0, box.w - xInset)));
         rect.setAttribute("height", String(box.h));
         rect.setAttribute("fill", fill);
         rect.setAttribute("class", className);
@@ -505,21 +558,36 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
 
         // 분리 모드 비활성 또는 instrument 1개 → 단일 active
         if (target == null || instruments.length < 2 || ranges.length === 0) {
-          insertRect(box, ACTIVE_CLASS, "rgba(59,130,246,0.16)");
+          insertRect(
+            box,
+            ACTIVE_CLASS,
+            "rgba(59,130,246,0.16)",
+            HIGHLIGHT_X_INSET,
+          );
           if (opts?.scrollIntoView) scrollPageIntoView(box);
           return;
         }
 
         const targetIdx = target === "last" ? instruments.length - 1 : target;
         if (targetIdx < 0 || targetIdx >= instruments.length) {
-          insertRect(box, ACTIVE_CLASS, "rgba(59,130,246,0.16)");
+          insertRect(
+            box,
+            ACTIVE_CLASS,
+            "rgba(59,130,246,0.16)",
+            HIGHLIGHT_X_INSET,
+          );
           if (opts?.scrollIntoView) scrollPageIntoView(box);
           return;
         }
 
         const sysInfo = findSystemForMeasureBox(box);
         if (!sysInfo) {
-          insertRect(box, ACTIVE_CLASS, "rgba(59,130,246,0.16)");
+          insertRect(
+            box,
+            ACTIVE_CLASS,
+            "rgba(59,130,246,0.16)",
+            HIGHLIGHT_X_INSET,
+          );
           if (opts?.scrollIntoView) scrollPageIntoView(box);
           return;
         }
@@ -549,7 +617,12 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
         }
 
         if (!svg) {
-          insertRect(box, ACTIVE_CLASS, "rgba(59,130,246,0.16)");
+          insertRect(
+            box,
+            ACTIVE_CLASS,
+            "rgba(59,130,246,0.16)",
+            HIGHLIGHT_X_INSET,
+          );
           if (opts?.scrollIntoView) scrollPageIntoView(box);
           return;
         }
@@ -562,9 +635,9 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           const h = (topMaxY - topMinY) * ratio + padTop + padBottom;
           insertRawRect(
             svg,
-            box.x,
+            box.x + HIGHLIGHT_X_INSET,
             y,
-            box.w,
+            Math.max(0, box.w - HIGHLIGHT_X_INSET),
             h,
             ACTIVE_TOP_CLASS,
             "rgba(59,130,246,0.16)",
@@ -579,9 +652,9 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           const h = (bottomMaxY - bottomMinY) * ratio + padTop + padBottom;
           insertRawRect(
             svg,
-            box.x,
+            box.x + HIGHLIGHT_X_INSET,
             y,
-            box.w,
+            Math.max(0, box.w - HIGHLIGHT_X_INSET),
             h,
             ACTIVE_BOTTOM_CLASS,
             "rgba(16,185,129,0.22)",
@@ -611,6 +684,11 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
       },
       [clearHighlightByClass, insertRect],
     );
+
+    // highlightHover ref 동기화
+    useEffect(() => {
+      highlightHoverRef.current = highlightHover;
+    }, [highlightHover]);
 
     const applyPointerCursorToMeasures = useCallback(() => {
       const svgs = getAllSvgs();
@@ -805,8 +883,12 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
         buildInstrumentYRanges();
         applyPointerCursorToMeasures();
 
-        // 초기 active highlight: 1마디
-        highlightMeasure(1);
+        // 초기 active highlight: pickup measure(0번) 대응
+        const firstMeasure =
+          measureBoxesRef.current.length > 0
+            ? Math.min(...measureBoxesRef.current.map((b) => b.measure))
+            : 1;
+        highlightMeasure(firstMeasure);
 
         const root = scrollRef.current;
         if (!root) return;
@@ -843,14 +925,14 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
 
           if (m !== hoveredMeasureRef.current) {
             hoveredMeasureRef.current = m ?? null;
-            highlightHover(m ?? null);
+            highlightHoverRef.current?.(m ?? null);
             onMeasureHoverRef.current?.(m ?? null);
           }
         };
 
         const onLeave = () => {
           hoveredMeasureRef.current = null;
-          highlightHover(null);
+          highlightHoverRef.current?.(null);
           onMeasureHoverRef.current?.(null);
         };
 
@@ -878,7 +960,6 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
       buildInstrumentYRanges,
       applyPointerCursorToMeasures,
       highlightMeasure,
-      highlightHover,
       tryFindMeasureFromDomPath,
     ]);
 
@@ -920,37 +1001,39 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
 
     return (
       <div className="score-viewer-root w-full">
-        <div
-          ref={scrollRef}
-          className="w-full overflow-x-auto overflow-y-hidden"
-          style={{
-            scrollSnapType: "x mandatory",
-            WebkitOverflowScrolling: "touch",
-          }}
-        >
+        <div className="relative w-full">
           <div
-            ref={renderRef}
-            className="flex flex-row gap-6 items-start py-4 px-4"
-          />
-        </div>
+            ref={scrollRef}
+            className="score-scroll w-full overflow-x-auto overflow-y-hidden"
+            style={{
+              scrollSnapType: "x mandatory",
+              WebkitOverflowScrolling: "touch",
+            }}
+          >
+            <div
+              ref={renderRef}
+              className="flex flex-row gap-6 items-start py-4 px-4"
+            />
+          </div>
 
-        <style jsx global>{`
-          .${ACTIVE_CLASS}, .${HOVER_CLASS} {
-            shape-rendering: crispEdges;
-          }
-          .${ACTIVE_TOP_CLASS}, .${ACTIVE_BOTTOM_CLASS} {
-            shape-rendering: geometricPrecision;
-          }
-          /* OSMD만 대상 — 전역 svg 선택자는 Lucide 등 사이드바 아이콘까지 칠함 */
-          .score-viewer-root .osmdSvgPage,
-          .score-viewer-root svg {
-            scroll-snap-align: start;
-            flex: 0 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
-          }
-        `}</style>
+          {scrollHint.hasOverflow ? (
+            <div
+              className="pointer-events-none absolute inset-x-4 bottom-1.5 h-2"
+              aria-hidden
+            >
+              <div className="h-full w-full rounded-full bg-white/8" />
+              <div
+                className="absolute top-0 h-2 rounded-full bg-white/28"
+                style={{
+                  width: `${Math.round(scrollHint.thumbRatio * 100)}%`,
+                  left: `${Math.round(
+                    scrollHint.leftRatio * (100 - scrollHint.thumbRatio * 100),
+                  )}%`,
+                }}
+              />
+            </div>
+          ) : null}
+        </div>
       </div>
     );
   },

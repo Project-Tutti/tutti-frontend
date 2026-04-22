@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import type { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
 import AudioPlayer from "osmd-audio-player";
 import ScoreViewer, { ScoreViewerRef } from "./ScoreViewer";
@@ -9,6 +10,7 @@ import PlaybackControl from "./PlaybackControl";
 import InstrumentMixer, { InstrumentInfo } from "./InstrumentMixer";
 import { buildMeasureIndex, getMeasureNumberFromCursor } from "./MeasureIndex";
 import { toast } from "@/components/common/Toast";
+import { Spinner } from "@/components/common/Spinner";
 
 type UiState = "loading" | "idle" | "playing" | "paused";
 type JumpSource = "control" | "click";
@@ -54,6 +56,7 @@ export default function MusicPlayer({
   // ✅ 악기 믹서 상태
   const [instruments, setInstruments] = useState<InstrumentInfo[]>([]);
   const [mutedIndices, setMutedIndices] = useState<Set<number>>(new Set());
+  const [isInstrumentsOpen, setIsInstrumentsOpen] = useState(true);
 
   // ✅ 콜백에서 stale 방지용 ref
   const instrumentsRef = useRef<InstrumentInfo[]>([]);
@@ -108,9 +111,13 @@ export default function MusicPlayer({
     );
   };
 
-  /** ✅ 현재 active 하이라이트 rect */
+  /** ✅ 현재 active 하이라이트 rect — split 모드에서는 생성 트랙(bottom) 우선 */
   const getActiveHighlightElement = (): Element | null => {
-    return document.querySelector(`.${ACTIVE_HIGHLIGHT_CLASS}`);
+    return (
+      document.querySelector(".osmd-active-bottom-highlight") ??
+      document.querySelector(`.${ACTIVE_HIGHLIGHT_CLASS}`) ??
+      null
+    );
   };
 
   /** ✅ 스크롤 가능한 부모 찾기 */
@@ -139,11 +146,25 @@ export default function MusicPlayer({
     return (document.scrollingElement as HTMLElement) ?? null;
   };
 
-  /** ✅ 커서가 속한 "페이지" DOM */
+  /** ✅ 커서가 속한 "페이지" SVG — cursor img는 SVG의 sibling이므로 위치 기반으로 탐지 */
   const getPageElement = (): Element | null => {
     const el = getCursorElement();
     if (!el) return null;
 
+    // 수평 레이아웃: cursor의 중심 x로 어느 SVG 위에 있는지 판별
+    const cursorRect = (el as HTMLElement).getBoundingClientRect?.();
+    if (cursorRect && (cursorRect.width > 0 || cursorRect.height > 0)) {
+      const cx = (cursorRect.left + cursorRect.right) / 2;
+      const svgs = Array.from(
+        document.querySelectorAll(".score-viewer-root svg"),
+      ) as SVGSVGElement[];
+      for (const svg of svgs) {
+        const r = svg.getBoundingClientRect();
+        if (cx >= r.left - 4 && cx <= r.right + 4) return svg;
+      }
+    }
+
+    // fallback (수직 레이아웃 또는 cursor가 SVG 안에 있는 경우)
     return (
       (el as HTMLElement).closest?.(
         ".osmdPage, .osmd-page, .page, .osmdPageContainer, .osmd-page-container, [id^='osmdPage'], [class*='osmdPage'], [data-osmd-page]",
@@ -153,9 +174,12 @@ export default function MusicPlayer({
     );
   };
 
-  /** ✅ 커서가 화면 안에 충분히 보이면 scrollIntoView OFF */
+  /** ✅ 생성 트랙(bottom) 하이라이트 기준으로 화면 안에 충분히 보이면 scrollIntoView OFF */
   const shouldUseScrollIntoView = (): boolean => {
-    const el = getCursorElement();
+    const el =
+      (document.querySelector(
+        ".osmd-active-bottom-highlight",
+      ) as Element | null) ?? getCursorElement();
     if (!el || typeof (el as Element).getBoundingClientRect !== "function")
       return true;
 
@@ -303,7 +327,23 @@ export default function MusicPlayer({
   };
 
   const ensurePageTop = (pageEl: Element) => {
+    let lastXLeft = -1;
     const run = () => {
+      // 1. 수평 스크롤: score-scroll 컨테이너를 새 페이지 위치로 이동
+      const xParent = findScrollParent(pageEl, "x");
+      if (xParent) {
+        const pageRect = (pageEl as HTMLElement).getBoundingClientRect();
+        const parentRect = xParent.getBoundingClientRect();
+        const leftOffset = pageRect.left - parentRect.left;
+        if (leftOffset < -8 || pageRect.right > parentRect.right + 8) {
+          const newLeft = Math.max(0, xParent.scrollLeft + leftOffset);
+          if (Math.abs(newLeft - lastXLeft) > 1) {
+            lastXLeft = newLeft;
+            xParent.scrollTo({ left: newLeft, behavior: "auto" });
+          }
+        }
+      }
+      // 2. 수직 스크롤: 페이지 상단 기준으로 정렬
       scrollToPageTop(pageEl, "auto");
       scrollActiveHighlightIntoView("auto");
     };
@@ -798,34 +838,72 @@ export default function MusicPlayer({
   if (!xmlData) return null;
 
   return (
-    <div className="w-full space-y-3">
-      <div ref={controlBarRef} className="sticky top-0 z-40 -mx-4 md:-mx-8">
-        <div className="border-b border-[#1e293b] bg-[#05070a]/85 backdrop-blur px-2">
-          <PlaybackControl
-            state={state}
-            currentMeasure={currentMeasure}
-            totalMeasures={totalMeasures}
-            onPlay={play}
-            onPause={pause}
-            onStop={stop}
-            onJumpToMeasure={(mm) => jumpToMeasure(mm, true, "control")}
-            onChangeFile={onRequestChangeFile}
-          />
+    <div className="w-full space-y-4">
+      {state === "loading" ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#05070a]">
+          <div className="flex flex-col items-center gap-3">
+            <Spinner size="md" />
+            <p className="text-sm text-gray-400">악보를 불러오는 중…</p>
+          </div>
+        </div>
+      ) : null}
+      {/* 재생바: Header 아래 20px 간격 유지 */}
+      <div ref={controlBarRef} className="sticky top-5 z-40">
+        <div className="rounded-xl border border-[#1e293b] bg-[#05070a]/85 backdrop-blur">
+          <div className="px-3 py-2">
+            <PlaybackControl
+              state={state}
+              currentMeasure={currentMeasure}
+              totalMeasures={totalMeasures}
+              onPlay={play}
+              onPause={pause}
+              onStop={stop}
+              onJumpToMeasure={(mm) => jumpToMeasure(mm, true, "control")}
+              onChangeFile={onRequestChangeFile}
+            />
+          </div>
         </div>
       </div>
 
-      {/* ✅ 악기 믹서 */}
-      <InstrumentMixer
-        instruments={instruments}
-        mutedIndices={mutedIndices}
-        onToggleMute={handleToggleMute}
-        onSolo={handleSolo}
-        onAll={handleAll}
-        disabled={state === "loading"}
-        // 초기 로드(악기 목록이 비어있을 때)만 스켈레톤 표시.
-        // 점프/재렌더/재로딩 시에는 기존 악기 목록을 유지해 깜빡임을 줄임.
-        isLoading={state === "loading" && instruments.length === 0}
-      />
+      {/* INSTRUMENTS: 재생바 아래 sticky */}
+      <div className="sticky top-[92px] z-30 mt-3">
+        <div className="w-full overflow-hidden rounded-xl border border-[#1e293b] bg-[#0f1218]/70 backdrop-blur">
+          <button
+            type="button"
+            onClick={() => setIsInstrumentsOpen((v) => !v)}
+            className="flex w-full items-center justify-between gap-3 px-4 py-3"
+            aria-expanded={isInstrumentsOpen}
+          >
+            <span className="text-xs uppercase tracking-widest text-white/90">
+              Instruments
+            </span>
+            <span className="shrink-0 text-gray-400">
+              {isInstrumentsOpen ? (
+                <ChevronUp className="size-4" strokeWidth={2} aria-hidden />
+              ) : (
+                <ChevronDown className="size-4" strokeWidth={2} aria-hidden />
+              )}
+            </span>
+          </button>
+
+          {isInstrumentsOpen ? (
+            <div className="border-t border-[#1e293b] px-4 py-3">
+              <InstrumentMixer
+                instruments={instruments}
+                mutedIndices={mutedIndices}
+                onToggleMute={handleToggleMute}
+                onSolo={handleSolo}
+                onAll={handleAll}
+                disabled={state === "loading"}
+                showHeader={false}
+                // 초기 로드(악기 목록이 비어있을 때)만 스켈레톤 표시.
+                // 점프/재렌더/재로딩 시에는 기존 악기 목록을 유지해 깜빡임을 줄임.
+                isLoading={state === "loading" && instruments.length === 0}
+              />
+            </div>
+          ) : null}
+        </div>
+      </div>
 
       {/* 브라우저 scroll anchoring 점프 완화 */}
       <div style={{ overflowAnchor: "none" }}>

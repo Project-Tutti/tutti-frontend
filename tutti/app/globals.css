@@ -72,3 +72,33 @@ body {
   background: var(--accent-blue);
 }
 
+/* 악보(ScoreViewer): 기본 가로 스크롤바는 숨기고, 별도 인디케이터만 사용 */
+.score-scroll {
+  scrollbar-width: none; /* Firefox */
+}
+
+.score-scroll::-webkit-scrollbar {
+  height: 0px; /* WebKit */
+}
+
+/* ScoreViewer(OSMD) 스타일: App Router에서도 안정적인 정적 CSS로 적용 */
+.score-viewer-root .osmd-active-measure-highlight,
+.score-viewer-root .osmd-hover-measure-highlight {
+  shape-rendering: crispEdges;
+}
+
+.score-viewer-root .osmd-active-top-highlight,
+.score-viewer-root .osmd-active-bottom-highlight {
+  shape-rendering: geometricPrecision;
+}
+
+/* OSMD만 대상 — 전역 svg 선택자는 Lucide 등 사이드바 아이콘까지 칠함 */
+.score-viewer-root .osmdSvgPage,
+.score-viewer-root svg {
+  scroll-snap-align: start;
+  flex: 0 0 auto;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+

@@ -122,7 +122,7 @@ export default function PlaybackControl({
       </div>
 
       {/* 오른쪽: Now: Measure (바 안으로) + (선택) 파일 변경 */}
-      <div className="flex items-center gap-2 text-[11px] text-gray-200/80 whitespace-nowrap">
+      <div className="flex items-center gap-2 text-[14px] text-gray-200/80 whitespace-nowrap">
         <span className="px-2 py-1 rounded-md bg-white/5 border border-white/10">
           Now: Measure {safeCurrent}
         </span>

@@ -182,11 +182,11 @@ const SignUpForm = () => {
 
       {/* 타이틀 */}
       <div>
-        <h1 className="text-[26px] font-bold text-white tracking-tight">
-          Create Account
+        <h1 className="text-[30px] font-bold text-white tracking-tight">
+          계정 만들기
         </h1>
-        <p className="text-gray-400 mt-1.5 text-[13px]">
-          Join the future of orchestral composition
+        <p className="text-gray-400 mt-2 text-[14px]">
+          Tutti와 함께 새로운 작곡 경험을 시작하세요
         </p>
       </div>
 
@@ -195,9 +195,9 @@ const SignUpForm = () => {
         {/* 이름 */}
         <FormInput
           id="name"
-          label="Name"
+          label="이름"
           type="text"
-          placeholder="e.g. Tutti User"
+          placeholder="예: Tutti 사용자"
           value={formData.name}
           onChange={handleChange("name")}
           onBlur={handleBlur("name")}
@@ -207,9 +207,9 @@ const SignUpForm = () => {
         {/* 이메일 */}
         <FormInput
           id="email"
-          label="Email Address"
+          label="이메일"
           type="email"
-          placeholder="name@company.com"
+          placeholder="name@example.com"
           value={formData.email}
           onChange={handleChange("email")}
           onBlur={handleBlur("email")}
@@ -226,7 +226,7 @@ const SignUpForm = () => {
         {/* 비밀번호 */}
         <FormInput
           id="password"
-          label="Password"
+          label="비밀번호"
           type="password"
           placeholder="••••••••"
           value={formData.password}
@@ -238,7 +238,7 @@ const SignUpForm = () => {
         {/* 비밀번호 확인 */}
         <FormInput
           id="confirm-password"
-          label="Confirm Password"
+          label="비밀번호 확인"
           type="password"
           placeholder="••••••••"
           value={formData.confirmPassword}
@@ -253,16 +253,16 @@ const SignUpForm = () => {
           disabled={isPending || isCheckingEmail || !isEmailAvailable}
           title={!isEmailAvailable ? "이메일 중복 확인 후 가입 가능합니다" : undefined}
           className={`
-            w-full bg-[#3b82f6] text-white font-bold py-3 rounded-xl text-[13px]
+            w-full bg-[#3b82f6] text-white font-bold py-3.5 rounded-xl text-[14px]
             shadow-lg transition-all mt-2
             ${isPending || isCheckingEmail || !isEmailAvailable ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-600 hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:-translate-y-0.5"}
           `}
         >
-          {isPending ? "Creating Account..." : "Sign Up"}
+          {isPending ? "가입 중..." : "회원가입"}
         </button>
 
         {submitError ? (
-          <p className="text-[13px] text-red-400">{submitError}</p>
+          <p className="text-[14px] text-red-400">{submitError}</p>
         ) : null}
       </form>
 
@@ -271,28 +271,28 @@ const SignUpForm = () => {
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-[#1e293b]"></div>
         </div>
-        <div className="relative flex justify-center text-[11px] uppercase tracking-widest font-bold">
+        <div className="relative flex justify-center text-[12px] uppercase tracking-widest font-bold">
           <span className="bg-[#05070a] px-4 text-gray-500">
-            Or continue with
+            또는
           </span>
         </div>
       </div>
 
       {/* Google 회원가입 */}
       <GoogleSignInButton
-        text="Sign up with Google"
+        text="Google로 회원가입"
         postAuthRedirect="/home"
         disabled={isPending || isCheckingEmail}
       />
 
       {/* 로그인 링크 */}
-      <p className="text-center text-[13px] text-gray-500 pt-2">
-        Already have an account?{" "}
+      <p className="text-center text-[14px] text-gray-500 pt-2">
+        이미 계정이 있나요?{" "}
         <Link
           href="/login"
           className="font-bold text-[#3b82f6] hover:text-blue-400"
         >
-          Sign In
+          로그인
         </Link>
       </p>
     </div>

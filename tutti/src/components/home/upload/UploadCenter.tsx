@@ -1,69 +1,130 @@
 "use client";
 
-import { ChangeEvent, useId, useRef } from "react";
-import { CloudUpload } from "lucide-react";
+import { ChangeEvent, DragEvent, useId, useRef, useState } from "react";
+import { CloudUpload, CheckCircle2, FileMusic } from "lucide-react";
 
 interface UploadCenterProps {
   onFileUpload?: (file: File) => void;
-  isUploaded?: boolean;
+  uploadedFile?: File | null;
 }
 
-const UploadCenter = ({
-  onFileUpload,
-  isUploaded = false,
-}: UploadCenterProps) => {
+const UploadCenter = ({ onFileUpload, uploadedFile }: UploadCenterProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputId = useId();
+  const [isDragging, setIsDragging] = useState(false);
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const input = e.currentTarget;
-    const file = input.files?.[0];
-
-    if (file && onFileUpload) {
-      onFileUpload(file);
-    }
-
-    input.value = "";
+  const handleFile = (file: File) => {
+    if (!file.name.match(/\.(mid|midi)$/i)) return;
+    onFileUpload?.(file);
   };
 
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.currentTarget.files?.[0];
+    if (file) handleFile(file);
+    e.currentTarget.value = "";
+  };
+
+  const handleDragOver = (e: DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: DragEvent<HTMLLabelElement>) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDrop = (e: DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFile(file);
+  };
+
+  const isUploaded = !!uploadedFile;
+
   return (
-    <div className="group relative z-20">
-      <label
-        htmlFor={inputId}
-        className={`group flex h-28 w-28 cursor-pointer flex-col items-center justify-center rounded-full border-2 border-dashed border-[#1e293b] bg-[#0f1218] shadow-2xl transition-all duration-500 md:h-38 md:w-38
-          ${isUploaded ? "border-[#3b82f6] bg-blue-900/5" : "hover:border-[#3b82f6] hover:bg-blue-900/5"}`}
-      >
-        <div className="pointer-events-none absolute inset-3 rounded-full border border-white/5"></div>
-        <CloudUpload
-          className={`mb-1.5 size-6 transition-colors md:size-8 ${
-            isUploaded
-              ? "text-[#3b82f6]"
-              : "text-gray-500 group-hover:text-[#3b82f6]"
-          }`}
-          strokeWidth={1.5}
-        />
-        <h3
-          className={`text-xs font-semibold transition-colors md:text-sm ${
-            isUploaded
-              ? "text-[#3b82f6]"
-              : "text-white group-hover:text-[#3b82f6]"
-          }`}
-        >
-          Upload Score
-        </h3>
-        <p className="mt-0.5 text-[8px] font-bold uppercase tracking-[0.15em] text-gray-500 md:text-[9px]">
-          MIDI Only
-        </p>
-        <input
-          id={inputId}
-          ref={fileInputRef}
-          accept=".midi,.mid"
-          className="hidden"
-          type="file"
-          onChange={handleFileChange}
-        />
-      </label>
-    </div>
+    <label
+      htmlFor={inputId}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className={[
+        "relative flex h-125 w-full cursor-pointer flex-col items-center justify-center gap-5",
+        "overflow-hidden rounded-2xl border-2 border-dashed transition-all duration-500",
+        isUploaded
+          ? "border-[#3b82f6]/60 bg-blue-500/8 shadow-[0_0_80px_rgba(59,130,246,0.12)]"
+          : isDragging
+            ? "scale-[1.01] border-[#3b82f6] bg-blue-500/10 shadow-[0_0_60px_rgba(59,130,246,0.15)]"
+            : "border-[#1e293b] bg-[#0f1218]/50 hover:border-[#3b82f6]/50 hover:bg-[#0a0c12]/80",
+      ].join(" ")}
+    >
+      {/* 업로드 완료 시 내부 글로우 */}
+      {isUploaded && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="h-48 w-64 rounded-full bg-blue-500/15 blur-[60px]" />
+        </div>
+      )}
+
+      {isUploaded ? (
+        <>
+          <div className="relative rounded-2xl border border-[#3b82f6]/30 bg-blue-500/15 p-5">
+            <FileMusic className="size-12 text-[#3b82f6]" strokeWidth={1.5} />
+          </div>
+          <div className="relative text-center">
+            <div className="flex items-center justify-center gap-2">
+              <CheckCircle2
+                className="size-5 shrink-0 text-[#3b82f6]"
+                strokeWidth={2}
+              />
+              <p className="max-w-xs truncate text-base font-semibold text-white">
+                {uploadedFile.name}
+              </p>
+            </div>
+            <p className="mt-2 text-sm text-gray-500">클릭하여 파일 변경</p>
+          </div>
+        </>
+      ) : (
+        <>
+          <div
+            className={[
+              "rounded-2xl border p-5 transition-colors",
+              isDragging
+                ? "border-[#3b82f6]/40 bg-blue-500/20"
+                : "border-[#1e293b] bg-[#1e293b]/40",
+            ].join(" ")}
+          >
+            <CloudUpload
+              className={[
+                "size-12 transition-colors",
+                isDragging ? "text-[#3b82f6]" : "text-gray-400",
+              ].join(" ")}
+              strokeWidth={1.5}
+            />
+          </div>
+          <div className="text-center">
+            <p className="text-lg font-semibold text-white">
+              {isDragging ? "파일을 여기에 놓으세요" : "MIDI 파일 업로드"}
+            </p>
+            <p className="mt-2 text-sm text-gray-500">
+              드래그하거나{" "}
+              <span className="font-medium text-[#3b82f6]">클릭하여 선택</span>
+            </p>
+            <p className="mt-1 text-xs text-gray-600">.mid / .midi</p>
+          </div>
+        </>
+      )}
+
+      <input
+        id={inputId}
+        ref={fileInputRef}
+        accept=".midi,.mid"
+        className="hidden"
+        type="file"
+        onChange={handleFileChange}
+      />
+    </label>
   );
 };
 

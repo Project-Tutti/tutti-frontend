@@ -26,6 +26,7 @@ const config: Config = {
       },
       zIndex: {
         100: "100",
+        200: "200",
       },
       boxShadow: {
         glow: "0 0 20px rgba(59, 130, 246, 0.5)",
