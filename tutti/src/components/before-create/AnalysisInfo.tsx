@@ -26,7 +26,7 @@ const AnalysisInfo = ({
   const hasError = Boolean(errorMessage?.trim());
 
   return (
-    <div className="mx-auto mt-auto w-full max-w-3xl pt-5 md:pt-6">
+    <div className="mx-auto w-full max-w-3xl pt-3 md:pt-4">
       <div className="flex flex-col items-center gap-2 md:gap-2.5">
         <button
           type="button"

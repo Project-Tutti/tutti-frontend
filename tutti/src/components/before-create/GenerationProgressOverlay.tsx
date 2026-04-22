@@ -8,6 +8,7 @@ import type { ProjectStatusState } from "@api/project/hooks/useProjectStatusSSE"
 
 interface GenerationProgressOverlayProps {
   state: ProjectStatusState;
+  label?: string;
   onRetry?: () => void;
   onCancel?: () => void;
   onMinimize?: () => void;
@@ -19,6 +20,7 @@ const SWEEP_GAP = Math.round(CIRC - SWEEP_ARC);
 
 const GenerationProgressOverlay = ({
   state,
+  label,
   onRetry,
   onCancel,
   onMinimize,
@@ -114,6 +116,11 @@ const GenerationProgressOverlay = ({
               >
                 악보 생성 중
               </p>
+              {label ? (
+                <p className="mt-1 text-[13px] font-medium text-[#60a5fa] truncate">
+                  {label}
+                </p>
+              ) : null}
               <p className="mt-2 text-[14px] leading-snug text-slate-400">
                 잠시만 기다려 주세요
               </p>

@@ -32,7 +32,8 @@ const TrackInfoModal = ({
       isOpen={isOpen}
       onClose={onClose}
       title="트랙 정보"
-      panelClassName="max-w-none w-[calc(100vw-32px)] h-[calc(100vh-32px)]"
+      overlayClassName="bg-black/95"
+      panelClassName="min-w-[1200px] h-[calc(100vh-32px)]"
       contentClassName="h-full px-0 py-0 overflow-hidden"
     >
       <div className="flex h-full items-center justify-center bg-[#05070a] p-3 md:p-6">

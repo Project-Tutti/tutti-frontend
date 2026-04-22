@@ -1,10 +1,11 @@
 "use client";
 
-import React, {
+import {
   useCallback,
   useEffect,
   useImperativeHandle,
   useRef,
+  useState,
   forwardRef,
 } from "react";
 import { OpenSheetMusicDisplay, Cursor } from "opensheetmusicdisplay";
@@ -91,11 +92,6 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
   ) => {
     const scrollRef = useRef<HTMLDivElement>(null);
     const renderRef = useRef<HTMLDivElement>(null);
-    const [scrollHint, setScrollHint] = React.useState<{
-      hasOverflow: boolean;
-      leftRatio: number;
-      thumbRatio: number;
-    }>({ hasOverflow: false, leftRatio: 0, thumbRatio: 1 });
 
     const osmdRef = useRef<OpenSheetMusicDisplay | null>(null);
     const cursorRef = useRef<Cursor | null>(null);
@@ -130,45 +126,8 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
       ((measureNumber: number | null) => void) | null
     >(null);
 
-    useEffect(() => {
-      const el = scrollRef.current;
-      if (!el) return;
-
-      let raf = 0;
-      const update = () => {
-        const client = el.clientWidth;
-        const total = el.scrollWidth;
-        const left = el.scrollLeft;
-        const hasOverflow = total > client + 1;
-
-        if (!hasOverflow) {
-          setScrollHint({ hasOverflow: false, leftRatio: 0, thumbRatio: 1 });
-          return;
-        }
-
-        const maxLeft = Math.max(1, total - client);
-        const leftRatio = Math.min(1, Math.max(0, left / maxLeft));
-        const thumbRatio = Math.min(1, Math.max(0.12, client / total));
-        setScrollHint({ hasOverflow: true, leftRatio, thumbRatio });
-      };
-
-      const schedule = () => {
-        cancelAnimationFrame(raf);
-        raf = requestAnimationFrame(update);
-      };
-
-      update();
-      el.addEventListener("scroll", schedule, { passive: true });
-
-      const ro = new ResizeObserver(schedule);
-      ro.observe(el);
-
-      return () => {
-        cancelAnimationFrame(raf);
-        el.removeEventListener("scroll", schedule);
-        ro.disconnect();
-      };
-    }, []);
+    const [hoveredEdge, setHoveredEdge] = useState<"left" | "right" | null>(null);
+    const [pageCount, setPageCount] = useState(0);
 
     // -----------------------------
     // Utils
@@ -256,7 +215,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
               u.maxX = Math.max(u.maxX, b.x + b.width);
               u.maxY = Math.max(u.maxY, b.y + b.height);
             }
-          } catch {}
+          } catch (e) { if (isDev) console.warn("[ScoreViewer]", e); }
         }
 
         for (const [measure, u] of union.entries()) {
@@ -295,10 +254,13 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
       }
 
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        /* eslint-disable @typescript-eslint/no-explicit-any */
         const sheet = osmd.Sheet as any;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const graphic = (osmd as any).GraphicSheet ?? (osmd as any).graphic;
+        const graphic =
+          (osmd as any).graphicSheet ??
+          (osmd as any).GraphicSheet ??
+          (osmd as any).graphic;
+        /* eslint-enable @typescript-eslint/no-explicit-any */
 
         const instruments = sheet?.Instruments ?? sheet?.instruments ?? [];
         const pages = graphic?.MusicPages ?? graphic?.musicPages ?? [];
@@ -340,21 +302,26 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           systems.forEach((system: any, sysIdx: number) => {
             const staffLines = system?.StaffLines ?? system?.staffLines ?? [];
 
+            // 객체 참조 비교 대신 Id로 비교 (OSMD가 렌더링 시 다른 인스턴스를 반환할 수 있음)
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const byInstrument = new Map<unknown, any[]>();
+            const byInstrumentId = new Map<number, any[]>();
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             staffLines.forEach((sl: any) => {
               const staff = sl?.ParentStaff ?? sl?.parentStaff ?? null;
               const ins =
                 staff?.ParentInstrument ?? staff?.parentInstrument ?? null;
               if (!ins) return;
-              if (!byInstrument.has(ins)) byInstrument.set(ins, []);
-              byInstrument.get(ins)!.push(sl);
+              const insId: number = ins?.Id ?? ins?.id ?? ins?.IdString ?? -1;
+              if (insId < 0) return;
+              if (!byInstrumentId.has(insId)) byInstrumentId.set(insId, []);
+              byInstrumentId.get(insId)!.push(sl);
             });
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             instruments.forEach((ins: any, insIdx: number) => {
-              const matched = byInstrument.get(ins) ?? [];
+              const insId: number =
+                ins?.Id ?? ins?.id ?? ins?.IdString ?? insIdx;
+              const matched = byInstrumentId.get(insId) ?? [];
               if (matched.length === 0) return;
 
               let minY = Infinity;
@@ -410,8 +377,12 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
         if (!osmd) return null;
 
         try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const graphic = (osmd as any).GraphicSheet ?? (osmd as any).graphic;
+          /* eslint-disable @typescript-eslint/no-explicit-any */
+          const graphic =
+            (osmd as any).graphicSheet ??
+            (osmd as any).GraphicSheet ??
+            (osmd as any).graphic;
+          /* eslint-enable @typescript-eslint/no-explicit-any */
           const pages = graphic?.MusicPages ?? graphic?.musicPages ?? [];
           const svgs = getAllSvgs();
 
@@ -524,15 +495,143 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
       [],
     );
 
+    /** 각 페이지 SVG 하단의 빈 흰 공간을 잘라냄 */
+    const clipSvgsToContent = useCallback(() => {
+      const svgs = getAllSvgs();
+      if (svgs.length === 0) return;
+
+      // 1패스: 모든 페이지의 콘텐츠 하단을 측정해서 최대값 구하기
+      const pageInfos: Array<{
+        svg: SVGSVGElement;
+        svgH: number;
+        contentPxH: number;
+        vbHeight: number;
+        vbX: number;
+        vbY: number;
+        vbW: number;
+      }> = [];
+
+      for (const svg of svgs) {
+        try {
+          const svgRect = svg.getBoundingClientRect();
+          if (svgRect.height <= 0) continue;
+
+          const groups = svg.querySelectorAll(
+            'g[class*="measure"], g[class*="Measure"], g[id*="measure"], g[id*="Measure"]',
+          );
+
+          let maxRelBottom = 0;
+          for (const el of Array.from(groups)) {
+            try {
+              const r = (el as Element).getBoundingClientRect();
+              const relBottom = r.bottom - svgRect.top;
+              if (relBottom > maxRelBottom && relBottom <= svgRect.height + 2) {
+                maxRelBottom = relBottom;
+              }
+            } catch (e) { if (isDev) console.warn("[ScoreViewer]", e); }
+          }
+
+          if (maxRelBottom <= 0) continue;
+
+          const vb = svg.viewBox?.baseVal;
+          if (!vb || vb.height <= 0) continue;
+
+          pageInfos.push({
+            svg,
+            svgH: svgRect.height,
+            contentPxH: maxRelBottom + 24,
+            vbHeight: vb.height,
+            vbX: vb.x,
+            vbY: vb.y,
+            vbW: vb.width,
+          });
+        } catch (e) { if (isDev) console.warn("[ScoreViewer]", e); }
+      }
+
+      if (pageInfos.length === 0) return;
+
+      // 모든 페이지 중 가장 큰 콘텐츠 높이로 통일
+      const targetPxH = Math.max(...pageInfos.map((p) => p.contentPxH));
+
+      // 2패스: 동일한 높이로 클립
+      for (const info of pageInfos) {
+        try {
+          const finalPxH = Math.min(targetPxH, info.svgH);
+          if (finalPxH >= info.svgH - 10) continue;
+          const newVBH = info.vbHeight * (finalPxH / info.svgH);
+          info.svg.setAttribute(
+            "viewBox",
+            `${info.vbX} ${info.vbY} ${info.vbW} ${newVBH}`,
+          );
+          info.svg.style.height = `${finalPxH}px`;
+        } catch (e) { if (isDev) console.warn("[ScoreViewer]", e); }
+      }
+    }, [getAllSvgs]);
+
     const scrollPageIntoView = useCallback((box: MeasureBox) => {
       try {
-        box.svg.scrollIntoView({
+        const container = scrollRef.current;
+        if (!container) return;
+        const svgRect = box.svg.getBoundingClientRect();
+        const cRect = container.getBoundingClientRect();
+        const currentLeft = container.scrollLeft;
+        // SVG 왼쪽 끝을 기준으로 컨테이너 내 절대 위치 계산
+        const svgLeftAbs = svgRect.left - cRect.left + currentLeft;
+        // SVG 중심이 컨테이너 중심에 오도록 scrollLeft 계산
+        const targetLeft = svgLeftAbs - (cRect.width - svgRect.width) / 2;
+        container.scrollTo({
+          left: Math.max(0, targetLeft),
           behavior: "smooth",
-          block: "nearest",
-          inline: "center",
         });
-      } catch {}
+      } catch (e) { if (isDev) console.warn("[ScoreViewer]", e); }
     }, []);
+
+    const getCurrentPageIndex = useCallback((): number => {
+      const container = scrollRef.current;
+      if (!container) return 0;
+      const svgs = getAllSvgs();
+      if (svgs.length === 0) return 0;
+
+      const scrollLeft = container.scrollLeft;
+      const containerWidth = container.clientWidth;
+      const viewCenter = scrollLeft + containerWidth / 2;
+      const cRect = container.getBoundingClientRect();
+
+      let bestIdx = 0;
+      let minDist = Infinity;
+      for (let i = 0; i < svgs.length; i++) {
+        const svgRect = svgs[i].getBoundingClientRect();
+        const svgLeftAbs = svgRect.left - cRect.left + scrollLeft;
+        const svgCenter = svgLeftAbs + svgRect.width / 2;
+        const dist = Math.abs(viewCenter - svgCenter);
+        if (dist < minDist) {
+          minDist = dist;
+          bestIdx = i;
+        }
+      }
+      return bestIdx;
+    }, [getAllSvgs]);
+
+    const navigatePage = useCallback((direction: "prev" | "next") => {
+      const container = scrollRef.current;
+      if (!container) return;
+      const svgs = getAllSvgs();
+      if (svgs.length <= 1) return;
+
+      const currentIdx = getCurrentPageIndex();
+      const targetIdx =
+        direction === "next"
+          ? Math.min(currentIdx + 1, svgs.length - 1)
+          : Math.max(currentIdx - 1, 0);
+      if (targetIdx === currentIdx) return;
+
+      const targetSvg = svgs[targetIdx];
+      const cRect = container.getBoundingClientRect();
+      const svgRect = targetSvg.getBoundingClientRect();
+      const svgLeftAbs = svgRect.left - cRect.left + container.scrollLeft;
+      const targetLeft = svgLeftAbs - (cRect.width - svgRect.width) / 2;
+      container.scrollTo({ left: Math.max(0, targetLeft), behavior: "smooth" });
+    }, [getAllSvgs, getCurrentPageIndex]);
 
     // ============================================================
     // ✅ 핵심: 마디 하이라이트 (위쪽 트랙 / generated 트랙 분리)
@@ -702,7 +801,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
         for (const g of groups) {
           try {
             g.style.cursor = "pointer";
-          } catch {}
+          } catch (e) { if (isDev) console.warn("[ScoreViewer]", e); }
         }
       }
     }, [getAllSvgs]);
@@ -829,17 +928,25 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
         if (!osmdRef.current) {
           osmdRef.current = new OpenSheetMusicDisplay(renderRef.current, {
             backend: "svg",
-            autoResize: true,
+            autoResize: false,
             drawTitle: true,
             drawComposer: true,
             drawCredits: false,
-            drawingParameters: "compact",
             pageFormat: "A4_P",
           } as unknown as Record<string, unknown>);
+          // 2번째 시스템부터 악기 약어가 악보를 침범하지 않도록
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const rules = (osmdRef.current as any).EngravingRules;
+            if (rules) {
+              rules.InstrumentLabelTextHeight = 1.5;
+              rules.SystemLabelsRightMargin = 3;
+            }
+          } catch (e) { if (isDev) console.warn("[ScoreViewer]", e); }
         } else {
           try {
             osmdRef.current.clear();
-          } catch {}
+          } catch (e) { if (isDev) console.warn("[ScoreViewer]", e); }
         }
 
         const xmlString = await readMusicXml();
@@ -851,10 +958,24 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           Zoom?: number;
           zoom?: number;
         };
-        zoomable.Zoom = 0.78;
-        zoomable.zoom = 0.78;
-
+        // 1차 렌더: 기본 zoom
+        zoomable.Zoom = 0.08;
+        zoomable.zoom = 0.08;
         osmdRef.current.render();
+
+        // 레이아웃 확정 후 컨테이너 높이 측정 → zoom 재계산 (2페이지 보이도록 살짝 줌 아웃)
+        await new Promise<void>((r) => requestAnimationFrame(() => r()));
+        const firstSvg = renderRef.current?.querySelector("svg");
+        const containerH = scrollRef.current?.clientHeight ?? 0;
+        if (firstSvg && containerH > 100 && osmdRef.current) {
+          const svgH = firstSvg.getBoundingClientRect().height;
+          if (Math.abs(svgH - containerH) > 8) {
+            const fittedZoom = Math.max(0.1, 0.65 * (containerH / svgH));
+            zoomable.Zoom = fittedZoom;
+            zoomable.zoom = fittedZoom;
+            osmdRef.current.render();
+          }
+        }
 
         const c = (osmdRef.current as unknown as { cursor?: unknown })
           .cursor as Cursor | undefined;
@@ -871,7 +992,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
               alpha: 0.38,
               follow: false,
             };
-          } catch {}
+          } catch (e) { if (isDev) console.warn("[ScoreViewer]", e); }
 
           c.reset();
           c.show();
@@ -881,7 +1002,9 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
 
         buildMeasureBoxesIndex();
         buildInstrumentYRanges();
+        clipSvgsToContent();
         applyPointerCursorToMeasures();
+        setPageCount(getAllSvgs().length);
 
         // 초기 active highlight: pickup measure(0번) 대응
         const firstMeasure =
@@ -956,9 +1079,11 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
     }, [
       xmlData,
       readMusicXml,
+      getAllSvgs,
       buildMeasureBoxesIndex,
       buildInstrumentYRanges,
       applyPointerCursorToMeasures,
+      clipSvgsToContent,
       highlightMeasure,
       tryFindMeasureFromDomPath,
     ]);
@@ -987,52 +1112,80 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
         if (cursorRef.current) {
           try {
             cursorRef.current.hide();
-          } catch {}
+          } catch (e) { if (isDev) console.warn("[ScoreViewer]", e); }
           cursorRef.current = null;
         }
         if (osmdRef.current) {
           try {
             osmdRef.current.clear();
-          } catch {}
+          } catch (e) { if (isDev) console.warn("[ScoreViewer]", e); }
         }
       };
       // xmlData 또는 loadScore(내부 의존) 변경 시에만 전체 리로드. 콜백은 ref로 최신값 사용.
     }, [xmlData, loadScore, clearHighlightByClass]);
 
     return (
-      <div className="score-viewer-root w-full">
-        <div className="relative w-full">
-          <div
-            ref={scrollRef}
-            className="score-scroll w-full overflow-x-auto overflow-y-hidden"
-            style={{
-              scrollSnapType: "x mandatory",
-              WebkitOverflowScrolling: "touch",
-            }}
-          >
-            <div
-              ref={renderRef}
-              className="flex flex-row gap-6 items-start py-4 px-4"
-            />
-          </div>
-
-          {scrollHint.hasOverflow ? (
-            <div
-              className="pointer-events-none absolute inset-x-4 bottom-1.5 h-2"
-              aria-hidden
-            >
-              <div className="h-full w-full rounded-full bg-white/8" />
-              <div
-                className="absolute top-0 h-2 rounded-full bg-white/28"
-                style={{
-                  width: `${Math.round(scrollHint.thumbRatio * 100)}%`,
-                  left: `${Math.round(
-                    scrollHint.leftRatio * (100 - scrollHint.thumbRatio * 100),
-                  )}%`,
-                }}
-              />
+      <div className="score-viewer-root relative h-full w-full">
+        {pageCount > 1 && (
+        <>
+        {/* 왼쪽 hover 영역 — 이전 페이지 */}
+        <div
+          className="pointer-events-auto absolute bottom-0 left-0 top-0 z-10 flex w-20 items-center justify-start"
+          style={{
+            background: hoveredEdge === "left"
+              ? "linear-gradient(to right, rgba(0,0,0,0.28), transparent)"
+              : "transparent",
+            transition: "background 0.2s",
+            cursor: hoveredEdge === "left" ? "pointer" : "default",
+          }}
+          onMouseEnter={() => setHoveredEdge("left")}
+          onMouseLeave={() => setHoveredEdge(null)}
+          onClick={() => navigatePage("prev")}
+          aria-label="이전 페이지"
+        >
+          {hoveredEdge === "left" && (
+            <div className="ml-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#1e293b] shadow-lg ring-1 ring-white/10" style={{ color: "#e2e8f0", fontSize: "18px", fontWeight: 600, lineHeight: 1 }}>
+              ‹
             </div>
-          ) : null}
+          )}
+        </div>
+
+        {/* 오른쪽 hover 영역 — 다음 페이지 */}
+        <div
+          className="pointer-events-auto absolute bottom-0 right-0 top-0 z-10 flex w-20 items-center justify-end"
+          style={{
+            background: hoveredEdge === "right"
+              ? "linear-gradient(to left, rgba(0,0,0,0.28), transparent)"
+              : "transparent",
+            transition: "background 0.2s",
+            cursor: hoveredEdge === "right" ? "pointer" : "default",
+          }}
+          onMouseEnter={() => setHoveredEdge("right")}
+          onMouseLeave={() => setHoveredEdge(null)}
+          onClick={() => navigatePage("next")}
+          aria-label="다음 페이지"
+        >
+          {hoveredEdge === "right" && (
+            <div className="mr-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#1e293b] shadow-lg ring-1 ring-white/10" style={{ color: "#e2e8f0", fontSize: "18px", fontWeight: 600, lineHeight: 1 }}>
+              ›
+            </div>
+          )}
+        </div>
+        </>
+        )}
+
+        <div
+          ref={scrollRef}
+          className="score-scroll h-full w-full overflow-x-auto overflow-y-hidden"
+          style={{
+            scrollSnapType: "x mandatory",
+            WebkitOverflowScrolling: "touch",
+          }}
+        >
+          <div
+            ref={renderRef}
+            className="flex h-full flex-row items-start gap-4 px-4 py-2"
+          />
         </div>
       </div>
     );

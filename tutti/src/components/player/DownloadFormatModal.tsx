@@ -118,7 +118,7 @@ export default function DownloadFormatModal({
       }}
     >
       <div
-        className="relative z-[10000] w-full max-w-md rounded-2xl border border-[#1e293b] bg-[#0f1218] text-gray-100 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.55),0_0_48px_-14px_rgba(59,130,246,0.16)]"
+        className="relative z-[10000] w-full max-w-lg rounded-2xl border border-[#1e293b] bg-[#0f1218] text-gray-100 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.55),0_0_48px_-14px_rgba(59,130,246,0.16)]"
         role="dialog"
         aria-modal="true"
         aria-labelledby="download-format-title"
@@ -136,12 +136,12 @@ export default function DownloadFormatModal({
         <div className="px-6 pb-8 pt-9 text-center sm:px-8">
           <h2
             id="download-format-title"
-            className="text-base font-semibold tracking-tight text-white"
+            className="text-lg font-semibold tracking-tight text-white"
           >
             다운로드 파일 <span className="text-[#93c5fd]/95">형식 선택</span>
             하기
           </h2>
-          <p className="mt-2 text-sm text-gray-500">
+          <p className="mt-2 text-base text-gray-500">
             다운로드하고자 하시는 파일의 형식을{" "}
             <span className="text-[#60a5fa]/80">선택</span>해 주세요.
           </p>
@@ -153,17 +153,17 @@ export default function DownloadFormatModal({
                 type="button"
                 disabled={pendingType != null}
                 onClick={() => void handlePick(opt.type)}
-                className="group flex w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-[#1e293b] bg-[#0a0c10] px-5 py-6 transition-all duration-200 hover:border-[#3b82f6]/55 hover:bg-[#3b82f6]/[0.07] hover:shadow-[0_0_20px_-6px_rgba(59,130,246,0.35)] disabled:pointer-events-none disabled:opacity-50"
+                className="group flex w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-[#1e293b] bg-[#0a0c10] px-5 py-8 transition-all duration-200 hover:border-[#3b82f6]/55 hover:bg-[#3b82f6]/[0.07] hover:shadow-[0_0_20px_-6px_rgba(59,130,246,0.35)] disabled:pointer-events-none disabled:opacity-50"
               >
                 <opt.Icon
                   className="size-9 text-gray-400 transition-colors group-hover:text-[#3b82f6]"
                   strokeWidth={1.5}
                   aria-hidden
                 />
-                <span className="text-sm font-semibold text-gray-200 transition-colors group-hover:text-white">
+                <span className="text-base font-semibold text-gray-200 transition-colors group-hover:text-white">
                   {pendingType === opt.type ? "준비 중…" : opt.label}
                 </span>
-                <span className="text-[11px] text-gray-600 transition-colors group-hover:text-[#93c5fd]/85">
+                <span className="text-xs text-gray-600 transition-colors group-hover:text-[#93c5fd]/85">
                   {opt.sub}
                 </span>
               </button>

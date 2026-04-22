@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { LogoLink } from "@/components/common/LogoLink";
 import { useMemo, useRef, useState } from "react";
 
 import { useProjectQuery } from "@api/project/hooks/queries/useProjectQuery";
@@ -9,7 +10,6 @@ import { getProjectTracks } from "@api/project/apis/get/get-project-tracks";
 import type { ProjectVersionResponseDto } from "@api/project/types/api.types";
 
 import { useClickOutside } from "@/common/hooks/useClickOutside";
-import Header from "@/components/common/Header";
 import Modal from "@/components/common/Modal";
 import Sidebar from "@/components/common/Sidebar";
 import { Spinner } from "@/components/common/Spinner";
@@ -176,20 +176,12 @@ const ProjectVersionsScreen = () => {
         onToggle={() => setIsSidebarCollapsed((v) => !v)}
       />
 
-      <div className="grow flex flex-col min-h-screen min-w-0">
-        <Header
-          onToggleSidebar={() => setIsSidebarCollapsed((v) => !v)}
-          isSidebarCollapsed={isSidebarCollapsed}
-          title="Library / Versions"
-          rightContent={
-            <span className="px-3 py-1 text-[14px] font-semibold text-gray-500">
-              Library
-            </span>
-          }
-        />
-
-        <main className="grow px-4 md:px-6 py-6 md:py-8">
-          <div className="max-w-xl mx-auto w-full">
+      <div className="grow flex flex-col min-h-0 min-w-0">
+        <div className="flex min-h-17 shrink-0 items-center px-4">
+          <LogoLink />
+        </div>
+        <main className="grow flex flex-col items-center px-4 md:px-6 pt-17 pb-8">
+          <div className="w-full max-w-xl">
             <p className="text-[14px] font-medium text-gray-500">
               저장된 프로젝트의 버전 목록입니다.
             </p>

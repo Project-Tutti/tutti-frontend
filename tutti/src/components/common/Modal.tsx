@@ -11,6 +11,8 @@ interface ModalProps {
   title?: string;
   /** 스크롤 영역 아래 고정(예: 안내 문구 + 확인) */
   footer?: React.ReactNode;
+  /** 오버레이(배경 dim) 커스터마이징 */
+  overlayClassName?: string;
   /** 내부 패널(div) 커스터마이징 (예: max-w-5xl) */
   panelClassName?: string;
   /** 헤더 영역(제목/닫기) 커스터마이징 */
@@ -25,6 +27,7 @@ const Modal = ({
   children,
   title,
   footer,
+  overlayClassName,
   panelClassName,
   headerClassName,
   contentClassName,
@@ -47,7 +50,10 @@ const Modal = ({
   return (
     <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+        className={[
+          "absolute inset-0 bg-black/80 backdrop-blur-sm",
+          overlayClassName ?? "",
+        ].join(" ")}
         onClick={onClose}
         aria-hidden
       />

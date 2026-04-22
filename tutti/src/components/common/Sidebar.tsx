@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useLibraryListInfiniteQuery } from "@api/library/hooks/queries/useLibraryListInfiniteQuery";
 import { useGeneratableInstrumentCategoriesQuery } from "@api/instruments/hooks/queries/useGeneratableInstrumentCategoriesQuery";
 import { useDeleteProjectMutation } from "@api/project/hooks/mutations/useDeleteProjectMutation";
@@ -14,13 +13,7 @@ import SidebarAccountFooter from "@/components/common/SidebarAccountFooter";
 import SidebarDeleteProjectModal from "@/components/common/SidebarDeleteProjectModal";
 
 import { Spinner } from "@/components/common/Spinner";
-import {
-  CirclePlus,
-  Menu,
-  MoreHorizontal,
-  Pencil,
-  Trash2,
-} from "lucide-react";
+import { CirclePlus, Menu, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -30,6 +23,7 @@ interface SidebarProps {
 const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const scrollRef = useRef<HTMLDivElement>(null);
   const projectMenuHostRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -79,6 +73,16 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
     }
     return Array.from(byId.values());
   }, [data?.pages]);
+
+  const activeProjectId = useMemo(() => {
+    // /library/123 형태
+    const libMatch = /^\/library\/(\d+)/.exec(pathname);
+    if (libMatch) return Number(libMatch[1]);
+    // /player?projectId=123 또는 /player/download?projectId=123
+    const fromSearch = searchParams.get("projectId");
+    if (fromSearch) return Number(fromSearch);
+    return null;
+  }, [pathname, searchParams]);
 
   const closeMenus = () => {
     setOpenMenuProjectId(null);
@@ -178,7 +182,7 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
             </div>
           </div>
         ) : (
-          <div className="flex min-h-17 min-w-77 shrink-0 items-center gap-2 px-4">
+          <div className="flex min-h-17 min-w-77 shrink-0 items-center px-4">
             <button
               onClick={onToggle}
               className="flex size-10 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-white/5 hover:text-white focus:outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6]/60"
@@ -186,27 +190,6 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
             >
               <Menu className="size-5" strokeWidth={1.75} />
             </button>
-
-            <Link
-              href="/home"
-              className="flex items-center rounded-lg focus:outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6]/60"
-              aria-label="홈으로 이동"
-              onClick={() => {
-                closeMenus();
-                setRenamingProjectId(null);
-              }}
-            >
-              <div className="relative h-7 w-[100px]">
-                <Image
-                  src="/logo.svg"
-                  alt="tutti"
-                  fill
-                  sizes="100px"
-                  className="object-contain object-left"
-                  priority
-                />
-              </div>
-            </Link>
           </div>
         )}
 
@@ -223,8 +206,8 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
               setRenamingProjectId(null);
             }}
             className={[
-              "group flex items-center rounded-full py-2 text-[14px] font-semibold text-gray-200 transition-colors hover:bg-white/5 hover:text-white focus:outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6]/60",
-              isCollapsed ? "w-10 justify-center" : "w-full gap-2 pr-3",
+              "group flex items-center rounded-full text-[14px] font-semibold text-gray-200 transition-colors hover:bg-white/5 hover:text-white focus:outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6]/60",
+              isCollapsed ? "w-10 justify-center" : "w-[268px] gap-2",
             ].join(" ")}
             aria-label="새 프로젝트"
             title="새 프로젝트"
@@ -254,111 +237,120 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
                     </div>
                   )}
                   {isError && (
-                    <p className="px-6 py-2 text-[14px] text-red-400/90">
+                    <p className="px-9 py-2 text-[14px] text-red-400/90">
                       목록을 불러오지 못했습니다.
                     </p>
                   )}
                   {!isPending && !isError && projects.length === 0 && (
-                    <p className="px-6 py-2 text-[14px] text-gray-500">
+                    <p className="px-9 py-2 text-[14px] text-gray-500">
                       저장된 프로젝트가 없습니다.
                     </p>
                   )}
 
-                  {projects.map((item) => (
-                    <div key={item.projectId} className="px-6">
-                      <div
-                        ref={
-                          openMenuProjectId === item.projectId
-                            ? projectMenuHostRef
-                            : undefined
-                        }
-                        className="group relative flex items-center gap-2 rounded-full px-1.5 py-2 text-[14px] sidebar-item transition-colors hover:bg-white/5"
-                      >
-                        {renamingProjectId === item.projectId ? (
-                          <input
-                            autoFocus
-                            value={renameDraft}
-                            onChange={(e) => setRenameDraft(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Escape") {
-                                setRenamingProjectId(null);
-                              }
-                              if (e.key === "Enter") {
-                                void submitRename(item.projectId, item.name);
-                              }
-                            }}
-                            onBlur={() => setRenamingProjectId(null)}
-                            className="w-full bg-transparent outline-none text-[14px] text-gray-100 placeholder:text-gray-600"
-                            disabled={patchProjectNameMutation.isPending}
-                          />
-                        ) : (
-                          <Link
-                            href={`/library/${item.projectId}?name=${encodeURIComponent(item.name)}`}
-                            className="block min-w-0 flex-1 text-left text-[14px] leading-snug text-gray-200 transition-colors truncate"
-                          >
-                            {item.name}
-                          </Link>
-                        )}
-
-                        <button
-                          type="button"
-                          aria-label="프로젝트 메뉴"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setOpenMenuProjectId((prev) =>
-                              prev === item.projectId ? null : item.projectId,
-                            );
-                          }}
-                          className="flex size-7 shrink-0 items-center justify-center rounded-full p-0 text-gray-400 opacity-100 transition-colors hover:bg-white/5 hover:text-white"
+                  {projects.map((item) => {
+                    const isActive = item.projectId === activeProjectId;
+                    return (
+                      <div key={item.projectId} className="px-4">
+                        <div
+                          ref={
+                            openMenuProjectId === item.projectId
+                              ? projectMenuHostRef
+                              : undefined
+                          }
+                          className={`group relative flex items-center gap-2 rounded-full px-4 py-2 text-[14px] transition-colors hover:bg-white/5 ${
+                            isActive ? "bg-[#ffffff]/10" : "sidebar-item"
+                          }`}
                         >
-                          <MoreHorizontal
-                            className="size-5"
-                            strokeWidth={1.75}
-                          />
-                        </button>
+                          {renamingProjectId === item.projectId ? (
+                            <input
+                              autoFocus
+                              value={renameDraft}
+                              onChange={(e) => setRenameDraft(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Escape") {
+                                  setRenamingProjectId(null);
+                                }
+                                if (e.key === "Enter") {
+                                  void submitRename(item.projectId, item.name);
+                                }
+                              }}
+                              onBlur={() => setRenamingProjectId(null)}
+                              className="w-full bg-transparent outline-none text-[14px] text-gray-100 placeholder:text-gray-600"
+                              disabled={patchProjectNameMutation.isPending}
+                            />
+                          ) : (
+                            <Link
+                              href={`/library/${item.projectId}?name=${encodeURIComponent(item.name)}`}
+                              className={`block min-w-0 flex-1 text-left text-[14px] leading-snug transition-colors truncate ${
+                                isActive
+                                  ? "font-medium text-white"
+                                  : "text-gray-200"
+                              }`}
+                            >
+                              {item.name}
+                            </Link>
+                          )}
 
-                        {openMenuProjectId === item.projectId && (
-                          <div className="absolute inset-x-0 top-full z-70 pt-1">
-                            <div className="flex justify-end px-2">
-                              <div className="w-36 overflow-hidden rounded-xl border border-[#1e293b] bg-[#0f1218] shadow-xl">
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    startRename(item.projectId, item.name);
-                                  }}
-                                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-[14px] text-gray-200 transition-colors hover:bg-white/5"
-                                >
-                                  <Pencil
-                                    className="size-[18px] shrink-0 text-gray-400"
-                                    strokeWidth={1.75}
-                                  />
-                                  이름 바꾸기
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    confirmDelete(item.projectId, item.name);
-                                  }}
-                                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-[14px] text-red-400 transition-colors hover:bg-red-500/10"
-                                >
-                                  <Trash2
-                                    className="size-[18px] shrink-0"
-                                    strokeWidth={1.75}
-                                  />
-                                  삭제
-                                </button>
+                          <button
+                            type="button"
+                            aria-label="프로젝트 메뉴"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setOpenMenuProjectId((prev) =>
+                                prev === item.projectId ? null : item.projectId,
+                              );
+                            }}
+                            className="flex size-7 shrink-0 items-center justify-center rounded-full p-0 text-gray-400 opacity-100 transition-colors hover:bg-white/5 hover:text-white"
+                          >
+                            <MoreHorizontal
+                              className="size-5"
+                              strokeWidth={1.75}
+                            />
+                          </button>
+
+                          {openMenuProjectId === item.projectId && (
+                            <div className="absolute inset-x-0 top-full z-70 pt-1">
+                              <div className="flex justify-end px-2">
+                                <div className="w-36 overflow-hidden rounded-xl border border-[#1e293b] bg-[#0f1218] shadow-xl">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      startRename(item.projectId, item.name);
+                                    }}
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-[14px] text-gray-200 transition-colors hover:bg-white/5"
+                                  >
+                                    <Pencil
+                                      className="size-[18px] shrink-0 text-gray-400"
+                                      strokeWidth={1.75}
+                                    />
+                                    이름 바꾸기
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      confirmDelete(item.projectId, item.name);
+                                    }}
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-[14px] text-red-400 transition-colors hover:bg-red-500/10"
+                                  >
+                                    <Trash2
+                                      className="size-[18px] shrink-0"
+                                      strokeWidth={1.75}
+                                    />
+                                    삭제
+                                  </button>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
 
                   {isFetchingNextPage && (
                     <div className="px-9 py-1.5">

@@ -53,10 +53,15 @@ const SidebarAccountFooter = ({
         isOpen={isDeleteAccountModalOpen}
         onClose={() => setIsDeleteAccountModalOpen(false)}
         title="계정 삭제"
+        panelClassName="min-w-3xl"
+        headerClassName="[&_h2]:text-[16px] [&_h2]:font-semibold"
+        contentClassName="px-6 py-10"
       >
         <div className="space-y-4">
-          <p className="text-xs text-gray-300">정말로 계정을 삭제할까요?</p>
-          <p className="text-[11px] text-gray-500">
+          <p className="text-[20px] font-semibold text-gray-100">
+            정말로 계정을 삭제할까요?
+          </p>
+          <p className="text-[14px] text-gray-400">
             삭제하면 모든 프로젝트와 데이터가 영구적으로 삭제되며 복구할 수
             없습니다.
           </p>
@@ -64,7 +69,7 @@ const SidebarAccountFooter = ({
             <button
               type="button"
               onClick={() => setIsDeleteAccountModalOpen(false)}
-              className="rounded-lg bg-[#1e293b] px-3 py-1.5 text-xs font-semibold text-gray-200 transition-colors hover:bg-[#334155]"
+              className="rounded-lg bg-[#1e293b] px-4 py-2.5 text-[14px] font-semibold text-gray-200 transition-colors hover:bg-[#334155]"
               disabled={deleteUserMeMutation.isPending}
             >
               취소
@@ -79,7 +84,7 @@ const SidebarAccountFooter = ({
                   },
                 });
               }}
-              className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-red-500 disabled:opacity-50"
+              className="rounded-lg bg-red-600 px-4 py-2.5 text-[14px] font-semibold text-white transition-colors hover:bg-red-500 disabled:opacity-50"
               disabled={deleteUserMeMutation.isPending}
             >
               {deleteUserMeMutation.isPending ? "삭제 중…" : "계정 삭제"}

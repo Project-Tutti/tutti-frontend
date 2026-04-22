@@ -68,7 +68,9 @@ const TrackModal = ({ isOpen, track, onClose }: TrackModalProps) => {
     const matched = instruments?.find(
       (inst) => inst.midiProgram === track.sourceInstrumentId,
     );
-    return matched?.name ? formatDisplayName(matched.name) : track.instrumentType;
+    return matched?.name
+      ? formatDisplayName(matched.name)
+      : track.instrumentType;
   }, [track, instruments]);
 
   const defaultMappedInstrumentId = sourceInstrumentId;

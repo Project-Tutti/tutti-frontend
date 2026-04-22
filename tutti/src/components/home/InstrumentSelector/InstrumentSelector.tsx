@@ -13,11 +13,13 @@ import InstrumentDetailOverlay from "./InstrumentDetailOverlay";
 interface InstrumentSelectorProps {
   selectedInstrument: number | null;
   onInstrumentSelect: (midiProgram: number, name: string) => void;
+  isSidebarCollapsed?: boolean;
 }
 
 const InstrumentSelector = ({
   selectedInstrument,
   onInstrumentSelect,
+  isSidebarCollapsed = false,
 }: InstrumentSelectorProps) => {
   const { data: categories, isPending } =
     useGeneratableInstrumentCategoriesQuery();
@@ -145,6 +147,7 @@ const InstrumentSelector = ({
                 setExpandedCategoryIdx(null);
               }}
               onClose={() => setExpandedCategoryIdx(null)}
+              isSidebarCollapsed={isSidebarCollapsed}
             />
           )}
       </AnimatePresence>

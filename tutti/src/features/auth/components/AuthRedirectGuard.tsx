@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -28,7 +28,9 @@ interface AuthRedirectGuardProps {
  * - 재발급 실패시 이미 fetcher-response-handlers 내부에서 토큰이 정리되므로
  *   추가로 user 만 비워주고 사용자에게는 조용한 토스트로만 안내한다.
  */
-export default function AuthRedirectGuard({ children }: AuthRedirectGuardProps) {
+export default function AuthRedirectGuard({
+  children,
+}: AuthRedirectGuardProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
@@ -120,9 +122,7 @@ export default function AuthRedirectGuard({ children }: AuthRedirectGuardProps) 
   }
 
   if (phase === "resuming") {
-    return (
-      <ResumingOverlay emailHint={emailHint} onCancel={handleCancel} />
-    );
+    return <ResumingOverlay emailHint={emailHint} onCancel={handleCancel} />;
   }
 
   return <>{children}</>;
@@ -134,52 +134,77 @@ interface ResumingOverlayProps {
 }
 
 function ResumingOverlay({ emailHint, onCancel }: ResumingOverlayProps) {
+  const gradientId = useId();
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-[#05070a]"
       role="status"
       aria-live="polite"
     >
-      <div className="flex flex-col items-center gap-5 px-6 text-center">
-        <div className="flex items-center gap-3">
-          <div className="bg-[#3b82f6] rounded-lg px-2 pt-2 pb-[2px]">
-            <BrandGraphicEqIcon className="text-[26px]" />
+      <div className="flex flex-col items-center gap-8 px-6 text-center">
+        {/* Tutti 로고 + 파란 링 스핀 */}
+        <div className="relative flex items-center justify-center">
+          <svg
+            className="absolute animate-spin"
+            style={{ animationDuration: "1.4s" }}
+            width="80"
+            height="80"
+            viewBox="0 0 80 80"
+            fill="none"
+            aria-hidden
+          >
+            <circle
+              cx="40"
+              cy="40"
+              r="36"
+              stroke="rgba(59,130,246,0.12)"
+              strokeWidth="3"
+            />
+            <path
+              d="M40 4a36 36 0 0 1 25.46 10.54"
+              stroke={`url(#${gradientId})`}
+              strokeWidth="3"
+              strokeLinecap="round"
+            />
+            <defs>
+              <linearGradient
+                id={gradientId}
+                x1="40"
+                y1="4"
+                x2="65.46"
+                y2="14.54"
+                gradientUnits="userSpaceOnUse"
+              >
+                <stop stopColor="#3b82f6" stopOpacity="0" />
+                <stop offset="1" stopColor="#3b82f6" />
+              </linearGradient>
+            </defs>
+          </svg>
+          <div className="bg-[#3b82f6] rounded-xl px-2.5 pt-2.5 pb-1 shadow-[0_0_24px_rgba(59,130,246,0.4)]">
+            <BrandGraphicEqIcon className="text-[30px]" />
           </div>
-          <span className="text-xl font-bold tracking-tight text-white">
-            Tutti
-          </span>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Spinner />
-          <p className="text-sm font-medium text-white">
-            이전 세션으로 로그인 중입니다…
-          </p>
+        <div className="flex flex-col items-center gap-2">
+          <p className="text-xl font-semibold text-white">로그인 중입니다…</p>
+          {emailHint ? (
+            <p className="text-sm text-gray-500">
+              <span className="text-gray-300">{emailHint}</span> 계정으로
+              복귀합니다
+            </p>
+          ) : (
+            <p className="text-sm text-gray-500">잠시만 기다려 주세요</p>
+          )}
         </div>
-
-        {emailHint ? (
-          <p className="text-[12px] text-gray-500">
-            <span className="text-gray-300">{emailHint}</span> 계정으로 복귀합니다
-          </p>
-        ) : null}
 
         <button
           type="button"
           onClick={onCancel}
-          className="mt-4 text-[12px] font-semibold text-gray-400 underline-offset-4 hover:text-white hover:underline"
+          className="text-[13px] font-medium text-gray-500 underline-offset-4 hover:text-white hover:underline"
         >
           다른 계정으로 로그인
         </button>
       </div>
     </div>
-  );
-}
-
-function Spinner() {
-  return (
-    <span
-      className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white"
-      aria-hidden
-    />
   );
 }

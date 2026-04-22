@@ -46,7 +46,7 @@ export default function PlaybackControl({
 
   return (
     // ✅ 높이/패딩 최소화(헤더에 붙여도 악보 공간 최대 확보)
-    <div className="h-10 w-full flex items-center gap-2 px-2">
+    <div className={`h-10 w-full flex items-center gap-2 px-2 ${state === "loading" ? "pointer-events-none select-none opacity-40" : ""}`}>
       {/* 왼쪽 컨트롤 */}
       <div className="flex items-center gap-2">
         <button
