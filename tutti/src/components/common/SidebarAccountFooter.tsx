@@ -46,7 +46,7 @@ const SidebarAccountFooter = ({
       className={
         variant === "icon"
           ? "relative w-full py-2 flex items-center justify-center"
-          : "group relative min-w-54 border-t border-[#1e293b] h-[72px] flex items-stretch"
+          : "group relative min-w-54 border-t border-[#1e293b] h-[88px] flex items-stretch"
       }
     >
       <Modal
@@ -124,14 +124,14 @@ const SidebarAccountFooter = ({
           }
         >
           {variant === "icon" ? (
-            <div className="flex items-center gap-1 whitespace-nowrap rounded-xl border border-[#1e293b] bg-[#0f1218] p-1 shadow-xl">
+            <div className="flex min-w-44 flex-col whitespace-nowrap rounded-xl border border-[#1e293b] bg-[#0f1218] p-1 shadow-xl">
               <button
                 type="button"
                 onClick={() => {
                   setIsUserMenuOpen(false);
                   setIsDeleteAccountModalOpen(true);
                 }}
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] text-red-400 transition-colors hover:bg-red-500/10 focus:outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6]/60"
+                className="flex items-center gap-2.5 rounded-lg px-4 py-3 text-sm text-red-400 transition-colors hover:bg-red-500/10 focus:outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6]/60"
               >
                 <UserX className="size-4 shrink-0" strokeWidth={1.75} />
                 계정 삭제
@@ -140,11 +140,16 @@ const SidebarAccountFooter = ({
                 type="button"
                 onClick={() => {
                   setIsUserMenuOpen(false);
+                  try {
+                    sessionStorage.setItem("tutti:skip-auth-toast-once", "1");
+                  } catch {
+                    // ignore
+                  }
                   clearAuth();
                   router.push("/login");
                   logoutMutation.mutate();
                 }}
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] text-gray-200 transition-colors hover:bg-white/5 focus:outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6]/60"
+                className="flex items-center gap-2.5 rounded-lg px-4 py-3 text-sm text-gray-200 transition-colors hover:bg-white/5 focus:outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6]/60"
               >
                 <LogOut className="size-4 shrink-0" strokeWidth={1.75} />
                 로그아웃
@@ -158,7 +163,7 @@ const SidebarAccountFooter = ({
                   setIsUserMenuOpen(false);
                   setIsDeleteAccountModalOpen(true);
                 }}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-[11px] text-red-400 transition-colors hover:bg-red-500/10"
+                className="flex w-full items-center gap-2.5 px-4 py-3 text-left text-sm text-red-400 transition-colors hover:bg-red-500/10"
               >
                 <UserX className="size-4 shrink-0" strokeWidth={1.75} />
                 계정 삭제
@@ -167,12 +172,16 @@ const SidebarAccountFooter = ({
                 type="button"
                 onClick={() => {
                   setIsUserMenuOpen(false);
-                  // 로그아웃 API가 느릴 수 있어 서버 응답 전에 인증을 비우고 이동(낙관적 UX).
+                  try {
+                    sessionStorage.setItem("tutti:skip-auth-toast-once", "1");
+                  } catch {
+                    // ignore
+                  }
                   clearAuth();
                   router.push("/login");
                   logoutMutation.mutate();
                 }}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-[11px] text-gray-200 transition-colors hover:bg-white/5"
+                className="flex w-full items-center gap-2.5 px-4 py-3 text-left text-sm text-gray-200 transition-colors hover:bg-white/5"
               >
                 <LogOut className="size-4 shrink-0" strokeWidth={1.75} />
                 로그아웃
@@ -196,28 +205,28 @@ const SidebarAccountFooter = ({
         <button
           type="button"
           onClick={() => setIsUserMenuOpen((v) => !v)}
-          className="flex h-full w-full items-center gap-3 px-6 transition-colors hover:bg-white/5"
+          className="flex h-full w-full items-center gap-3 px-5 transition-colors hover:bg-white/5"
         >
           {user?.avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={user.avatarUrl}
               alt=""
-              className="h-6 w-6 shrink-0 rounded-full border border-white/20 object-cover"
+              className="h-9 w-9 shrink-0 rounded-full border border-white/20 object-cover"
             />
           ) : (
-            <div className="h-6 w-6 shrink-0 rounded-full border border-white/20 bg-linear-to-br from-blue-500 to-indigo-600" />
+            <div className="h-9 w-9 shrink-0 rounded-full border border-white/20 bg-linear-to-br from-blue-500 to-indigo-600" />
           )}
           <div className="flex min-w-0 flex-1 flex-col text-left">
-            <span className="truncate text-[14px] font-medium text-white">
+            <span className="truncate text-[15px] font-semibold text-white">
               {user?.name ?? "—"}
             </span>
-            <span className="truncate text-[12px] font-medium text-gray-500">
+            <span className="truncate text-[13px] font-medium text-gray-500">
               {user?.email ?? ""}
             </span>
           </div>
           <ChevronUp
-            className={`size-4 shrink-0 text-gray-500 transition-transform ${isUserMenuOpen ? "" : "rotate-180"}`}
+            className={`size-5 shrink-0 text-gray-500 transition-transform ${isUserMenuOpen ? "" : "rotate-180"}`}
             strokeWidth={1.75}
           />
         </button>

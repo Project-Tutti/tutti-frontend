@@ -16,6 +16,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const accessToken = useAccessToken();
   const [isHydrated, setIsHydrated] = useState(false);
   const hasShownToast = useRef(false);
+  const shouldSkipToastRef = useRef(false);
 
   useEffect(() => {
     setIsHydrated(true);
@@ -25,8 +26,23 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     if (!isHydrated) return;
 
     if (!accessToken) {
+      if (!shouldSkipToastRef.current) {
+        try {
+          const skipKey = "tutti:skip-auth-toast-once";
+          const flag = sessionStorage.getItem(skipKey);
+          if (flag) {
+            sessionStorage.removeItem(skipKey);
+            shouldSkipToastRef.current = true;
+          }
+        } catch {
+          // sessionStorage 접근 불가 환경에서는 무시
+        }
+      }
+
       if (!hasShownToast.current) {
-        toast.error("로그인이 필요한 페이지입니다");
+        if (!shouldSkipToastRef.current) {
+          toast.error("로그인이 필요한 페이지입니다");
+        }
         hasShownToast.current = true;
       }
       const redirectUrl = `/login?redirect=${encodeURIComponent(pathname)}`;
