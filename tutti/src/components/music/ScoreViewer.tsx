@@ -211,7 +211,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
               u.maxX = Math.max(u.maxX, b.x + b.width);
               u.maxY = Math.max(u.maxY, b.y + b.height);
             }
-          } catch {}
+          } catch (e) { if (isDev) console.warn("[ScoreViewer]", e); }
         }
 
         for (const [measure, u] of union.entries()) {
@@ -524,7 +524,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
               if (relBottom > maxRelBottom && relBottom <= svgRect.height + 2) {
                 maxRelBottom = relBottom;
               }
-            } catch {}
+            } catch (e) { if (isDev) console.warn("[ScoreViewer]", e); }
           }
 
           if (maxRelBottom <= 0) continue;
@@ -541,7 +541,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
             vbY: vb.y,
             vbW: vb.width,
           });
-        } catch {}
+        } catch (e) { if (isDev) console.warn("[ScoreViewer]", e); }
       }
 
       if (pageInfos.length === 0) return;
@@ -560,7 +560,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
             `${info.vbX} ${info.vbY} ${info.vbW} ${newVBH}`,
           );
           info.svg.style.height = `${finalPxH}px`;
-        } catch {}
+        } catch (e) { if (isDev) console.warn("[ScoreViewer]", e); }
       }
     }, [getAllSvgs]);
 
@@ -579,7 +579,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           left: Math.max(0, targetLeft),
           behavior: "smooth",
         });
-      } catch {}
+      } catch (e) { if (isDev) console.warn("[ScoreViewer]", e); }
     }, []);
 
     // ============================================================
@@ -750,7 +750,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
         for (const g of groups) {
           try {
             g.style.cursor = "pointer";
-          } catch {}
+          } catch (e) { if (isDev) console.warn("[ScoreViewer]", e); }
         }
       }
     }, [getAllSvgs]);
@@ -891,11 +891,11 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
               rules.InstrumentLabelTextHeight = 1.5;
               rules.SystemLabelsRightMargin = 3;
             }
-          } catch {}
+          } catch (e) { if (isDev) console.warn("[ScoreViewer]", e); }
         } else {
           try {
             osmdRef.current.clear();
-          } catch {}
+          } catch (e) { if (isDev) console.warn("[ScoreViewer]", e); }
         }
 
         const xmlString = await readMusicXml();
@@ -941,7 +941,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
               alpha: 0.38,
               follow: false,
             };
-          } catch {}
+          } catch (e) { if (isDev) console.warn("[ScoreViewer]", e); }
 
           c.reset();
           c.show();
@@ -1059,13 +1059,13 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
         if (cursorRef.current) {
           try {
             cursorRef.current.hide();
-          } catch {}
+          } catch (e) { if (isDev) console.warn("[ScoreViewer]", e); }
           cursorRef.current = null;
         }
         if (osmdRef.current) {
           try {
             osmdRef.current.clear();
-          } catch {}
+          } catch (e) { if (isDev) console.warn("[ScoreViewer]", e); }
         }
       };
       // xmlData 또는 loadScore(내부 의존) 변경 시에만 전체 리로드. 콜백은 ref로 최신값 사용.

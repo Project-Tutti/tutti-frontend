@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import Image from "next/image";
 import {
   AlertCircle,
   ChevronRight,
@@ -11,6 +9,7 @@ import {
   ArrowLeft,
   Music,
 } from "lucide-react";
+import { LogoLink } from "@/components/common/LogoLink";
 import Sidebar from "@/components/common/Sidebar";
 import UploadCenter from "@/components/home/upload/UploadCenter";
 import InstrumentSelector from "@/components/home/InstrumentSelector/InstrumentSelector";
@@ -95,22 +94,7 @@ const HomePage = () => {
 
         <div className="flex h-dvh max-h-dvh min-h-0 grow flex-col overflow-hidden">
           <div className="flex min-h-17 shrink-0 items-center px-4">
-            <Link
-              href="/home"
-              className="flex items-center rounded-lg focus:outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6]/60"
-              aria-label="홈으로 이동"
-            >
-              <div className="relative h-7 w-[100px]">
-                <Image
-                  src="/logo.svg"
-                  alt="tutti"
-                  fill
-                  sizes="100px"
-                  className="object-contain object-left"
-                  priority
-                />
-              </div>
-            </Link>
+            <LogoLink />
           </div>
           <main className="relative flex min-h-0 grow flex-col overflow-y-auto bg-[#05070a]">
             {/* 배경 그라데이션 */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -15,6 +15,12 @@ import { X } from "lucide-react";
 
 const R = 16;
 const CIRC = 2 * Math.PI * R;
+
+// 컴포넌트 언마운트/재마운트 시 navigatedRef가 초기화되는 문제를 방지하기 위해
+// 모듈 레벨 Set으로 완료 키를 추적
+const navigatedKeys = new Set<string>();
+
+const NAVIGATE_ON_MINIMIZE_PREFIXES = ["/player", "/before-create"];
 
 function GenerationEntryConnector({
   projectId,
@@ -54,11 +60,11 @@ function GenerationEntryConnector({
     _setRetryFn(projectId, versionId, sse.retry);
   }, [sse.retry, projectId, versionId, _setRetryFn]);
 
-  const navigatedRef = useRef(false);
   useEffect(() => {
     if (!sse.isComplete) return;
-    if (navigatedRef.current) return;
-    navigatedRef.current = true;
+    const key = genKey(projectId, versionId);
+    if (navigatedKeys.has(key)) return;
+    navigatedKeys.add(key);
     toast.success("악보 생성이 완료되었습니다!");
     router.push(
       `/player?projectId=${encodeURIComponent(String(projectId))}&versionId=${encodeURIComponent(String(versionId))}`,
@@ -208,7 +214,7 @@ export default function GlobalGenerationWidget() {
   const handleMinimize = useCallback(
     (projectId: number, versionId: number) => {
       minimize(projectId, versionId);
-      if (pathname.startsWith("/player") || pathname.startsWith("/before-create")) {
+      if (NAVIGATE_ON_MINIMIZE_PREFIXES.some((p) => pathname.startsWith(p))) {
         router.push("/home");
       }
     },

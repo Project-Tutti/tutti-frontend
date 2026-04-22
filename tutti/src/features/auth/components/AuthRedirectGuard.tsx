@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -134,6 +134,7 @@ interface ResumingOverlayProps {
 }
 
 function ResumingOverlay({ emailHint, onCancel }: ResumingOverlayProps) {
+  const gradientId = useId();
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-[#05070a]"
@@ -161,13 +162,13 @@ function ResumingOverlay({ emailHint, onCancel }: ResumingOverlayProps) {
             />
             <path
               d="M40 4a36 36 0 0 1 25.46 10.54"
-              stroke="url(#tutti-spin-grad)"
+              stroke={`url(#${gradientId})`}
               strokeWidth="3"
               strokeLinecap="round"
             />
             <defs>
               <linearGradient
-                id="tutti-spin-grad"
+                id={gradientId}
                 x1="40"
                 y1="4"
                 x2="65.46"

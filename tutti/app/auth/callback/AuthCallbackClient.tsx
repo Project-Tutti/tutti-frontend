@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { useSocialLoginMutation } from "@api/user/hooks/mutations/useSocialLoginMutation";
@@ -21,6 +21,7 @@ export default function AuthCallbackClient() {
   const exchangeRef = useRef(mutateAsync);
   exchangeRef.current = mutateAsync;
   const [message, setMessage] = useState("로그인 처리 중…");
+  const gradientId = useId();
 
   const urlError = searchParams.get("error");
   const errorDescription = searchParams.get("error_description");
@@ -94,12 +95,12 @@ export default function AuthCallbackClient() {
           />
           <path
             d="M36 4a32 32 0 0 1 22.63 9.37"
-            stroke="url(#google-spin-grad)"
+            stroke={`url(#${gradientId})`}
             strokeWidth="3"
             strokeLinecap="round"
           />
           <defs>
-            <linearGradient id="google-spin-grad" x1="36" y1="4" x2="58.63" y2="13.37" gradientUnits="userSpaceOnUse">
+            <linearGradient id={gradientId} x1="36" y1="4" x2="58.63" y2="13.37" gradientUnits="userSpaceOnUse">
               <stop stopColor="#4285F4" />
               <stop offset="0.33" stopColor="#34A853" />
               <stop offset="0.66" stopColor="#FBBC05" />

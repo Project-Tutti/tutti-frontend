@@ -1,8 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import Link from "next/link";
-import Image from "next/image";
+import { LogoLink } from "@/components/common/LogoLink";
 
 interface HeaderProps {
   onToggleSidebar?: () => void;
@@ -34,22 +33,7 @@ const Header = ({
 
         {/* Left */}
         <div className="flex min-w-0 items-center gap-3 md:gap-4">
-          <Link
-            href="/home"
-            className="flex items-center rounded-lg focus:outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6]/60"
-            aria-label="홈으로 이동"
-          >
-            <div className="relative h-7 w-[100px]">
-              <Image
-                src="/logo.svg"
-                alt="tutti"
-                fill
-                sizes="100px"
-                className="object-contain object-left"
-                priority
-              />
-            </div>
-          </Link>
+          <LogoLink />
           {title ? (
             <span className="truncate text-[14px] font-semibold leading-snug text-gray-200">
               {title}

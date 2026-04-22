@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import Image from "next/image";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { LogoLink } from "@/components/common/LogoLink";
 import { useMemo, useRef, useState } from "react";
 
 import { useProjectQuery } from "@api/project/hooks/queries/useProjectQuery";
@@ -178,11 +177,7 @@ const ProjectVersionsScreen = () => {
 
       <div className="grow flex flex-col min-h-0 min-w-0">
         <div className="flex min-h-17 shrink-0 items-center px-4">
-          <Link href="/home" className="flex items-center rounded-lg focus:outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6]/60" aria-label="홈으로 이동">
-            <div className="relative h-7 w-[100px]">
-              <Image src="/logo.svg" alt="tutti" fill sizes="100px" className="object-contain object-left" priority />
-            </div>
-          </Link>
+          <LogoLink />
         </div>
         <main className="grow flex flex-col items-center px-4 md:px-6 pt-17 pb-8">
           <div className="w-full max-w-xl">

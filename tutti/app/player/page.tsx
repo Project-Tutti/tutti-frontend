@@ -273,7 +273,7 @@ function PlayerPageContent() {
               </div>
             )}
 
-{stableXmlData && !showScoreLoading && fetchScoreFromApi && (
+            {stableXmlData && !showScoreLoading && fetchScoreFromApi && (
               <div>
                 <MusicPlayer
                   xmlData={stableXmlData}
