@@ -111,9 +111,13 @@ export default function MusicPlayer({
     );
   };
 
-  /** ✅ 현재 active 하이라이트 rect */
+  /** ✅ 현재 active 하이라이트 rect — split 모드에서는 생성 트랙(bottom) 우선 */
   const getActiveHighlightElement = (): Element | null => {
-    return document.querySelector(`.${ACTIVE_HIGHLIGHT_CLASS}`);
+    return (
+      document.querySelector(".osmd-active-bottom-highlight") ??
+      document.querySelector(`.${ACTIVE_HIGHLIGHT_CLASS}`) ??
+      null
+    );
   };
 
   /** ✅ 스크롤 가능한 부모 찾기 */
@@ -142,11 +146,25 @@ export default function MusicPlayer({
     return (document.scrollingElement as HTMLElement) ?? null;
   };
 
-  /** ✅ 커서가 속한 "페이지" DOM */
+  /** ✅ 커서가 속한 "페이지" SVG — cursor img는 SVG의 sibling이므로 위치 기반으로 탐지 */
   const getPageElement = (): Element | null => {
     const el = getCursorElement();
     if (!el) return null;
 
+    // 수평 레이아웃: cursor의 중심 x로 어느 SVG 위에 있는지 판별
+    const cursorRect = (el as HTMLElement).getBoundingClientRect?.();
+    if (cursorRect && (cursorRect.width > 0 || cursorRect.height > 0)) {
+      const cx = (cursorRect.left + cursorRect.right) / 2;
+      const svgs = Array.from(
+        document.querySelectorAll(".score-viewer-root svg"),
+      ) as SVGSVGElement[];
+      for (const svg of svgs) {
+        const r = svg.getBoundingClientRect();
+        if (cx >= r.left - 4 && cx <= r.right + 4) return svg;
+      }
+    }
+
+    // fallback (수직 레이아웃 또는 cursor가 SVG 안에 있는 경우)
     return (
       (el as HTMLElement).closest?.(
         ".osmdPage, .osmd-page, .page, .osmdPageContainer, .osmd-page-container, [id^='osmdPage'], [class*='osmdPage'], [data-osmd-page]",
@@ -156,9 +174,12 @@ export default function MusicPlayer({
     );
   };
 
-  /** ✅ 커서가 화면 안에 충분히 보이면 scrollIntoView OFF */
+  /** ✅ 생성 트랙(bottom) 하이라이트 기준으로 화면 안에 충분히 보이면 scrollIntoView OFF */
   const shouldUseScrollIntoView = (): boolean => {
-    const el = getCursorElement();
+    const el =
+      (document.querySelector(
+        ".osmd-active-bottom-highlight",
+      ) as Element | null) ?? getCursorElement();
     if (!el || typeof (el as Element).getBoundingClientRect !== "function")
       return true;
 
@@ -307,6 +328,20 @@ export default function MusicPlayer({
 
   const ensurePageTop = (pageEl: Element) => {
     const run = () => {
+      // 1. 수평 스크롤: score-scroll 컨테이너를 새 페이지 위치로 이동
+      const xParent = findScrollParent(pageEl, "x");
+      if (xParent) {
+        const pageRect = (pageEl as HTMLElement).getBoundingClientRect();
+        const parentRect = xParent.getBoundingClientRect();
+        const leftOffset = pageRect.left - parentRect.left;
+        if (leftOffset < -8 || pageRect.right > parentRect.right + 8) {
+          xParent.scrollTo({
+            left: Math.max(0, xParent.scrollLeft + leftOffset),
+            behavior: "auto",
+          });
+        }
+      }
+      // 2. 수직 스크롤: 페이지 상단 기준으로 정렬
       scrollToPageTop(pageEl, "auto");
       scrollActiveHighlightIntoView("auto");
     };

@@ -75,6 +75,9 @@ const ACTIVE_TOP_CLASS = "osmd-active-top-highlight"; // 위쪽 트랙
 const ACTIVE_BOTTOM_CLASS = "osmd-active-bottom-highlight"; // generated 트랙
 const HOVER_CLASS = "osmd-hover-measure-highlight";
 
+/** 마디 하이라이트 좌측 여백 (SVG units) — 왼쪽 마디 침범 방지 */
+const HIGHLIGHT_X_INSET = 4;
+
 const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
   (
     {
@@ -465,16 +468,16 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
     // Rect 삽입
     // ============================================================
     const insertRect = useCallback(
-      (box: MeasureBox, className: string, fill: string) => {
+      (box: MeasureBox, className: string, fill: string, xInset = 0) => {
         const svg = box.svg;
 
         const rect = document.createElementNS(
           "http://www.w3.org/2000/svg",
           "rect",
         );
-        rect.setAttribute("x", String(box.x));
+        rect.setAttribute("x", String(box.x + xInset));
         rect.setAttribute("y", String(box.y));
-        rect.setAttribute("width", String(box.w));
+        rect.setAttribute("width", String(Math.max(0, box.w - xInset)));
         rect.setAttribute("height", String(box.h));
         rect.setAttribute("fill", fill);
         rect.setAttribute("class", className);
@@ -550,21 +553,36 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
 
         // 분리 모드 비활성 또는 instrument 1개 → 단일 active
         if (target == null || instruments.length < 2 || ranges.length === 0) {
-          insertRect(box, ACTIVE_CLASS, "rgba(59,130,246,0.16)");
+          insertRect(
+            box,
+            ACTIVE_CLASS,
+            "rgba(59,130,246,0.16)",
+            HIGHLIGHT_X_INSET,
+          );
           if (opts?.scrollIntoView) scrollPageIntoView(box);
           return;
         }
 
         const targetIdx = target === "last" ? instruments.length - 1 : target;
         if (targetIdx < 0 || targetIdx >= instruments.length) {
-          insertRect(box, ACTIVE_CLASS, "rgba(59,130,246,0.16)");
+          insertRect(
+            box,
+            ACTIVE_CLASS,
+            "rgba(59,130,246,0.16)",
+            HIGHLIGHT_X_INSET,
+          );
           if (opts?.scrollIntoView) scrollPageIntoView(box);
           return;
         }
 
         const sysInfo = findSystemForMeasureBox(box);
         if (!sysInfo) {
-          insertRect(box, ACTIVE_CLASS, "rgba(59,130,246,0.16)");
+          insertRect(
+            box,
+            ACTIVE_CLASS,
+            "rgba(59,130,246,0.16)",
+            HIGHLIGHT_X_INSET,
+          );
           if (opts?.scrollIntoView) scrollPageIntoView(box);
           return;
         }
@@ -594,7 +612,12 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
         }
 
         if (!svg) {
-          insertRect(box, ACTIVE_CLASS, "rgba(59,130,246,0.16)");
+          insertRect(
+            box,
+            ACTIVE_CLASS,
+            "rgba(59,130,246,0.16)",
+            HIGHLIGHT_X_INSET,
+          );
           if (opts?.scrollIntoView) scrollPageIntoView(box);
           return;
         }
@@ -607,9 +630,9 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           const h = (topMaxY - topMinY) * ratio + padTop + padBottom;
           insertRawRect(
             svg,
-            box.x,
+            box.x + HIGHLIGHT_X_INSET,
             y,
-            box.w,
+            Math.max(0, box.w - HIGHLIGHT_X_INSET),
             h,
             ACTIVE_TOP_CLASS,
             "rgba(59,130,246,0.16)",
@@ -624,9 +647,9 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           const h = (bottomMaxY - bottomMinY) * ratio + padTop + padBottom;
           insertRawRect(
             svg,
-            box.x,
+            box.x + HIGHLIGHT_X_INSET,
             y,
-            box.w,
+            Math.max(0, box.w - HIGHLIGHT_X_INSET),
             h,
             ACTIVE_BOTTOM_CLASS,
             "rgba(16,185,129,0.22)",
@@ -998,7 +1021,6 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
             </div>
           ) : null}
         </div>
-
       </div>
     );
   },
