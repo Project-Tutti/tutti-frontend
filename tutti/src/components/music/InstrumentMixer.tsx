@@ -16,6 +16,8 @@ interface InstrumentMixerProps {
   disabled?: boolean;
   /** 악보/플레이어 초기화 중이면 악기 목록 영역만 스켈레톤 (헤더는 유지) */
   isLoading?: boolean;
+  /** 외부에서 헤더를 제공하는 경우 */
+  showHeader?: boolean;
 }
 
 export default function InstrumentMixer({
@@ -26,40 +28,53 @@ export default function InstrumentMixer({
   onAll,
   disabled = false,
   isLoading = false,
+  showHeader = true,
 }: InstrumentMixerProps) {
   const allPlaying = mutedIndices.size === 0;
   const hasRows = instruments.length > 0;
 
   return (
-    <div className="w-full rounded-xl border border-[#1e293b] bg-[#0f1218]/70 backdrop-blur px-3 py-2">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <SlidersHorizontal
-            className="size-4 shrink-0 text-gray-400"
-            strokeWidth={1.75}
-            aria-hidden
-          />
-          <span className="text-xs uppercase tracking-widest text-gray-500">
-            Instruments
-          </span>
-        </div>
+    <div
+      className={
+        showHeader
+          ? "w-full rounded-xl border border-[#1e293b] bg-[#0f1218]/70 backdrop-blur px-4 py-3"
+          : "w-full"
+      }
+    >
+      {showHeader ? (
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal
+              className="size-4 shrink-0 text-gray-400"
+              strokeWidth={1.75}
+              aria-hidden
+            />
+            <span className="text-[16px] font-bold uppercase tracking-widest text-white/90">
+              Instruments
+            </span>
+          </div>
 
-        <button
-          onClick={onAll}
-          disabled={disabled || allPlaying || !hasRows || isLoading}
-          className={`text-[11px] px-2 py-1 rounded-md transition-all ${
-            disabled || allPlaying || !hasRows || isLoading
-              ? "text-gray-600 cursor-not-allowed"
-              : "text-gray-300 hover:text-white hover:bg-white/10"
-          }`}
-          title="모두 재생"
-        >
-          All
-        </button>
-      </div>
+          <button
+            onClick={onAll}
+            disabled={disabled || allPlaying || !hasRows || isLoading}
+            className={`text-[14px] px-2 py-1 rounded-md transition-all ${
+              disabled || allPlaying || !hasRows || isLoading
+                ? "text-gray-600 cursor-not-allowed"
+                : "text-gray-300 hover:text-white hover:bg-white/10"
+            }`}
+            title="모두 재생"
+          >
+            All
+          </button>
+        </div>
+      ) : null}
 
       {isLoading ? (
-        <ul className="flex flex-wrap gap-2" aria-busy="true" aria-label="악기 목록 불러오는 중">
+        <ul
+          className="flex flex-wrap gap-2"
+          aria-busy="true"
+          aria-label="악기 목록 불러오는 중"
+        >
           {[0, 1, 2].map((i) => (
             <li
               key={i}
@@ -77,7 +92,9 @@ export default function InstrumentMixer({
           ))}
         </ul>
       ) : !hasRows ? (
-        <p className="text-[11px] text-gray-500 py-0.5">악기 트랙이 없습니다.</p>
+        <p className="text-[11px] text-gray-500 py-0.5">
+          악기 트랙이 없습니다.
+        </p>
       ) : (
         <ul className="flex flex-wrap gap-2">
           {instruments.map((ins) => {

@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import type { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
 import AudioPlayer from "osmd-audio-player";
 import ScoreViewer, { ScoreViewerRef } from "./ScoreViewer";
@@ -9,6 +10,7 @@ import PlaybackControl from "./PlaybackControl";
 import InstrumentMixer, { InstrumentInfo } from "./InstrumentMixer";
 import { buildMeasureIndex, getMeasureNumberFromCursor } from "./MeasureIndex";
 import { toast } from "@/components/common/Toast";
+import { Spinner } from "@/components/common/Spinner";
 
 type UiState = "loading" | "idle" | "playing" | "paused";
 type JumpSource = "control" | "click";
@@ -54,6 +56,7 @@ export default function MusicPlayer({
   // ✅ 악기 믹서 상태
   const [instruments, setInstruments] = useState<InstrumentInfo[]>([]);
   const [mutedIndices, setMutedIndices] = useState<Set<number>>(new Set());
+  const [isInstrumentsOpen, setIsInstrumentsOpen] = useState(true);
 
   // ✅ 콜백에서 stale 방지용 ref
   const instrumentsRef = useRef<InstrumentInfo[]>([]);
@@ -798,34 +801,72 @@ export default function MusicPlayer({
   if (!xmlData) return null;
 
   return (
-    <div className="w-full space-y-3">
-      <div ref={controlBarRef} className="sticky top-0 z-40 -mx-4 md:-mx-8">
-        <div className="border-b border-[#1e293b] bg-[#05070a]/85 backdrop-blur px-2">
-          <PlaybackControl
-            state={state}
-            currentMeasure={currentMeasure}
-            totalMeasures={totalMeasures}
-            onPlay={play}
-            onPause={pause}
-            onStop={stop}
-            onJumpToMeasure={(mm) => jumpToMeasure(mm, true, "control")}
-            onChangeFile={onRequestChangeFile}
-          />
+    <div className="w-full space-y-4">
+      {state === "loading" ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#05070a]">
+          <div className="flex flex-col items-center gap-3">
+            <Spinner size="md" />
+            <p className="text-sm text-gray-400">악보를 불러오는 중…</p>
+          </div>
+        </div>
+      ) : null}
+      {/* 재생바: Header 아래 20px 간격 유지 */}
+      <div ref={controlBarRef} className="sticky top-5 z-40">
+        <div className="rounded-xl border border-[#1e293b] bg-[#05070a]/85 backdrop-blur">
+          <div className="px-3 py-2">
+            <PlaybackControl
+              state={state}
+              currentMeasure={currentMeasure}
+              totalMeasures={totalMeasures}
+              onPlay={play}
+              onPause={pause}
+              onStop={stop}
+              onJumpToMeasure={(mm) => jumpToMeasure(mm, true, "control")}
+              onChangeFile={onRequestChangeFile}
+            />
+          </div>
         </div>
       </div>
 
-      {/* ✅ 악기 믹서 */}
-      <InstrumentMixer
-        instruments={instruments}
-        mutedIndices={mutedIndices}
-        onToggleMute={handleToggleMute}
-        onSolo={handleSolo}
-        onAll={handleAll}
-        disabled={state === "loading"}
-        // 초기 로드(악기 목록이 비어있을 때)만 스켈레톤 표시.
-        // 점프/재렌더/재로딩 시에는 기존 악기 목록을 유지해 깜빡임을 줄임.
-        isLoading={state === "loading" && instruments.length === 0}
-      />
+      {/* INSTRUMENTS: 재생바 아래 sticky */}
+      <div className="sticky top-[92px] z-30 mt-3">
+        <div className="w-full overflow-hidden rounded-xl border border-[#1e293b] bg-[#0f1218]/70 backdrop-blur">
+          <button
+            type="button"
+            onClick={() => setIsInstrumentsOpen((v) => !v)}
+            className="flex w-full items-center justify-between gap-3 px-4 py-3"
+            aria-expanded={isInstrumentsOpen}
+          >
+            <span className="text-xs uppercase tracking-widest text-white/90">
+              Instruments
+            </span>
+            <span className="shrink-0 text-gray-400">
+              {isInstrumentsOpen ? (
+                <ChevronUp className="size-4" strokeWidth={2} aria-hidden />
+              ) : (
+                <ChevronDown className="size-4" strokeWidth={2} aria-hidden />
+              )}
+            </span>
+          </button>
+
+          {isInstrumentsOpen ? (
+            <div className="border-t border-[#1e293b] px-4 py-3">
+              <InstrumentMixer
+                instruments={instruments}
+                mutedIndices={mutedIndices}
+                onToggleMute={handleToggleMute}
+                onSolo={handleSolo}
+                onAll={handleAll}
+                disabled={state === "loading"}
+                showHeader={false}
+                // 초기 로드(악기 목록이 비어있을 때)만 스켈레톤 표시.
+                // 점프/재렌더/재로딩 시에는 기존 악기 목록을 유지해 깜빡임을 줄임.
+                isLoading={state === "loading" && instruments.length === 0}
+              />
+            </div>
+          ) : null}
+        </div>
+      </div>
 
       {/* 브라우저 scroll anchoring 점프 완화 */}
       <div style={{ overflowAnchor: "none" }}>

@@ -11,6 +11,7 @@ import { getProject } from "@api/project/apis/get/get-project";
 import { useProjectScoreQuery } from "@api/project/hooks/queries/useProjectScoreQuery";
 import { useProjectTracksQuery } from "@api/project/hooks/queries/useProjectTracksQuery";
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
+import { useGenerationStore } from "@features/midi-create/stores/generation-store";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { toast } from "@/components/common/Toast";
 
@@ -35,6 +36,7 @@ function PlayerPageContent() {
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const { setTracks, setUploadedFile } = useMidiStore();
+  const { projectId: genProjectId, start: genStart, minimize: genMinimize } = useGenerationStore();
 
   const tracksQuery = useProjectTracksQuery(
     Number.isFinite(projectId) ? projectId : null,
@@ -139,6 +141,15 @@ function PlayerPageContent() {
   const showScoreLoading = fetchScoreFromApi && isScorePending;
   const showScoreError = fetchScoreFromApi && isScoreError && !isScorePending;
 
+  // score 에러 시 아직 생성 중인 경우라면 오른쪽 하단 위젯으로 진행률 표시
+  useEffect(() => {
+    if (!showScoreError) return;
+    if (!Number.isFinite(projectId) || !Number.isFinite(versionId)) return;
+    if (genProjectId != null) return; // 이미 추적 중
+    genStart(projectId, versionId);
+    genMinimize(); // player 페이지에 있으므로 바로 위젯으로 표시
+  }, [showScoreError, projectId, versionId, genProjectId, genStart, genMinimize]);
+
   // scoreXml이 string인 경우 매 렌더마다 new File(...)을 만들면 xmlData 참조가 바뀌어
   // ScoreViewer가 불필요하게 전체 리로드(깜빡임)될 수 있어 scoreXml 변경 시에만 생성.
   const stableXmlData = useMemo(() => {
@@ -172,7 +183,7 @@ function PlayerPageContent() {
                   type="button"
                   onClick={() => void handleRegenerate()}
                   disabled={isScorePending || tracksQuery.isFetching}
-                  className="group inline-flex min-h-9 shrink-0 items-center gap-2 rounded-xl border border-[#1e293b] bg-[#0a0c11] px-3 py-2 text-xs font-semibold text-gray-200 shadow-sm transition-all hover:border-[#334155] hover:bg-[#12151d] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 md:min-h-10 md:px-3.5 md:text-[13px]"
+                  className="group inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border border-[#1e293b] bg-[#0a0c11] px-4 py-2.5 text-[16px] font-semibold text-gray-200 shadow-sm transition-all hover:border-[#334155] hover:bg-[#12151d] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
                 >
                   {tracksQuery.isFetching ? (
                     <Loader2
@@ -196,7 +207,7 @@ function PlayerPageContent() {
                   type="button"
                   onClick={() => openDownloadModal()}
                   disabled={isScorePending}
-                  className="group inline-flex min-h-9 shrink-0 items-center gap-2 rounded-xl border border-[#3b82f6]/35 bg-[#3b82f6]/10 px-3 py-2 text-xs font-semibold text-blue-100 shadow-[0_0_0_1px_rgba(59,130,246,0.08)] transition-all hover:border-[#3b82f6]/55 hover:bg-[#3b82f6]/18 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 md:min-h-10 md:px-3.5 md:text-[13px]"
+                  className="group inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border border-[#3b82f6]/35 bg-[#3b82f6]/10 px-4 py-2.5 text-[16px] font-semibold text-blue-100 shadow-[0_0_0_1px_rgba(59,130,246,0.08)] transition-all hover:border-[#3b82f6]/55 hover:bg-[#3b82f6]/18 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
                 >
                   <Download
                     className="size-4 shrink-0 text-[#60a5fa] transition-colors group-hover:text-blue-200"
@@ -233,26 +244,30 @@ function PlayerPageContent() {
             )}
 
             {showScoreLoading && (
-              <div className="flex flex-col items-center justify-center gap-3 py-24">
-                <Spinner size="md" />
-                <p className="text-gray-400 text-sm">악보를 불러오는 중…</p>
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#05070a]">
+                <div className="flex flex-col items-center gap-3">
+                  <Spinner size="md" />
+                  <p className="text-gray-400 text-sm">악보를 불러오는 중…</p>
+                </div>
               </div>
             )}
 
             {showScoreError && (
-              <div className="max-w-2xl mx-auto p-6 rounded-xl bg-[#0f1218] border border-red-900/50 text-center space-y-4">
-                <p className="text-red-400 text-sm">
-                  {scoreError instanceof Error
-                    ? scoreError.message
-                    : "악보를 불러오지 못했습니다."}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => void refetchScore()}
-                  className="px-4 py-2 bg-[#3b82f6] hover:bg-blue-600 text-white text-sm font-semibold rounded-lg"
-                >
-                  다시 시도
-                </button>
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#05070a]">
+                <div className="w-full max-w-md p-8 rounded-xl bg-[#0f1218] border border-red-900/50 text-center space-y-4 mx-4">
+                  <p className="text-red-400 text-sm">
+                    {scoreError instanceof Error
+                      ? scoreError.message
+                      : "악보를 불러오지 못했습니다."}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => void refetchScore()}
+                    className="px-4 py-2 bg-[#3b82f6] hover:bg-blue-600 text-white text-sm font-semibold rounded-lg"
+                  >
+                    다시 시도
+                  </button>
+                </div>
               </div>
             )}
 
