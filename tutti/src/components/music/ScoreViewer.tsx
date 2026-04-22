@@ -5,6 +5,7 @@ import {
   useEffect,
   useImperativeHandle,
   useRef,
+  useState,
   forwardRef,
 } from "react";
 import { OpenSheetMusicDisplay, Cursor } from "opensheetmusicdisplay";
@@ -124,6 +125,9 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
     const highlightHoverRef = useRef<
       ((measureNumber: number | null) => void) | null
     >(null);
+
+    const [hoveredEdge, setHoveredEdge] = useState<"left" | "right" | null>(null);
+    const pageCountRef = useRef(0);
 
     // -----------------------------
     // Utils
@@ -582,6 +586,53 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
       } catch (e) { if (isDev) console.warn("[ScoreViewer]", e); }
     }, []);
 
+    const getCurrentPageIndex = useCallback((): number => {
+      const container = scrollRef.current;
+      if (!container) return 0;
+      const svgs = getAllSvgs();
+      if (svgs.length === 0) return 0;
+
+      const scrollLeft = container.scrollLeft;
+      const containerWidth = container.clientWidth;
+      const viewCenter = scrollLeft + containerWidth / 2;
+      const cRect = container.getBoundingClientRect();
+
+      let bestIdx = 0;
+      let minDist = Infinity;
+      for (let i = 0; i < svgs.length; i++) {
+        const svgRect = svgs[i].getBoundingClientRect();
+        const svgLeftAbs = svgRect.left - cRect.left + scrollLeft;
+        const svgCenter = svgLeftAbs + svgRect.width / 2;
+        const dist = Math.abs(viewCenter - svgCenter);
+        if (dist < minDist) {
+          minDist = dist;
+          bestIdx = i;
+        }
+      }
+      return bestIdx;
+    }, [getAllSvgs]);
+
+    const navigatePage = useCallback((direction: "prev" | "next") => {
+      const container = scrollRef.current;
+      if (!container) return;
+      const svgs = getAllSvgs();
+      if (svgs.length <= 1) return;
+
+      const currentIdx = getCurrentPageIndex();
+      const targetIdx =
+        direction === "next"
+          ? Math.min(currentIdx + 1, svgs.length - 1)
+          : Math.max(currentIdx - 1, 0);
+      if (targetIdx === currentIdx) return;
+
+      const targetSvg = svgs[targetIdx];
+      const cRect = container.getBoundingClientRect();
+      const svgRect = targetSvg.getBoundingClientRect();
+      const svgLeftAbs = svgRect.left - cRect.left + container.scrollLeft;
+      const targetLeft = svgLeftAbs - (cRect.width - svgRect.width) / 2;
+      container.scrollTo({ left: Math.max(0, targetLeft), behavior: "smooth" });
+    }, [getAllSvgs, getCurrentPageIndex]);
+
     // ============================================================
     // ✅ 핵심: 마디 하이라이트 (위쪽 트랙 / generated 트랙 분리)
     // ============================================================
@@ -953,6 +1004,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
         buildInstrumentYRanges();
         clipSvgsToContent();
         applyPointerCursorToMeasures();
+        pageCountRef.current = getAllSvgs().length;
 
         // 초기 active highlight: pickup measure(0번) 대응
         const firstMeasure =
@@ -1027,6 +1079,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
     }, [
       xmlData,
       readMusicXml,
+      getAllSvgs,
       buildMeasureBoxesIndex,
       buildInstrumentYRanges,
       applyPointerCursorToMeasures,
@@ -1072,7 +1125,51 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
     }, [xmlData, loadScore, clearHighlightByClass]);
 
     return (
-      <div className="score-viewer-root h-full w-full">
+      <div className="score-viewer-root relative h-full w-full">
+        {/* 왼쪽 hover 영역 — 이전 페이지 */}
+        <div
+          className="pointer-events-auto absolute bottom-0 left-0 top-0 z-10 flex w-20 items-center justify-start"
+          style={{
+            background: hoveredEdge === "left"
+              ? "linear-gradient(to right, rgba(0,0,0,0.28), transparent)"
+              : "transparent",
+            transition: "background 0.2s",
+            cursor: hoveredEdge === "left" ? "pointer" : "default",
+          }}
+          onMouseEnter={() => setHoveredEdge("left")}
+          onMouseLeave={() => setHoveredEdge(null)}
+          onClick={() => navigatePage("prev")}
+          aria-label="이전 페이지"
+        >
+          {hoveredEdge === "left" && (
+            <div className="ml-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#1e293b] shadow-lg ring-1 ring-white/10" style={{ color: "#e2e8f0", fontSize: "18px", fontWeight: 600, lineHeight: 1 }}>
+              ‹
+            </div>
+          )}
+        </div>
+
+        {/* 오른쪽 hover 영역 — 다음 페이지 */}
+        <div
+          className="pointer-events-auto absolute bottom-0 right-0 top-0 z-10 flex w-20 items-center justify-end"
+          style={{
+            background: hoveredEdge === "right"
+              ? "linear-gradient(to left, rgba(0,0,0,0.28), transparent)"
+              : "transparent",
+            transition: "background 0.2s",
+            cursor: hoveredEdge === "right" ? "pointer" : "default",
+          }}
+          onMouseEnter={() => setHoveredEdge("right")}
+          onMouseLeave={() => setHoveredEdge(null)}
+          onClick={() => navigatePage("next")}
+          aria-label="다음 페이지"
+        >
+          {hoveredEdge === "right" && (
+            <div className="mr-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#1e293b] shadow-lg ring-1 ring-white/10" style={{ color: "#e2e8f0", fontSize: "18px", fontWeight: 600, lineHeight: 1 }}>
+              ›
+            </div>
+          )}
+        </div>
+
         <div
           ref={scrollRef}
           className="score-scroll h-full w-full overflow-x-auto overflow-y-hidden"
