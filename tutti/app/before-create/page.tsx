@@ -4,7 +4,6 @@ import {
   useEffect,
   useMemo,
   useState,
-  useCallback,
   Suspense,
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -202,10 +201,6 @@ function BeforeCreatePageContent() {
   const handlePrevPage = () => {
     if (currentPage > 0) setCurrentPage(currentPage - 1);
   };
-
-  const handleCancelSSE = useCallback(() => {
-    genClear();
-  }, [genClear]);
 
   const handleGenerate = async () => {
     setCreateError(null);
@@ -408,7 +403,7 @@ function BeforeCreatePageContent() {
         <GenerationProgressOverlay
           state={sseState}
           onRetry={retryFn ?? undefined}
-          onCancel={handleCancelSSE}
+          onCancel={genClear}
           onMinimize={genMinimize}
         />
       )}

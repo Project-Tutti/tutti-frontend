@@ -327,6 +327,7 @@ export default function MusicPlayer({
   };
 
   const ensurePageTop = (pageEl: Element) => {
+    let lastXLeft = -1;
     const run = () => {
       // 1. 수평 스크롤: score-scroll 컨테이너를 새 페이지 위치로 이동
       const xParent = findScrollParent(pageEl, "x");
@@ -335,10 +336,11 @@ export default function MusicPlayer({
         const parentRect = xParent.getBoundingClientRect();
         const leftOffset = pageRect.left - parentRect.left;
         if (leftOffset < -8 || pageRect.right > parentRect.right + 8) {
-          xParent.scrollTo({
-            left: Math.max(0, xParent.scrollLeft + leftOffset),
-            behavior: "auto",
-          });
+          const newLeft = Math.max(0, xParent.scrollLeft + leftOffset);
+          if (Math.abs(newLeft - lastXLeft) > 1) {
+            lastXLeft = newLeft;
+            xParent.scrollTo({ left: newLeft, behavior: "auto" });
+          }
         }
       }
       // 2. 수직 스크롤: 페이지 상단 기준으로 정렬

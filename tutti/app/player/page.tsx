@@ -36,7 +36,12 @@ function PlayerPageContent() {
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const { setTracks, setUploadedFile } = useMidiStore();
-  const { projectId: genProjectId, start: genStart, minimize: genMinimize } = useGenerationStore();
+  const {
+    projectId: genProjectId,
+    start: genStart,
+    minimize: genMinimize,
+    clear: genClear,
+  } = useGenerationStore();
 
   const tracksQuery = useProjectTracksQuery(
     Number.isFinite(projectId) ? projectId : null,
@@ -52,10 +57,6 @@ function PlayerPageContent() {
     error: scoreError,
     refetch: refetchScore,
   } = useProjectScoreQuery(projectId, versionId, fetchScoreFromApi);
-
-  const effectiveSubtitle = fetchScoreFromApi
-    ? `프로젝트 ${projectId} · 버전 ${versionId}`
-    : "프로젝트를 불러올 수 없습니다";
 
   // 새로운 악보 로드 시 스크롤 최상단으로 이동
   useEffect(() => {
@@ -149,6 +150,15 @@ function PlayerPageContent() {
     genStart(projectId, versionId);
     genMinimize(); // player 페이지에 있으므로 바로 위젯으로 표시
   }, [showScoreError, projectId, versionId, genProjectId, genStart, genMinimize]);
+
+  // score 에러가 해제(재시도 성공)되면 generation-store 잔여 상태 정리
+  useEffect(() => {
+    if (showScoreError) return;
+    if (genProjectId == null) return;
+    if (!Number.isFinite(projectId)) return;
+    if (genProjectId !== projectId) return;
+    genClear();
+  }, [showScoreError, genProjectId, projectId, genClear]);
 
   // scoreXml이 string인 경우 매 렌더마다 new File(...)을 만들면 xmlData 참조가 바뀌어
   // ScoreViewer가 불필요하게 전체 리로드(깜빡임)될 수 있어 scoreXml 변경 시에만 생성.

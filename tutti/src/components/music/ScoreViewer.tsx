@@ -125,6 +125,11 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
       onMeasureHoverRef.current = onMeasureHover;
     }, [onScoreLoaded, onMeasureClick, onMeasureHover]);
 
+    /** highlightHover ref — event handler 클로저에서 최신값 참조용 */
+    const highlightHoverRef = useRef<
+      ((measureNumber: number | null) => void) | null
+    >(null);
+
     useEffect(() => {
       const el = scrollRef.current;
       if (!el) return;
@@ -680,6 +685,11 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
       [clearHighlightByClass, insertRect],
     );
 
+    // highlightHover ref 동기화
+    useEffect(() => {
+      highlightHoverRef.current = highlightHover;
+    }, [highlightHover]);
+
     const applyPointerCursorToMeasures = useCallback(() => {
       const svgs = getAllSvgs();
       for (const svg of svgs) {
@@ -873,8 +883,12 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
         buildInstrumentYRanges();
         applyPointerCursorToMeasures();
 
-        // 초기 active highlight: 1마디
-        highlightMeasure(1);
+        // 초기 active highlight: pickup measure(0번) 대응
+        const firstMeasure =
+          measureBoxesRef.current.length > 0
+            ? Math.min(...measureBoxesRef.current.map((b) => b.measure))
+            : 1;
+        highlightMeasure(firstMeasure);
 
         const root = scrollRef.current;
         if (!root) return;
@@ -911,14 +925,14 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
 
           if (m !== hoveredMeasureRef.current) {
             hoveredMeasureRef.current = m ?? null;
-            highlightHover(m ?? null);
+            highlightHoverRef.current?.(m ?? null);
             onMeasureHoverRef.current?.(m ?? null);
           }
         };
 
         const onLeave = () => {
           hoveredMeasureRef.current = null;
-          highlightHover(null);
+          highlightHoverRef.current?.(null);
           onMeasureHoverRef.current?.(null);
         };
 
@@ -946,7 +960,6 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
       buildInstrumentYRanges,
       applyPointerCursorToMeasures,
       highlightMeasure,
-      highlightHover,
       tryFindMeasureFromDomPath,
     ]);
 

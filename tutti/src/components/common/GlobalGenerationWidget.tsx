@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useGenerationStore } from "@features/midi-create/stores/generation-store";
 import { useProjectStatusSSE } from "@api/project/hooks/useProjectStatusSSE";
 import { toast } from "@/components/common/Toast";
+import { X } from "lucide-react";
 
 const R = 16;
 const CIRC = 2 * Math.PI * R;
@@ -81,10 +82,10 @@ export default function GlobalGenerationWidget() {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 20, scale: 0.95 }}
           transition={{ type: "spring", damping: 26, stiffness: 320 }}
-          className="fixed bottom-6 right-6 z-[200] w-64 overflow-hidden rounded-2xl border border-white/10 bg-[#0f1218]/95 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_16px_32px_-8px_rgba(0,0,0,0.55),0_0_60px_-16px_rgba(59,130,246,0.35)] backdrop-blur-md"
+          className="fixed bottom-6 right-6 z-200 w-64 overflow-hidden rounded-2xl border border-white/10 bg-[#0f1218]/95 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_16px_32px_-8px_rgba(0,0,0,0.55),0_0_60px_-16px_rgba(59,130,246,0.35)] backdrop-blur-md"
         >
           <div
-            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent"
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent"
             aria-hidden
           />
           <div className="flex items-center gap-3 p-4">
@@ -149,28 +150,41 @@ export default function GlobalGenerationWidget() {
             </div>
 
             {/* Expand button */}
-            <button
-              type="button"
-              onClick={maximize}
-              className="flex shrink-0 items-center justify-center rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
-              aria-label="펼치기"
-            >
-              <svg
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+            <div className="flex shrink-0 items-center gap-1">
+              {sse.isFailed ? (
+                <button
+                  type="button"
+                  onClick={clear}
+                  className="flex items-center justify-center rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
+                  aria-label="닫기"
+                >
+                  <X className="size-[15px]" strokeWidth={2} aria-hidden />
+                </button>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={maximize}
+                className="flex items-center justify-center rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
+                aria-label="펼치기"
               >
-                <polyline points="15 3 21 3 21 9" />
-                <polyline points="9 21 3 21 3 15" />
-                <line x1="21" y1="3" x2="14" y2="10" />
-                <line x1="3" y1="21" x2="10" y2="14" />
-              </svg>
-            </button>
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="15 3 21 3 21 9" />
+                  <polyline points="9 21 3 21 3 15" />
+                  <line x1="21" y1="3" x2="14" y2="10" />
+                  <line x1="3" y1="21" x2="10" y2="14" />
+                </svg>
+              </button>
+            </div>
           </div>
         </motion.div>
       )}
