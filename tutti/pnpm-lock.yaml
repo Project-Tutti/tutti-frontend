@@ -6,7 +6,7 @@ settings:
 
 patchedDependencies:
   osmd-audio-player@0.7.0:
-    hash: 203dac190f4dab7dfae7fadfe9299d3eaefcaa1673a637951078bfc31032bbbc
+    hash: 946fd8af89abc1c053987347014636ba461fee3cf4591bbdcc8d6249b262e344
     path: patches/osmd-audio-player.patch
 
 importers:
@@ -48,7 +48,7 @@ importers:
         version: 1.9.4
       osmd-audio-player:
         specifier: ^0.7.0
-        version: 0.7.0(patch_hash=203dac190f4dab7dfae7fadfe9299d3eaefcaa1673a637951078bfc31032bbbc)
+        version: 0.7.0(patch_hash=946fd8af89abc1c053987347014636ba461fee3cf4591bbdcc8d6249b262e344)
       react:
         specifier: 19.1.0
         version: 19.1.0
@@ -4394,7 +4394,7 @@ snapshots:
       type-check: 0.4.0
       word-wrap: 1.2.5
 
-  osmd-audio-player@0.7.0(patch_hash=203dac190f4dab7dfae7fadfe9299d3eaefcaa1673a637951078bfc31032bbbc):
+  osmd-audio-player@0.7.0(patch_hash=946fd8af89abc1c053987347014636ba461fee3cf4591bbdcc8d6249b262e344):
     dependencies:
       opensheetmusicdisplay: 0.8.7
       soundfont-player: 0.12.0

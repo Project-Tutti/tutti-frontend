@@ -1,7 +1,7 @@
 // components/music/MusicPlayer.tsx
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import type { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
 import AudioPlayer from "osmd-audio-player";
@@ -34,12 +34,16 @@ interface MusicPlayerProps {
   xmlData?: string | ArrayBuffer | File;
   autoPlay?: boolean;
   onRequestChangeFile?: () => void;
+  onControlBar?: (node: React.ReactNode) => void;
+  isSidebarCollapsed?: boolean;
 }
 
 export default function MusicPlayer({
   xmlData,
   autoPlay = false,
   onRequestChangeFile,
+  onControlBar,
+  isSidebarCollapsed = false,
 }: MusicPlayerProps) {
   const scoreViewerRef = useRef<ScoreViewerRef>(null);
 
@@ -56,7 +60,7 @@ export default function MusicPlayer({
   // ✅ 악기 믹서 상태
   const [instruments, setInstruments] = useState<InstrumentInfo[]>([]);
   const [mutedIndices, setMutedIndices] = useState<Set<number>>(new Set());
-  const [isInstrumentsOpen, setIsInstrumentsOpen] = useState(true);
+  const [isInstrumentsOpen, setIsInstrumentsOpen] = useState(false);
 
   // ✅ 콜백에서 stale 방지용 ref
   const instrumentsRef = useRef<InstrumentInfo[]>([]);
@@ -77,12 +81,23 @@ export default function MusicPlayer({
   // ✅ 점프/클릭 직후 “툭” 방지용
   const suppressAutoScrollUntilRef = useRef<number>(0);
 
-  // ✅ sticky 재생바 높이 기반 topSafe 계산
+  // ✅ Header + 재생바(헤더 내부 centerContent) 높이 기반 topSafe 계산
   const controlBarRef = useRef<HTMLDivElement>(null);
 
   const getTopSafe = () => {
-    const barH = controlBarRef.current?.getBoundingClientRect().height ?? 0;
-    return Math.max(80, Math.round(barH) + 28);
+    const headerH =
+      (
+        document.querySelector("[data-app-header]") as HTMLElement | null
+      )?.getBoundingClientRect().height ?? 0;
+    const instrumentsH =
+      (
+        document.querySelector(
+          "[data-instruments-sticky]",
+        ) as HTMLElement | null
+      )?.getBoundingClientRect().height ?? 0;
+
+    // 헤더 + INSTRUMENTS가 가리는 영역 + 여백
+    return Math.max(80, Math.round(headerH + instrumentsH) + 20);
   };
 
   const getBottomSafe = () => 120;
@@ -111,12 +126,49 @@ export default function MusicPlayer({
     );
   };
 
-  /** ✅ 현재 active 하이라이트 rect — split 모드에서는 생성 트랙(bottom) 우선 */
-  const getActiveHighlightElement = (): Element | null => {
-    return (
-      document.querySelector(".osmd-active-bottom-highlight") ??
-      document.querySelector(`.${ACTIVE_HIGHLIGHT_CLASS}`) ??
-      null
+  /**
+   * ✅ 현재 active 하이라이트 bounds
+   * - "마지막 트랙 기준 트래킹"을 위해 bottom(초록)이 있으면 bottom을 우선 기준으로 사용
+   * - bottom이 없으면 top/single을 union으로 사용
+   */
+  const getActiveHighlightBounds = (): DOMRect | null => {
+    const bottom = document.querySelector(
+      ".osmd-active-bottom-highlight",
+    ) as Element | null;
+    const top = document.querySelector(
+      ".osmd-active-top-highlight",
+    ) as Element | null;
+    const single = document.querySelector(
+      `.${ACTIVE_HIGHLIGHT_CLASS}`,
+    ) as Element | null;
+
+    const getRect = (el: Element | null): DOMRect | null => {
+      if (!el || typeof el.getBoundingClientRect !== "function") return null;
+      const r = el.getBoundingClientRect();
+      if (r.width <= 0 || r.height <= 0) return null;
+      return r;
+    };
+
+    const bottomRect = getRect(bottom);
+    if (bottomRect) return bottomRect;
+
+    const rects: DOMRect[] = [];
+    const topRect = getRect(top);
+    const singleRect = getRect(single);
+    if (topRect) rects.push(topRect);
+    if (singleRect) rects.push(singleRect);
+    if (rects.length === 0) return null;
+
+    const left = Math.min(...rects.map((r) => r.left));
+    const topY = Math.min(...rects.map((r) => r.top));
+    const right = Math.max(...rects.map((r) => r.right));
+    const bottomY = Math.max(...rects.map((r) => r.bottom));
+
+    return new DOMRect(
+      left,
+      topY,
+      Math.max(0, right - left),
+      Math.max(0, bottomY - topY),
     );
   };
 
@@ -149,10 +201,14 @@ export default function MusicPlayer({
   /** ✅ 커서가 속한 "페이지" SVG — cursor img는 SVG의 sibling이므로 위치 기반으로 탐지 */
   const getPageElement = (): Element | null => {
     const el = getCursorElement();
-    if (!el) return null;
+    const fallback = (document.querySelector(".osmd-active-bottom-highlight") ??
+      document.querySelector(".osmd-active-top-highlight") ??
+      document.querySelector(`.${ACTIVE_HIGHLIGHT_CLASS}`)) as Element | null;
+    const anchor = el ?? fallback;
+    if (!anchor) return null;
 
     // 수평 레이아웃: cursor의 중심 x로 어느 SVG 위에 있는지 판별
-    const cursorRect = (el as HTMLElement).getBoundingClientRect?.();
+    const cursorRect = (anchor as HTMLElement).getBoundingClientRect?.();
     if (cursorRect && (cursorRect.width > 0 || cursorRect.height > 0)) {
       const cx = (cursorRect.left + cursorRect.right) / 2;
       const svgs = Array.from(
@@ -166,24 +222,21 @@ export default function MusicPlayer({
 
     // fallback (수직 레이아웃 또는 cursor가 SVG 안에 있는 경우)
     return (
-      (el as HTMLElement).closest?.(
+      (anchor as HTMLElement).closest?.(
         ".osmdPage, .osmd-page, .page, .osmdPageContainer, .osmd-page-container, [id^='osmdPage'], [class*='osmdPage'], [data-osmd-page]",
       ) ??
-      (el as HTMLElement).closest?.("svg") ??
+      (anchor as HTMLElement).closest?.("svg") ??
       null
     );
   };
 
   /** ✅ 생성 트랙(bottom) 하이라이트 기준으로 화면 안에 충분히 보이면 scrollIntoView OFF */
   const shouldUseScrollIntoView = (): boolean => {
-    const el =
-      (document.querySelector(
-        ".osmd-active-bottom-highlight",
-      ) as Element | null) ?? getCursorElement();
-    if (!el || typeof (el as Element).getBoundingClientRect !== "function")
-      return true;
-
-    const rect = el.getBoundingClientRect();
+    const rect =
+      getActiveHighlightBounds() ??
+      getCursorElement()?.getBoundingClientRect?.() ??
+      null;
+    if (!rect) return true;
     const topSafe = getTopSafe();
     const bottomSafe = getBottomSafe();
 
@@ -197,14 +250,19 @@ export default function MusicPlayer({
   const scrollActiveHighlightIntoView = (
     behavior: ScrollBehavior = "smooth",
   ): boolean => {
-    const el = getActiveHighlightElement();
-    if (!el || typeof (el as Element).getBoundingClientRect !== "function")
-      return false;
+    const rect = getActiveHighlightBounds();
+    const anchor =
+      (document.querySelector(
+        ".osmd-active-bottom-highlight",
+      ) as Element | null) ??
+      (document.querySelector(
+        ".osmd-active-top-highlight",
+      ) as Element | null) ??
+      (document.querySelector(`.${ACTIVE_HIGHLIGHT_CLASS}`) as Element | null);
+    if (!rect || !anchor) return false;
 
-    const parent = findScrollParent(el, "y");
+    const parent = findScrollParent(anchor, "y");
     if (!parent) return false;
-
-    const rect = el.getBoundingClientRect();
     const topSafe = getTopSafe();
     const bottomSafe = getBottomSafe();
 
@@ -221,7 +279,12 @@ export default function MusicPlayer({
 
       if (Math.abs(delta) < DEAD_ZONE) return false;
 
-      window.scrollTo({ top: Math.max(0, window.scrollY + delta), behavior });
+      // 최상단(0)에서 위로 당기려는 보정은 "툭" 튐을 유발할 수 있어 무시
+      if (window.scrollY <= 0 && delta < 0) return false;
+
+      const target = Math.max(0, window.scrollY + delta);
+      if (Math.abs(target - window.scrollY) < 1) return false;
+      window.scrollTo({ top: target, behavior });
       return true;
     }
 
@@ -239,7 +302,12 @@ export default function MusicPlayer({
 
     if (Math.abs(delta) < DEAD_ZONE) return false;
 
-    parent.scrollTo({ top: Math.max(0, parent.scrollTop + delta), behavior });
+    // 최상단(0)에서 위로 당기려는 보정은 "툭" 튐을 유발할 수 있어 무시
+    if (parent.scrollTop <= 0 && delta < 0) return false;
+
+    const target = Math.max(0, parent.scrollTop + delta);
+    if (Math.abs(target - parent.scrollTop) < 1) return false;
+    parent.scrollTo({ top: target, behavior });
     return true;
   };
 
@@ -329,7 +397,7 @@ export default function MusicPlayer({
   const ensurePageTop = (pageEl: Element) => {
     let lastXLeft = -1;
     const run = () => {
-      // 1. 수평 스크롤: score-scroll 컨테이너를 새 페이지 위치로 이동
+      // 1. 수평 스크롤: 새 페이지 SVG를 화면에 맞춤
       const xParent = findScrollParent(pageEl, "x");
       if (xParent) {
         const pageRect = (pageEl as HTMLElement).getBoundingClientRect();
@@ -343,9 +411,8 @@ export default function MusicPlayer({
           }
         }
       }
-      // 2. 수직 스크롤: 페이지 상단 기준으로 정렬
+      // 2. 수직 스크롤: 페이지 맨 위로 이동 (맨 위 악기가 보이도록)
       scrollToPageTop(pageEl, "auto");
-      scrollActiveHighlightIntoView("auto");
     };
     run();
     requestAnimationFrame(run);
@@ -361,12 +428,12 @@ export default function MusicPlayer({
       if (nextEl) lastPageElRef.current = nextEl;
 
       if (changed && nextEl) {
+        // 페이지 전환: 수평 스크롤만 (scrollToPageTop 제거로 bounce 방지)
         ensurePageTop(nextEl);
       } else {
+        // 같은 페이지: 수직 스크롤로 하이라이트 추적
         const moved = scrollActiveHighlightIntoView("smooth");
-        if (!moved) {
-          scrollToCursorVertIfNeeded("smooth");
-        }
+        if (!moved) scrollToCursorVertIfNeeded("smooth");
       }
     };
 
@@ -712,27 +779,25 @@ export default function MusicPlayer({
   // ============================================================
   // ✅ 재생 제어
   // ============================================================
-  const play = async () => {
+  const play = useCallback(async () => {
     const p = playerRef.current;
     if (!p) return;
     await p.play();
-  };
+  }, []);
 
-  const pause = () => {
+  const pause = useCallback(() => {
     const p = playerRef.current;
     if (!p) return;
     p.pause();
-  };
+  }, []);
 
-  const stop = async () => {
+  const stop = useCallback(async () => {
     const p = playerRef.current;
     if (!p) return;
     try {
       await p.stop();
-    } catch {
-      // PlaybackEngine.stop() 내부에서 cursor 등이 null이면 reject될 수 있음
-    }
-  };
+    } catch {}
+  }, []);
 
   const jumpToMeasure = async (
     measure: number,
@@ -818,6 +883,37 @@ export default function MusicPlayer({
     setMutedIndices(next);
   };
 
+  // 재생바 노드를 부모(Header)로 올리기
+  const onControlBarRef = useRef(onControlBar);
+  useEffect(() => {
+    onControlBarRef.current = onControlBar;
+  }, [onControlBar]);
+
+  useEffect(() => {
+    onControlBarRef.current?.(
+      state === "loading" ? null : (
+        <PlaybackControl
+          state={state}
+          currentMeasure={currentMeasure}
+          totalMeasures={totalMeasures}
+          onPlay={play}
+          onPause={pause}
+          onStop={stop}
+          onJumpToMeasure={(mm) => jumpToMeasure(mm, true, "control")}
+          onChangeFile={onRequestChangeFile}
+        />
+      ),
+    );
+  }, [
+    state,
+    currentMeasure,
+    totalMeasures,
+    play,
+    pause,
+    stop,
+    onRequestChangeFile,
+  ]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ============================================================
   // ✅ cleanup
   // ============================================================
@@ -838,56 +934,41 @@ export default function MusicPlayer({
   if (!xmlData) return null;
 
   return (
-    <div className="w-full space-y-4">
+    <div className="flex h-full w-full flex-col">
       {state === "loading" ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#05070a]">
+        <div className="fixed bottom-0 right-0 top-17 z-50 flex items-center justify-center bg-[#05070a]" style={{ left: isSidebarCollapsed ? 72 : 308, transition: "left 0.3s ease" }}>
           <div className="flex flex-col items-center gap-3">
             <Spinner size="md" />
             <p className="text-sm text-gray-400">악보를 불러오는 중…</p>
           </div>
         </div>
       ) : null}
-      {/* 재생바: Header 아래 20px 간격 유지 */}
-      <div ref={controlBarRef} className="sticky top-5 z-40">
-        <div className="rounded-xl border border-[#1e293b] bg-[#05070a]/85 backdrop-blur">
-          <div className="px-3 py-2">
-            <PlaybackControl
-              state={state}
-              currentMeasure={currentMeasure}
-              totalMeasures={totalMeasures}
-              onPlay={play}
-              onPause={pause}
-              onStop={stop}
-              onJumpToMeasure={(mm) => jumpToMeasure(mm, true, "control")}
-              onChangeFile={onRequestChangeFile}
-            />
-          </div>
-        </div>
-      </div>
 
-      {/* INSTRUMENTS: 재생바 아래 sticky */}
-      <div className="sticky top-[92px] z-30 mt-3">
-        <div className="w-full overflow-hidden rounded-xl border border-[#1e293b] bg-[#0f1218]/70 backdrop-blur">
-          <button
-            type="button"
-            onClick={() => setIsInstrumentsOpen((v) => !v)}
-            className="flex w-full items-center justify-between gap-3 px-4 py-3"
-            aria-expanded={isInstrumentsOpen}
-          >
-            <span className="text-xs uppercase tracking-widest text-white/90">
-              Instruments
-            </span>
-            <span className="shrink-0 text-gray-400">
-              {isInstrumentsOpen ? (
-                <ChevronUp className="size-4" strokeWidth={2} aria-hidden />
-              ) : (
-                <ChevronDown className="size-4" strokeWidth={2} aria-hidden />
-              )}
-            </span>
-          </button>
+      {/* INSTRUMENTS: player 스크롤 중에도 Header 아래에 고정 */}
+      <div data-instruments-sticky className="sticky top-0 z-30 shrink-0">
+        <div className="relative">
+          <div className="w-full border border-[#1e293b] bg-[#0f1218]/70 backdrop-blur">
+            <button
+              type="button"
+              onClick={() => setIsInstrumentsOpen((v) => !v)}
+              className="flex w-full items-center justify-between gap-3 px-4 py-3"
+              aria-expanded={isInstrumentsOpen}
+            >
+              <span className="text-xs uppercase tracking-widest text-white/90">
+                Instruments - 소리 제어
+              </span>
+              <span className="shrink-0 text-gray-400">
+                {isInstrumentsOpen ? (
+                  <ChevronUp className="size-4" strokeWidth={2} aria-hidden />
+                ) : (
+                  <ChevronDown className="size-4" strokeWidth={2} aria-hidden />
+                )}
+              </span>
+            </button>
+          </div>
 
           {isInstrumentsOpen ? (
-            <div className="border-t border-[#1e293b] px-4 py-3">
+            <div className="absolute left-0 right-0 top-full border border-[#1e293b] bg-[#0f1218]/95 px-4 py-3 backdrop-blur">
               <InstrumentMixer
                 instruments={instruments}
                 mutedIndices={mutedIndices}
@@ -896,8 +977,6 @@ export default function MusicPlayer({
                 onAll={handleAll}
                 disabled={state === "loading"}
                 showHeader={false}
-                // 초기 로드(악기 목록이 비어있을 때)만 스켈레톤 표시.
-                // 점프/재렌더/재로딩 시에는 기존 악기 목록을 유지해 깜빡임을 줄임.
                 isLoading={state === "loading" && instruments.length === 0}
               />
             </div>
@@ -905,8 +984,12 @@ export default function MusicPlayer({
         </div>
       </div>
 
-      {/* 브라우저 scroll anchoring 점프 완화 */}
-      <div style={{ overflowAnchor: "none" }}>
+      {/* 악보 */}
+      <div
+        ref={controlBarRef}
+        className="min-h-0 flex-1"
+        style={{ overflowAnchor: "none" }}
+      >
         <ScoreViewer
           ref={scoreViewerRef}
           xmlData={xmlData}

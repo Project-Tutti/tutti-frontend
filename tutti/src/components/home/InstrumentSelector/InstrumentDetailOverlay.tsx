@@ -15,6 +15,7 @@ interface InstrumentDetailOverlayProps {
   currentSelection: number | null;
   onSelect: (midiProgram: number, name: string) => void;
   onClose: () => void;
+  isSidebarCollapsed?: boolean;
 }
 
 const InstrumentDetailOverlay = ({
@@ -22,6 +23,7 @@ const InstrumentDetailOverlay = ({
   currentSelection,
   onSelect,
   onClose,
+  isSidebarCollapsed = false,
 }: InstrumentDetailOverlayProps) => {
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -39,7 +41,11 @@ const InstrumentDetailOverlay = ({
 
   return createPortal(
     <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center px-4"
+      className="fixed bottom-0 right-0 top-0 z-50 flex items-center justify-center px-4"
+      style={{
+        left: isSidebarCollapsed ? 72 : 308,
+        transition: "left 0.3s ease",
+      }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}

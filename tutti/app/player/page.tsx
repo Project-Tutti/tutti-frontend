@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Download, Loader2, RefreshCw } from "lucide-react";
 import MusicPlayer from "@/components/music/MusicPlayer";
@@ -11,7 +11,7 @@ import { getProject } from "@api/project/apis/get/get-project";
 import { useProjectScoreQuery } from "@api/project/hooks/queries/useProjectScoreQuery";
 import { useProjectTracksQuery } from "@api/project/hooks/queries/useProjectTracksQuery";
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
-import { useGenerationStore } from "@features/midi-create/stores/generation-store";
+import { useGenerationStore, genKey } from "@features/midi-create/stores/generation-store";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { toast } from "@/components/common/Toast";
 
@@ -35,11 +35,15 @@ function PlayerPageContent() {
   const versionId = parsedVersionId;
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [controlBar, setControlBar] = useState<React.ReactNode>(null);
+  const handleControlBar = useCallback(
+    (node: React.ReactNode) => setControlBar(node),
+    [],
+  );
   const { setTracks, setUploadedFile } = useMidiStore();
   const {
-    projectId: genProjectId,
     start: genStart,
-    minimize: genMinimize,
+    maximize: genMaximize,
     clear: genClear,
   } = useGenerationStore();
 
@@ -54,8 +58,6 @@ function PlayerPageContent() {
     data: scoreXml,
     isPending: isScorePending,
     isError: isScoreError,
-    error: scoreError,
-    refetch: refetchScore,
   } = useProjectScoreQuery(projectId, versionId, fetchScoreFromApi);
 
   // 새로운 악보 로드 시 스크롤 최상단으로 이동
@@ -142,23 +144,27 @@ function PlayerPageContent() {
   const showScoreLoading = fetchScoreFromApi && isScorePending;
   const showScoreError = fetchScoreFromApi && isScoreError && !isScorePending;
 
-  // score 에러 시 아직 생성 중인 경우라면 오른쪽 하단 위젯으로 진행률 표시
+  // score 에러 시 SSE 오버레이 표시
   useEffect(() => {
     if (!showScoreError) return;
     if (!Number.isFinite(projectId) || !Number.isFinite(versionId)) return;
-    if (genProjectId != null) return; // 이미 추적 중
-    genStart(projectId, versionId);
-    genMinimize(); // player 페이지에 있으므로 바로 위젯으로 표시
-  }, [showScoreError, projectId, versionId, genProjectId, genStart, genMinimize]);
+    const key = genKey(projectId, versionId);
+    const existing = useGenerationStore.getState().entries[key];
+    if (existing) {
+      if (existing.isMinimized) genMaximize(projectId, versionId);
+    } else {
+      genStart(projectId, versionId);
+    }
+  }, [showScoreError, projectId, versionId, genStart, genMaximize]);
 
-  // score 에러가 해제(재시도 성공)되면 generation-store 잔여 상태 정리
+  // score 에러 해제(재시도 성공) 시 generation-store 정리
   useEffect(() => {
     if (showScoreError) return;
-    if (genProjectId == null) return;
-    if (!Number.isFinite(projectId)) return;
-    if (genProjectId !== projectId) return;
-    genClear();
-  }, [showScoreError, genProjectId, projectId, genClear]);
+    if (!Number.isFinite(projectId) || !Number.isFinite(versionId)) return;
+    const key = genKey(projectId, versionId);
+    if (!useGenerationStore.getState().entries[key]) return;
+    genClear(projectId, versionId);
+  }, [showScoreError, projectId, versionId, genClear]);
 
   // scoreXml이 string인 경우 매 렌더마다 new File(...)을 만들면 xmlData 참조가 바뀌어
   // ScoreViewer가 불필요하게 전체 리로드(깜빡임)될 수 있어 scoreXml 변경 시에만 생성.
@@ -171,7 +177,7 @@ function PlayerPageContent() {
   }, [scoreXml]);
 
   return (
-    <div className="flex h-dvh max-h-dvh flex-row overflow-hidden">
+    <div className="flex h-dvh max-h-dvh flex-row overflow-x-hidden">
       <Sidebar
         isCollapsed={isSidebarCollapsed}
         onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
@@ -181,9 +187,14 @@ function PlayerPageContent() {
         <Header
           onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           isSidebarCollapsed={isSidebarCollapsed}
-          title="Music Player"
+          title=""
+          centerContent={
+            !showScoreLoading && controlBar ? (
+              <div className="mx-auto w-full max-w-7xl">{controlBar}</div>
+            ) : undefined
+          }
           rightContent={
-            fetchScoreFromApi ? (
+            !showScoreLoading && fetchScoreFromApi && controlBar ? (
               <div className="flex items-center gap-3 md:gap-4">
                 <div
                   className="hidden h-7 w-px shrink-0 bg-[#1e293b] sm:block"
@@ -254,7 +265,7 @@ function PlayerPageContent() {
             )}
 
             {showScoreLoading && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#05070a]">
+              <div className="fixed bottom-0 right-0 top-17 z-50 flex items-center justify-center bg-[#05070a]" style={{ left: isSidebarCollapsed ? 72 : 308, transition: "left 0.3s ease" }}>
                 <div className="flex flex-col items-center gap-3">
                   <Spinner size="md" />
                   <p className="text-gray-400 text-sm">악보를 불러오는 중…</p>
@@ -262,31 +273,14 @@ function PlayerPageContent() {
               </div>
             )}
 
-            {showScoreError && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#05070a]">
-                <div className="w-full max-w-md p-8 rounded-xl bg-[#0f1218] border border-red-900/50 text-center space-y-4 mx-4">
-                  <p className="text-red-400 text-sm">
-                    {scoreError instanceof Error
-                      ? scoreError.message
-                      : "악보를 불러오지 못했습니다."}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => void refetchScore()}
-                    className="px-4 py-2 bg-[#3b82f6] hover:bg-blue-600 text-white text-sm font-semibold rounded-lg"
-                  >
-                    다시 시도
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {stableXmlData && !showScoreLoading && fetchScoreFromApi && (
+{stableXmlData && !showScoreLoading && fetchScoreFromApi && (
               <div>
                 <MusicPlayer
                   xmlData={stableXmlData}
                   autoPlay={false}
                   onRequestChangeFile={undefined}
+                  onControlBar={handleControlBar}
+                  isSidebarCollapsed={isSidebarCollapsed}
                 />
               </div>
             )}

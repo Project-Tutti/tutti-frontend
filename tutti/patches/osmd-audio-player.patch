@@ -55,6 +55,16 @@ index 4670ca08a07a8ec00c3a6ccf8acd6bac79c942f4..021edfe7fa94617ffdf3921da4117861
              }
              this.cursor.next();
              ++steps;
+diff --git a/dist/players/SoundfontPlayer.js b/dist/players/SoundfontPlayer.js
+--- a/dist/players/SoundfontPlayer.js
++++ b/dist/players/SoundfontPlayer.js
+@@ -36,5 +36,5 @@
+             const player = yield Soundfont.instrument(
+             //@ts-ignore
+-            this.audioContext, this.getSoundfontInstrumentName(instrument.name));
++            this.audioContext, this.getSoundfontInstrumentName(instrument.name), { soundfont: 'FluidR3_GM' });
+             this.players.set(midiId, player);
+         });
 diff --git a/dist/PlaybackScheduler.js b/dist/PlaybackScheduler.js
 index 0ec93e51bad2b63feac94addffdea110a995f81e..1ed880c6a18bf3efaf234ffd6569e053f8d20d75 100644
 --- a/dist/PlaybackScheduler.js
