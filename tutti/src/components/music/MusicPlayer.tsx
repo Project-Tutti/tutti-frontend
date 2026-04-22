@@ -799,7 +799,7 @@ export default function MusicPlayer({
     } catch {}
   }, []);
 
-  const jumpToMeasure = async (
+  const jumpToMeasure = useCallback(async (
     measure: number,
     autoplay = true,
     source: JumpSource = "control",
@@ -854,7 +854,7 @@ export default function MusicPlayer({
     }
 
     if (autoplay) await p.play();
-  };
+  }, []); // refs만 사용하므로 deps 없음
 
   // ============================================================
   // ✅ 악기 믹서 핸들러
