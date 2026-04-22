@@ -127,7 +127,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
     >(null);
 
     const [hoveredEdge, setHoveredEdge] = useState<"left" | "right" | null>(null);
-    const pageCountRef = useRef(0);
+    const [pageCount, setPageCount] = useState(0);
 
     // -----------------------------
     // Utils
@@ -1004,7 +1004,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
         buildInstrumentYRanges();
         clipSvgsToContent();
         applyPointerCursorToMeasures();
-        pageCountRef.current = getAllSvgs().length;
+        setPageCount(getAllSvgs().length);
 
         // 초기 active highlight: pickup measure(0번) 대응
         const firstMeasure =
@@ -1126,6 +1126,8 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
 
     return (
       <div className="score-viewer-root relative h-full w-full">
+        {pageCount > 1 && (
+        <>
         {/* 왼쪽 hover 영역 — 이전 페이지 */}
         <div
           className="pointer-events-auto absolute bottom-0 left-0 top-0 z-10 flex w-20 items-center justify-start"
@@ -1169,6 +1171,8 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
             </div>
           )}
         </div>
+        </>
+        )}
 
         <div
           ref={scrollRef}
