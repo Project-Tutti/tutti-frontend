@@ -782,6 +782,13 @@ export default function MusicPlayer({
   const play = useCallback(async () => {
     const p = playerRef.current;
     if (!p) return;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ctx = (p as any).ac as AudioContext | undefined;
+      if (ctx && ctx.state === "suspended") {
+        await ctx.resume();
+      }
+    } catch {}
     await p.play();
   }, []);
 
@@ -853,7 +860,19 @@ export default function MusicPlayer({
       if (curPageEl) lastPageElRef.current = curPageEl;
     }
 
-    if (autoplay) await p.play();
+    if (autoplay) {
+      // jumpToStep() → pause() → ac.suspend() 가 microtask로 남아 있는 상태에서
+      // play() → ac.resume() 을 호출하면 prod(HTTPS) 환경에서 user gesture 창을
+      // 벗어나 소리가 안 남. ac를 직접 꺼내 먼저 resume() 해 race condition 방지.
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const ctx = (p as any).ac as AudioContext | undefined;
+        if (ctx && ctx.state === "suspended") {
+          await ctx.resume();
+        }
+      } catch {}
+      await p.play();
+    }
   };
 
   // ============================================================
