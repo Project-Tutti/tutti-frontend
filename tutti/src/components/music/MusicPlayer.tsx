@@ -32,7 +32,6 @@ type OsmdAudioPlayerLike = {
 
 interface MusicPlayerProps {
   xmlData?: string | ArrayBuffer | File;
-  autoPlay?: boolean;
   onRequestChangeFile?: () => void;
   onControlBar?: (node: React.ReactNode) => void;
   isSidebarCollapsed?: boolean;
@@ -40,7 +39,6 @@ interface MusicPlayerProps {
 
 export default function MusicPlayer({
   xmlData,
-  autoPlay = false,
   onRequestChangeFile,
   onControlBar,
   isSidebarCollapsed = false,
@@ -89,6 +87,10 @@ export default function MusicPlayer({
   const audioReadyRef = useRef(false);
   const audioInitPromiseRef = useRef<Promise<void> | null>(null);
   const instrumentRefToIndexRef = useRef<Map<unknown, number>>(new Map());
+  // race condition 방어: 새 악보 로드 시 이전 초기화 완료가 상태를 덮어쓰지 못하게 버전 관리
+  const audioInitVersionRef = useRef(0);
+  // resume() Promise 공유 — 동일 gesture 안에서 resume을 한 번만 Chrome에 제출
+  const audioResumePromiseRef = useRef<Promise<void> | null>(null);
 
   const getTopSafe = () => {
     const headerH =
@@ -459,7 +461,12 @@ export default function MusicPlayer({
     cleanupPlayerEventsRef.current = null;
     audioReadyRef.current = false;
     audioInitPromiseRef.current = null;
+    audioInitVersionRef.current += 1; // 진행 중인 ensureAudioInitialized가 완료 후 상태를 덮어쓰지 못하도록
+    const prevPlayer = playerRef.current;
     playerRef.current = null;
+    if (prevPlayer) {
+      void Promise.resolve(prevPlayer.stop?.()).catch(() => {});
+    }
 
     try {
       osmdRef.current = osmd;
@@ -527,6 +534,22 @@ export default function MusicPlayer({
   };
 
   // ============================================================
+  // ✅ resume() Promise 공유 헬퍼
+  // Chrome은 resume() 호출 시점에 user activation을 체크한다.
+  // onMeasureClick/play의 sync 구간에서 resume을 시작해 Promise를 보관하고,
+  // ensureAudioInitialized가 같은 Promise를 await하면 두 번째 resume() 호출이 없어짐.
+  // ============================================================
+  const resumeCtxShared = (ctx: AudioContext): Promise<void> => {
+    if (ctx.state === "running") return Promise.resolve();
+    if (audioResumePromiseRef.current) return audioResumePromiseRef.current;
+    const p = ctx.resume().finally(() => {
+      audioResumePromiseRef.current = null;
+    });
+    audioResumePromiseRef.current = p;
+    return p;
+  };
+
+  // ============================================================
   // ✅ 지연 오디오 초기화 — 첫 user gesture 시에만 실행
   // AudioContext는 반드시 user gesture 안에서 생성해야 Chrome autoplay 정책에서 unlock됨.
   // onMeasureClick / play 버튼에서 동기 경로로 AudioContext를 먼저 생성한 뒤 이 함수를 호출.
@@ -547,18 +570,30 @@ export default function MusicPlayer({
     const osmd = osmdRef.current;
     if (!osmd) return false;
 
+    const version = audioInitVersionRef.current;
+
     const promise = (async () => {
       // onMeasureClick에서 이미 생성했을 수 있으므로 재사용
       if (!audioCtxRef.current || audioCtxRef.current.state === "closed") {
         audioCtxRef.current = new AudioContext();
       }
       const ctx = audioCtxRef.current;
+      // onMeasureClick/play sync 구간에서 이미 시작된 resume Promise를 공유
+      await resumeCtxShared(ctx);
+
+      // resume 후에도 running이 아니면 autoplay 정책 위반 → 초기화 중단
       if (ctx.state !== "running") {
-        await ctx.resume();
+        throw new Error(
+          `AudioContext resume failed (state=${ctx.state}). Must be called from user gesture.`,
+        );
       }
 
-      const AudioPlayerCtor =
-        AudioPlayer as unknown as new (ctx?: unknown) => OsmdAudioPlayerLike;
+      // 새 악보가 로드되어 버전이 바뀐 경우 초기화 취소
+      if (audioInitVersionRef.current !== version) return;
+
+      const AudioPlayerCtor = AudioPlayer as unknown as new (
+        ctx?: unknown,
+      ) => OsmdAudioPlayerLike;
       const player = new AudioPlayerCtor(ctx);
       playerRef.current = player;
 
@@ -742,6 +777,9 @@ export default function MusicPlayer({
         onIteration();
       };
 
+      // 이벤트 등록 전에도 버전 재확인
+      if (audioInitVersionRef.current !== version) return;
+
       if (player.on) {
         player.on("state-change", onState);
         player.on("iteration", onIterationEvent);
@@ -765,13 +803,14 @@ export default function MusicPlayer({
     } catch (e) {
       audioInitPromiseRef.current = null;
       audioReadyRef.current = false;
-      if (isDev) console.error("[MusicPlayer] ensureAudioInitialized failed:", e);
+      if (isDev)
+        console.error("[MusicPlayer] ensureAudioInitialized failed:", e);
       toast.error(
         `오디오 초기화 실패: ${e instanceof Error ? e.message : "Unknown error"}`,
       );
       return false;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ============================================================
@@ -834,6 +873,10 @@ export default function MusicPlayer({
   // ============================================================
 
   const play = useCallback(async () => {
+    // sync 구간에서 resume을 먼저 시작해 gesture 유효 시간 안에 Promise를 등록
+    if (audioCtxRef.current) {
+      void resumeCtxShared(audioCtxRef.current);
+    }
     const ok = await ensureAudioInitialized();
     if (!ok) return;
     await playerRef.current?.play();
@@ -963,7 +1006,9 @@ export default function MusicPlayer({
           onPlay={play}
           onPause={pause}
           onStop={stop}
-          onJumpToMeasure={(mm) => jumpToMeasureRef.current(mm, true, "control")}
+          onJumpToMeasure={(mm) =>
+            jumpToMeasureRef.current(mm, true, "control")
+          }
           onChangeFile={onRequestChangeFile}
         />
       ),
@@ -1002,7 +1047,13 @@ export default function MusicPlayer({
   return (
     <div className="flex h-full w-full flex-col">
       {state === "loading" ? (
-        <div className="fixed bottom-0 right-0 top-17 z-50 flex items-center justify-center bg-[#05070a]" style={{ left: isSidebarCollapsed ? 72 : 308, transition: "left 0.3s ease" }}>
+        <div
+          className="fixed bottom-0 right-0 top-17 z-50 flex items-center justify-center bg-[#05070a]"
+          style={{
+            left: isSidebarCollapsed ? 72 : 308,
+            transition: "left 0.3s ease",
+          }}
+        >
           <div className="flex flex-col items-center gap-3">
             <Spinner size="md" />
             <p className="text-sm text-gray-400">악보를 불러오는 중…</p>
@@ -1061,12 +1112,18 @@ export default function MusicPlayer({
           xmlData={xmlData}
           onScoreLoaded={handleScoreLoaded}
           onMeasureClick={(mm) => {
-            // AudioContext를 user gesture 동기 경로에서 생성 → Chrome autoplay unlock
-            if (!audioCtxRef.current || audioCtxRef.current.state === "closed") {
-              try { audioCtxRef.current = new AudioContext(); } catch {}
+            // sync 구간: AudioContext 생성 + resume을 gesture 유효 시간 안에 시작
+            if (
+              !audioCtxRef.current ||
+              audioCtxRef.current.state === "closed"
+            ) {
+              try {
+                audioCtxRef.current = new AudioContext();
+              } catch {}
             }
             const ctx = audioCtxRef.current;
-            if (ctx?.state === "suspended") void ctx.resume();
+            // resumeCtxShared가 Promise를 보관 → ensureAudioInitialized가 같은 Promise 재사용
+            if (ctx) void resumeCtxShared(ctx);
             void jumpToMeasure(mm, true, "click");
           }}
           highlightedInstrumentIndex="last"
