@@ -855,6 +855,10 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
       return decoder.decode(xmlData);
     }, [xmlData]);
 
+    useEffect(() => {
+      setCurrentPageIdx(0);
+    }, [xmlData]);
+
     // -----------------------------
     // Hit test
     // -----------------------------
@@ -1061,7 +1065,8 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
         };
 
         const onScroll = () => {
-          setCurrentPageIdx(getCurrentPageIndex());
+          const idx = getCurrentPageIndex();
+          setCurrentPageIdx((prev) => (prev !== idx ? idx : prev));
         };
 
         root.addEventListener("click", onClick);

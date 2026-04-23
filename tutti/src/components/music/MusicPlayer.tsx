@@ -93,6 +93,8 @@ export default function MusicPlayer({
   const audioResumePromiseRef = useRef<Promise<void> | null>(null);
   // player scheduler가 한 번이라도 PLAYING을 거쳤으면 true (cold → warm 판별)
   const playerWarmRef = useRef(false);
+  // cold 상태에서 마디 클릭 시 저장해둔 시작 위치 (play 버튼 클릭 시 적용)
+  const pendingStartStepRef = useRef<number | null>(null);
 
   const getTopSafe = () => {
     const headerH =
@@ -464,6 +466,8 @@ export default function MusicPlayer({
     audioReadyRef.current = false;
     audioInitPromiseRef.current = null;
     audioInitVersionRef.current += 1; // 진행 중인 ensureAudioInitialized가 완료 후 상태를 덮어쓰지 못하도록
+    playerWarmRef.current = false;
+    pendingStartStepRef.current = null;
     const prevPlayer = playerRef.current;
     playerRef.current = null;
     if (prevPlayer) {
@@ -888,7 +892,14 @@ export default function MusicPlayer({
     }
     const ok = await ensureAudioInitialized();
     if (!ok) return;
-    await playerRef.current?.play();
+    const p = playerRef.current;
+    if (!p) return;
+    await p.play();
+    // cold → warm 전환: 저장된 시작 위치가 있으면 적용
+    if (pendingStartStepRef.current != null && typeof p.jumpToStep === "function") {
+      p.jumpToStep(pendingStartStepRef.current);
+      pendingStartStepRef.current = null;
+    }
   }, [ensureAudioInitialized]);
 
   const pause = useCallback(() => {
@@ -937,11 +948,9 @@ export default function MusicPlayer({
 
     const prevPageEl = lastPageElRef.current ?? getPageElement();
 
-    if (autoplay && !playerWarmRef.current) {
-      // cold 상태: scheduler를 깨운 뒤 위치 지정
-      void p.play();
-      await new Promise<void>((r) => setTimeout(r, 0));
-      p.jumpToStep(step);
+    if (!playerWarmRef.current) {
+      // cold 상태: 시작 위치만 저장, play 버튼이 warm-up + jumpToStep을 처리
+      pendingStartStepRef.current = step;
     } else {
       // warm 상태: 바로 위치 지정 후 필요 시 재생
       p.jumpToStep(step);
