@@ -91,6 +91,8 @@ export default function MusicPlayer({
   const audioInitVersionRef = useRef(0);
   // resume() Promise 공유 — 동일 gesture 안에서 resume을 한 번만 Chrome에 제출
   const audioResumePromiseRef = useRef<Promise<void> | null>(null);
+  // player scheduler가 한 번이라도 PLAYING을 거쳤으면 true (cold → warm 판별)
+  const playerWarmRef = useRef(false);
 
   const getTopSafe = () => {
     const headerH =
@@ -868,6 +870,10 @@ export default function MusicPlayer({
     return () => clearInterval(interval);
   }, [state, currentMeasure]);
 
+  useEffect(() => {
+    if (state === "playing") playerWarmRef.current = true;
+  }, [state]);
+
   // ============================================================
   // ✅ 재생 제어
   // ============================================================
@@ -931,7 +937,17 @@ export default function MusicPlayer({
 
     const prevPageEl = lastPageElRef.current ?? getPageElement();
 
-    p.jumpToStep(step);
+    if (autoplay && !playerWarmRef.current) {
+      // cold 상태: scheduler를 깨운 뒤 위치 지정
+      void p.play();
+      await new Promise<void>((r) => setTimeout(r, 0));
+      p.jumpToStep(step);
+    } else {
+      // warm 상태: 바로 위치 지정 후 필요 시 재생
+      p.jumpToStep(step);
+      if (autoplay) await play();
+    }
+
     setCurrentMeasure(m);
 
     const fromClick = source === "click";
@@ -956,8 +972,6 @@ export default function MusicPlayer({
       const curPageEl = getPageElement();
       if (curPageEl) lastPageElRef.current = curPageEl;
     }
-
-    if (autoplay) await play();
   };
 
   // ============================================================
