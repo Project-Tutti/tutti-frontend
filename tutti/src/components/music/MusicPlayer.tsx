@@ -32,7 +32,6 @@ type OsmdAudioPlayerLike = {
 
 interface MusicPlayerProps {
   xmlData?: string | ArrayBuffer | File;
-  autoPlay?: boolean;
   onRequestChangeFile?: () => void;
   onControlBar?: (node: React.ReactNode) => void;
   isSidebarCollapsed?: boolean;
@@ -40,7 +39,6 @@ interface MusicPlayerProps {
 
 export default function MusicPlayer({
   xmlData,
-  autoPlay = false,
   onRequestChangeFile,
   onControlBar,
   isSidebarCollapsed = false,
@@ -79,11 +77,20 @@ export default function MusicPlayer({
   // ✅ 현재 커서가 속한 페이지 DOM(페이지 변경 감지)
   const lastPageElRef = useRef<Element | null>(null);
 
-  // ✅ 점프/클릭 직후 “툭” 방지용
+  // ✅ 점프/클릭 직후 "툭" 방지용
   const suppressAutoScrollUntilRef = useRef<number>(0);
 
   // ✅ Header + 재생바(헤더 내부 centerContent) 높이 기반 topSafe 계산
   const controlBarRef = useRef<HTMLDivElement>(null);
+
+  // ✅ 지연 오디오 초기화용
+  const audioReadyRef = useRef(false);
+  const audioInitPromiseRef = useRef<Promise<void> | null>(null);
+  const instrumentRefToIndexRef = useRef<Map<unknown, number>>(new Map());
+  // race condition 방어: 새 악보 로드 시 이전 초기화 완료가 상태를 덮어쓰지 못하게 버전 관리
+  const audioInitVersionRef = useRef(0);
+  // resume() Promise 공유 — 동일 gesture 안에서 resume을 한 번만 Chrome에 제출
+  const audioResumePromiseRef = useRef<Promise<void> | null>(null);
 
   const getTopSafe = () => {
     const headerH =
@@ -444,13 +451,22 @@ export default function MusicPlayer({
   };
 
   // ============================================================
-  // ✅ 악보 로드 핸들러
+  // ✅ 악보 로드 핸들러 — OSMD 전용 (오디오 초기화 없음)
   // ============================================================
   const handleScoreLoaded = async (osmd: OpenSheetMusicDisplay) => {
     setState("loading");
 
+    // 이전 오디오 이벤트 정리 + 오디오 상태 리셋 (새 악보 로드 시)
     cleanupPlayerEventsRef.current?.();
     cleanupPlayerEventsRef.current = null;
+    audioReadyRef.current = false;
+    audioInitPromiseRef.current = null;
+    audioInitVersionRef.current += 1; // 진행 중인 ensureAudioInitialized가 완료 후 상태를 덮어쓰지 못하도록
+    const prevPlayer = playerRef.current;
+    playerRef.current = null;
+    if (prevPlayer) {
+      void Promise.resolve(prevPlayer.stop?.()).catch(() => {});
+    }
 
     try {
       osmdRef.current = osmd;
@@ -465,58 +481,8 @@ export default function MusicPlayer({
       const idx = buildMeasureIndex(osmd.cursor);
       measureToStepRef.current = idx.measureToStep;
 
-      // 네이티브 AudioContext를 직접 생성해 주입 — (player as any).ac는 래퍼라서
-      // Chrome autoplay 정책이 user gesture로 인식 못 하는 문제 방지.
-      void audioCtxRef.current?.close();
-      const nativeCtx = new AudioContext();
-      audioCtxRef.current = nativeCtx;
-
-      const AudioPlayerCtor =
-        AudioPlayer as unknown as new (ctx?: unknown) => OsmdAudioPlayerLike;
-      const player = new AudioPlayerCtor(nativeCtx);
-      playerRef.current = player;
-
-      await player.loadScore(osmd);
-
       // ============================================================
-      // ✅ stepQueue: 같은 tick에 몰린 step들의 간격을 강제로 벌림
-      // ============================================================
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const sch = (player as any).scheduler;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const steps: any[] = sch?.stepQueue?.steps ?? [];
-
-        if (Array.isArray(steps) && steps.length > 1) {
-          // 1) 정수 round
-          steps.forEach((s) => {
-            if (typeof s?.tick === "number") s.tick = Math.round(s.tick);
-          });
-
-          // 2) 정렬
-          steps.sort((a, b) => (a.tick ?? 0) - (b.tick ?? 0));
-
-          // 3) 같은 tick이 연속이면 1씩 벌림 (시계 진행에 맞춰 순차 처리되도록)
-          let bumped = 0;
-          for (let i = 1; i < steps.length; i++) {
-            if (steps[i].tick <= steps[i - 1].tick) {
-              steps[i].tick = steps[i - 1].tick + 1;
-              bumped++;
-            }
-          }
-
-          if (bumped > 0 && isDev) {
-            console.log(
-              `[MusicPlayer] stepQueue: ${bumped} step(s) bumped apart`,
-            );
-          }
-        }
-      } catch (e) {
-        if (isDev) console.warn("[MusicPlayer] stepQueue fix failed:", e);
-      }
-
-      // ============================================================
-      // ✅ instrument 목록 추출 + 원본 참조 보관
+      // ✅ instrument 목록 추출 + instrumentRefToIndex ref에 저장
       // ============================================================
       type OsmdInstrumentLike = {
         Name?: string;
@@ -533,16 +499,136 @@ export default function MusicPlayer({
         name: ins.Name ?? ins.NameLabel?.text ?? `Track ${i + 1}`,
       }));
 
-      // ✅ instrument 참조 → index Map (핵심)
       const instrumentRefToIndex = new Map<unknown, number>();
       rawInstruments.forEach((ins, i) => {
         instrumentRefToIndex.set(ins, i);
       });
+      instrumentRefToIndexRef.current = instrumentRefToIndex;
 
       setInstruments(instrumentList);
       setMutedIndices(new Set());
       instrumentsRef.current = instrumentList;
       mutedIndicesRef.current = new Set();
+
+      // 초기 페이지 저장
+      lastPageElRef.current = getPageElement();
+
+      try {
+        const c = scoreViewerRef.current?.getCursor();
+        c?.reset();
+        c?.show();
+      } catch {}
+
+      setCurrentMeasure(1);
+      scoreViewerRef.current?.highlightMeasure(1, { scrollIntoView: false });
+      lastHighlightedMeasureRef.current = 1;
+
+      setState("idle");
+    } catch (e) {
+      console.error(e);
+      toast.error(
+        `플레이어 초기화 실패: ${e instanceof Error ? e.message : "Unknown error"}`,
+      );
+      setState("idle");
+    }
+  };
+
+  // ============================================================
+  // ✅ resume() Promise 공유 헬퍼
+  // Chrome은 resume() 호출 시점에 user activation을 체크한다.
+  // onMeasureClick/play의 sync 구간에서 resume을 시작해 Promise를 보관하고,
+  // ensureAudioInitialized가 같은 Promise를 await하면 두 번째 resume() 호출이 없어짐.
+  // ============================================================
+  const resumeCtxShared = (ctx: AudioContext): Promise<void> => {
+    if (ctx.state === "running") return Promise.resolve();
+    if (audioResumePromiseRef.current) return audioResumePromiseRef.current;
+    const p = ctx.resume().finally(() => {
+      audioResumePromiseRef.current = null;
+    });
+    audioResumePromiseRef.current = p;
+    return p;
+  };
+
+  // ============================================================
+  // ✅ 지연 오디오 초기화 — 첫 user gesture 시에만 실행
+  // AudioContext는 반드시 user gesture 안에서 생성해야 Chrome autoplay 정책에서 unlock됨.
+  // onMeasureClick / play 버튼에서 동기 경로로 AudioContext를 먼저 생성한 뒤 이 함수를 호출.
+  // ============================================================
+  const ensureAudioInitialized = useCallback(async (): Promise<boolean> => {
+    if (audioReadyRef.current && playerRef.current) return true;
+
+    // 이미 초기화 중이면 완료를 기다림
+    if (audioInitPromiseRef.current) {
+      try {
+        await audioInitPromiseRef.current;
+        return audioReadyRef.current;
+      } catch {
+        return false;
+      }
+    }
+
+    const osmd = osmdRef.current;
+    if (!osmd) return false;
+
+    const version = audioInitVersionRef.current;
+
+    const promise = (async () => {
+      // onMeasureClick에서 이미 생성했을 수 있으므로 재사용
+      if (!audioCtxRef.current || audioCtxRef.current.state === "closed") {
+        audioCtxRef.current = new AudioContext();
+      }
+      const ctx = audioCtxRef.current;
+      // onMeasureClick/play sync 구간에서 이미 시작된 resume Promise를 공유
+      await resumeCtxShared(ctx);
+
+      // resume 후에도 running이 아니면 autoplay 정책 위반 → 초기화 중단
+      if (ctx.state !== "running") {
+        throw new Error(
+          `AudioContext resume failed (state=${ctx.state}). Must be called from user gesture.`,
+        );
+      }
+
+      // 새 악보가 로드되어 버전이 바뀐 경우 초기화 취소
+      if (audioInitVersionRef.current !== version) return;
+
+      const AudioPlayerCtor = AudioPlayer as unknown as new (
+        ctx?: unknown,
+      ) => OsmdAudioPlayerLike;
+      const player = new AudioPlayerCtor(ctx);
+      playerRef.current = player;
+
+      await player.loadScore(osmd);
+
+      // ============================================================
+      // ✅ stepQueue: 같은 tick에 몰린 step들의 간격을 강제로 벌림
+      // ============================================================
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const sch = (player as any).scheduler;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const steps: any[] = sch?.stepQueue?.steps ?? [];
+
+        if (Array.isArray(steps) && steps.length > 1) {
+          steps.forEach((s) => {
+            if (typeof s?.tick === "number") s.tick = Math.round(s.tick);
+          });
+          steps.sort((a, b) => (a.tick ?? 0) - (b.tick ?? 0));
+          let bumped = 0;
+          for (let i = 1; i < steps.length; i++) {
+            if (steps[i].tick <= steps[i - 1].tick) {
+              steps[i].tick = steps[i - 1].tick + 1;
+              bumped++;
+            }
+          }
+          if (bumped > 0 && isDev) {
+            console.log(
+              `[MusicPlayer] stepQueue: ${bumped} step(s) bumped apart`,
+            );
+          }
+        }
+      } catch (e) {
+        if (isDev) console.warn("[MusicPlayer] stepQueue fix failed:", e);
+      }
 
       // ============================================================
       // ✅ notePlaybackCallback 오버라이드 — muted 악기 노트 필터링
@@ -552,12 +638,12 @@ export default function MusicPlayer({
       const originalCallback = pAny.notePlaybackCallback?.bind(player);
 
       if (typeof originalCallback === "function") {
+        const instrumentRefToIndex = instrumentRefToIndexRef.current;
         let loggedShape = false;
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const getInstrumentIndexFromNote = (note: any): number | null => {
           try {
-            // 경로 1: note.parentStaffEntry.parentStaff.parentInstrument
             const staff =
               note?.parentStaffEntry?.parentStaff ??
               note?.ParentStaffEntry?.ParentStaff ??
@@ -568,7 +654,6 @@ export default function MusicPlayer({
               return instrumentRefToIndex.get(ins) ?? null;
             }
 
-            // 경로 2: voiceEntry.parentVoice.parent (Instrument)
             const voice =
               note?.voiceEntry?.parentVoice ??
               note?.ParentVoiceEntry?.ParentVoice ??
@@ -617,7 +702,7 @@ export default function MusicPlayer({
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const filtered = scheduledNotes.filter((note: any) => {
               const idx = getInstrumentIndexFromNote(note);
-              if (idx == null) return true; // 못 찾으면 재생 (안전)
+              if (idx == null) return true;
               return !muted.has(idx);
             });
             return originalCallback(audioContextTime, filtered);
@@ -631,9 +716,9 @@ export default function MusicPlayer({
         console.warn("[MusicPlayer] notePlaybackCallback을 찾지 못했습니다.");
       }
 
-      // 초기 페이지 저장
-      lastPageElRef.current = getPageElement();
-
+      // ============================================================
+      // ✅ 플레이어 이벤트 리스너 등록
+      // ============================================================
       const onState = (s: unknown) => {
         const ui = normalizeState(s);
         setState(ui);
@@ -692,6 +777,9 @@ export default function MusicPlayer({
         onIteration();
       };
 
+      // 이벤트 등록 전에도 버전 재확인
+      if (audioInitVersionRef.current !== version) return;
+
       if (player.on) {
         player.on("state-change", onState);
         player.on("iteration", onIterationEvent);
@@ -704,29 +792,26 @@ export default function MusicPlayer({
         };
       }
 
-      try {
-        const c = scoreViewerRef.current?.getCursor();
-        c?.reset();
-        c?.show();
-      } catch {}
+      audioReadyRef.current = true;
+    })();
 
-      setCurrentMeasure(1);
-      scoreViewerRef.current?.highlightMeasure(1, { scrollIntoView: false });
-      lastHighlightedMeasureRef.current = 1;
+    audioInitPromiseRef.current = promise;
 
-      setState("idle");
-
-      if (autoPlay) {
-        await player.play();
-      }
+    try {
+      await promise;
+      return audioReadyRef.current;
     } catch (e) {
-      console.error(e);
+      audioInitPromiseRef.current = null;
+      audioReadyRef.current = false;
+      if (isDev)
+        console.error("[MusicPlayer] ensureAudioInitialized failed:", e);
       toast.error(
-        `플레이어 초기화 실패: ${e instanceof Error ? e.message : "Unknown error"}`,
+        `오디오 초기화 실패: ${e instanceof Error ? e.message : "Unknown error"}`,
       );
-      setState("idle");
+      return false;
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ============================================================
   // ✅ 곡 끝 감지 — stuck 상태 자동 복구
@@ -786,17 +871,19 @@ export default function MusicPlayer({
   // ============================================================
   // ✅ 재생 제어
   // ============================================================
+
   const play = useCallback(async () => {
-    const p = playerRef.current;
-    if (!p) return;
-    const ctx = audioCtxRef.current;
-    if (ctx && ctx.state !== "running") {
-      try { await ctx.resume(); } catch (e) {
-        if (isDev) console.warn("[MusicPlayer] AudioContext resume failed:", e);
-      }
+    // onMeasureClick과 동일하게 sync 구간에서 AudioContext 생성 + resume 시작
+    if (!audioCtxRef.current || audioCtxRef.current.state === "closed") {
+      try { audioCtxRef.current = new AudioContext(); } catch {}
     }
-    await p.play();
-  }, []);
+    if (audioCtxRef.current) {
+      void resumeCtxShared(audioCtxRef.current);
+    }
+    const ok = await ensureAudioInitialized();
+    if (!ok) return;
+    await playerRef.current?.play();
+  }, [ensureAudioInitialized]);
 
   const pause = useCallback(() => {
     const p = playerRef.current;
@@ -817,6 +904,10 @@ export default function MusicPlayer({
     autoplay = true,
     source: JumpSource = "control",
   ) => {
+    // 오디오가 초기화되지 않았으면 여기서 초기화 (user gesture 안에서 호출됨)
+    const ok = await ensureAudioInitialized();
+    if (!ok) return;
+
     const p = playerRef.current;
     if (!p) return;
 
@@ -918,7 +1009,9 @@ export default function MusicPlayer({
           onPlay={play}
           onPause={pause}
           onStop={stop}
-          onJumpToMeasure={(mm) => jumpToMeasureRef.current(mm, true, "control")}
+          onJumpToMeasure={(mm) =>
+            jumpToMeasureRef.current(mm, true, "control")
+          }
           onChangeFile={onRequestChangeFile}
         />
       ),
@@ -957,7 +1050,13 @@ export default function MusicPlayer({
   return (
     <div className="flex h-full w-full flex-col">
       {state === "loading" ? (
-        <div className="fixed bottom-0 right-0 top-17 z-50 flex items-center justify-center bg-[#05070a]" style={{ left: isSidebarCollapsed ? 72 : 308, transition: "left 0.3s ease" }}>
+        <div
+          className="fixed bottom-0 right-0 top-17 z-50 flex items-center justify-center bg-[#05070a]"
+          style={{
+            left: isSidebarCollapsed ? 72 : 308,
+            transition: "left 0.3s ease",
+          }}
+        >
           <div className="flex flex-col items-center gap-3">
             <Spinner size="md" />
             <p className="text-sm text-gray-400">악보를 불러오는 중…</p>
@@ -1016,9 +1115,18 @@ export default function MusicPlayer({
           xmlData={xmlData}
           onScoreLoaded={handleScoreLoaded}
           onMeasureClick={(mm) => {
-            // 네이티브 AudioContext를 user gesture 안에서 동기적으로 resume
+            // sync 구간: AudioContext 생성 + resume을 gesture 유효 시간 안에 시작
+            if (
+              !audioCtxRef.current ||
+              audioCtxRef.current.state === "closed"
+            ) {
+              try {
+                audioCtxRef.current = new AudioContext();
+              } catch {}
+            }
             const ctx = audioCtxRef.current;
-            if (ctx && ctx.state !== "running") void ctx.resume();
+            // resumeCtxShared가 Promise를 보관 → ensureAudioInitialized가 같은 Promise 재사용
+            if (ctx) void resumeCtxShared(ctx);
             void jumpToMeasure(mm, true, "click");
           }}
           highlightedInstrumentIndex="last"

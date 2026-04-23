@@ -1,6 +1,13 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Download, Loader2, RefreshCw } from "lucide-react";
 import MusicPlayer from "@/components/music/MusicPlayer";
@@ -11,7 +18,10 @@ import { getProject } from "@api/project/apis/get/get-project";
 import { useProjectScoreQuery } from "@api/project/hooks/queries/useProjectScoreQuery";
 import { useProjectTracksQuery } from "@api/project/hooks/queries/useProjectTracksQuery";
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
-import { useGenerationStore, genKey } from "@features/midi-create/stores/generation-store";
+import {
+  useGenerationStore,
+  genKey,
+} from "@features/midi-create/stores/generation-store";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { toast } from "@/components/common/Toast";
 
@@ -265,7 +275,13 @@ function PlayerPageContent() {
             )}
 
             {showScoreLoading && (
-              <div className="fixed bottom-0 right-0 top-17 z-50 flex items-center justify-center bg-[#05070a]" style={{ left: isSidebarCollapsed ? 72 : 308, transition: "left 0.3s ease" }}>
+              <div
+                className="fixed bottom-0 right-0 top-17 z-50 flex items-center justify-center bg-[#05070a]"
+                style={{
+                  left: isSidebarCollapsed ? 72 : 308,
+                  transition: "left 0.3s ease",
+                }}
+              >
                 <div className="flex flex-col items-center gap-3">
                   <Spinner size="md" />
                   <p className="text-gray-400 text-sm">악보를 불러오는 중…</p>
@@ -277,7 +293,6 @@ function PlayerPageContent() {
               <div>
                 <MusicPlayer
                   xmlData={stableXmlData}
-                  autoPlay={false}
                   onRequestChangeFile={undefined}
                   onControlBar={handleControlBar}
                   isSidebarCollapsed={isSidebarCollapsed}
