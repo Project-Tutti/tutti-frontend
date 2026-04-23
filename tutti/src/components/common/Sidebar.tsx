@@ -92,6 +92,19 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
 
   useClickOutside(projectMenuHostRef, openMenuProjectId != null, closeMenus);
 
+  // 프로젝트 리스트를 스크롤하면 드롭다운은 닫기 (position fixed + 스크롤로 인한 위치 어긋남 방지)
+  useEffect(() => {
+    if (openMenuProjectId == null) return;
+    if (isCollapsed) return;
+
+    const root = scrollRef.current;
+    if (!root) return;
+
+    const onScroll = () => closeMenus();
+    root.addEventListener("scroll", onScroll, { passive: true });
+    return () => root.removeEventListener("scroll", onScroll);
+  }, [openMenuProjectId, isCollapsed]);
+
   const startRename = (projectId: number, name: string) => {
     setRenamingProjectId(projectId);
     setRenameDraft(name);
