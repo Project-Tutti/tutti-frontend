@@ -227,7 +227,9 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
             {/* ✅ 프로젝트 목록 스크롤 영역 */}
             <div
               ref={scrollRef}
-              className="grow flex min-h-0 min-w-77 flex-col space-y-4 overflow-y-auto px-0 pt-1 pb-4"
+              // 계정별 프로젝트 개수에 따라 스크롤바 유무가 달라지면 콘텐츠 폭이 달라져 보일 수 있어
+              // 스크롤바 공간을 항상 확보(=항상 스크롤바)해서 폭이 일관되게 보이게 함
+              className="grow flex min-h-0 min-w-77 flex-col space-y-4 overflow-y-scroll px-0 pt-1 pb-4"
             >
               <div>
                 <div className="space-y-1">
