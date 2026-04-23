@@ -37,6 +37,7 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
   const [openMenuProjectId, setOpenMenuProjectId] = useState<number | null>(
     null,
   );
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
   const [renamingProjectId, setRenamingProjectId] = useState<number | null>(
     null,
   );
@@ -86,6 +87,7 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
 
   const closeMenus = () => {
     setOpenMenuProjectId(null);
+    setMenuPos(null);
   };
 
   useClickOutside(projectMenuHostRef, openMenuProjectId != null, closeMenus);
@@ -299,9 +301,13 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              setOpenMenuProjectId((prev) =>
-                                prev === item.projectId ? null : item.projectId,
-                              );
+                              if (openMenuProjectId === item.projectId) {
+                                closeMenus();
+                              } else {
+                                const rect = (e.currentTarget as HTMLButtonElement).getBoundingClientRect();
+                                setMenuPos({ top: rect.top, left: rect.left - 144 - 4 });
+                                setOpenMenuProjectId(item.projectId);
+                              }
                             }}
                             className="flex size-7 shrink-0 items-center justify-center rounded-full p-0 text-gray-400 opacity-100 transition-colors hover:bg-white/5 hover:text-white"
                           >
@@ -311,44 +317,45 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
                             />
                           </button>
 
-                          {openMenuProjectId === item.projectId && (
-                            <div className="absolute inset-x-0 top-full z-70 pt-1">
-                              <div className="flex justify-end px-2">
-                                <div className="w-36 overflow-hidden rounded-xl border border-[#1e293b] bg-[#0f1218] shadow-xl">
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      startRename(item.projectId, item.name);
-                                    }}
-                                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-[14px] text-gray-200 transition-colors hover:bg-white/5"
-                                  >
-                                    <Pencil
-                                      className="size-[18px] shrink-0 text-gray-400"
-                                      strokeWidth={1.75}
-                                    />
-                                    이름 바꾸기
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      confirmDelete(item.projectId, item.name);
-                                    }}
-                                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-[14px] text-red-400 transition-colors hover:bg-red-500/10"
-                                  >
-                                    <Trash2
-                                      className="size-[18px] shrink-0"
-                                      strokeWidth={1.75}
-                                    />
-                                    삭제
-                                  </button>
-                                </div>
-                              </div>
+                          {/* 드롭다운: DOM은 row 안에 두고, 위치만 fixed로 띄워서
+                              footer/overflow 영향 없이 렌더 + clickOutside 범위에도 포함 */}
+                          {openMenuProjectId === item.projectId && menuPos ? (
+                            <div
+                              className="fixed z-200 w-36 overflow-hidden rounded-xl border border-[#1e293b] bg-[#0f1218] shadow-xl"
+                              style={{ top: menuPos.top, left: menuPos.left }}
+                            >
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  startRename(item.projectId, item.name);
+                                }}
+                                className="flex w-full items-center gap-2 px-3 py-2 text-left text-[14px] text-gray-200 transition-colors hover:bg-white/5"
+                              >
+                                <Pencil
+                                  className="size-[18px] shrink-0 text-gray-400"
+                                  strokeWidth={1.75}
+                                />
+                                이름 바꾸기
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  confirmDelete(item.projectId, item.name);
+                                }}
+                                className="flex w-full items-center gap-2 px-3 py-2 text-left text-[14px] text-red-400 transition-colors hover:bg-red-500/10"
+                              >
+                                <Trash2
+                                  className="size-[18px] shrink-0"
+                                  strokeWidth={1.75}
+                                />
+                                삭제
+                              </button>
                             </div>
-                          )}
+                          ) : null}
                         </div>
                       </div>
                     );

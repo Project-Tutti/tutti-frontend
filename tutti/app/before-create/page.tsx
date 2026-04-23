@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  useEffect,
-  useMemo,
-  useState,
-  Suspense,
-} from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Sidebar from "@/components/common/Sidebar";
 import { Spinner } from "@/components/common/Spinner";
@@ -233,8 +228,15 @@ function BeforeCreatePageContent() {
           throw new Error(res.message ?? "재생성 실패");
         }
 
-        const regenProjectName = projectQuery.data?.result?.name ?? `Project #${parsedRegenerateProjectId}`;
-        genStart(res.result.projectId, res.result.versionId, false, `${regenProjectName} · ${nextVersionName}`);
+        const regenProjectName =
+          projectQuery.data?.result?.name ??
+          `Project #${parsedRegenerateProjectId}`;
+        genStart(
+          res.result.projectId,
+          res.result.versionId,
+          false,
+          `${regenProjectName} · ${nextVersionName}`,
+        );
         return;
       }
 
@@ -294,7 +296,7 @@ function BeforeCreatePageContent() {
                   onChange={(e) => setProjectName(e.target.value)}
                   placeholder="사용할 프로젝트 이름을 입력하세요."
                   aria-invalid={projectNameMissing}
-                  className={`w-full rounded-lg border bg-[#0f1218]/60 px-3 py-2 text-[16px] text-white outline-none transition-colors focus:bg-[#0f1218]/80 placeholder:text-rose-200/45 ${
+                  className={`w-full rounded-lg border bg-[#0f1218]/60 px-4 py-4 text-[20px] text-white outline-none transition-colors focus:bg-[#0f1218]/80 placeholder:text-rose-200/45 ${
                     projectNameMissing
                       ? "border-red-500/50 focus:border-red-500/60"
                       : "border-[#1e293b] focus:border-[#3b82f6]/50"
@@ -306,7 +308,13 @@ function BeforeCreatePageContent() {
 
           {/* 생성설정: 모달이 아니라 페이지에 바로 노출 */}
           <div className="mx-auto mb-3 w-full max-w-3xl md:mb-4">
-            <InstrumentSettingsPanel />
+            <InstrumentSettingsPanel
+              onBack={
+                !isRegenerateMode
+                  ? () => router.push("/home?step=2")
+                  : undefined
+              }
+            />
           </div>
 
           {/* 트랙 정보: 클릭해서 모달로 들어가게 */}
@@ -357,9 +365,7 @@ function BeforeCreatePageContent() {
             }
             errorMessage={createError}
             label={isRegenerateMode ? "악보 재생성하기" : "악보 생성하기"}
-            pendingLabel={
-              isRegenerateMode ? "재생성 중…" : "생성 중…"
-            }
+            pendingLabel={isRegenerateMode ? "재생성 중…" : "생성 중…"}
             variant={isRegenerateMode ? "regenerate" : "generate"}
           />
         </main>
@@ -384,7 +390,6 @@ function BeforeCreatePageContent() {
         track={selectedTrack}
         onClose={() => setIsModalOpen(false)}
       />
-
     </div>
   );
 }

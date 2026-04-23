@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertCircle,
   ChevronRight,
@@ -17,12 +17,15 @@ import { parseMidiFile } from "@common/utils/parse-midi";
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 
-const HomePage = () => {
+const HomePageContent = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const {
     tracks,
+    projectName,
     selectedInstrument,
     setSelectedInstrument,
+    setNoteRange,
     setTracks,
     setUploadedFile: setStoreFile,
     setProjectName,
@@ -35,7 +38,9 @@ const HomePage = () => {
   const [selectedInstrumentName, setSelectedInstrumentName] = useState<
     string | null
   >(null);
-  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
+  const [currentStep, setCurrentStep] = useState<1 | 2>(
+    searchParams.get("step") === "2" && tracks.length > 0 ? 2 : 1,
+  );
 
   useEffect(() => {
     if (tracks.length === 0) {
@@ -47,16 +52,26 @@ const HomePage = () => {
     const isDeselect = selectedInstrument === midiProgram;
     setSelectedInstrument(isDeselect ? null : midiProgram);
     setSelectedInstrumentName(isDeselect ? null : name);
+    setNoteRange(null); // 악기가 바뀌면 음역대를 초기화해 before-create에서 새 기본값으로 세팅
   };
 
   const handleFileUpload = (file: File) => {
     setUploadedFile(file);
     setParseError(null);
     setSelectedInstrument(null); // 새 파일 업로드 시 이전 세션 악기 선택 초기화
+    setTracks([]); // 새 파일이면 기존 트랙 초기화
   };
 
   const handleGenerate = async () => {
-    if (!uploadedFile || selectedInstrument == null) return;
+    if (selectedInstrument == null) return;
+
+    // 이미 파싱된 트랙이 있고 새 파일을 올리지 않은 경우 → 바로 이동
+    if (tracks.length > 0 && !uploadedFile) {
+      router.push("/before-create");
+      return;
+    }
+
+    if (!uploadedFile) return;
     try {
       setIsParsing(true);
       setParseError(null);
@@ -82,7 +97,9 @@ const HomePage = () => {
   };
 
   const canGenerate =
-    selectedInstrument != null && !!uploadedFile && !isParsing;
+    selectedInstrument != null &&
+    (!!uploadedFile || tracks.length > 0) &&
+    !isParsing;
 
   return (
     <ProtectedRoute>
@@ -216,14 +233,14 @@ const HomePage = () => {
                     </div>
 
                     {/* 업로드된 파일 뱃지 */}
-                    {uploadedFile && (
+                    {(uploadedFile || tracks.length > 0) && (
                       <div className="flex items-center gap-2.5 rounded-xl border border-[#1e293b] bg-[#0f1218]/60 px-4 py-3">
                         <Music
                           className="size-4 shrink-0 text-[#3b82f6]"
                           strokeWidth={2}
                         />
                         <span className="min-w-0 truncate text-sm text-gray-300">
-                          {uploadedFile.name}
+                          {uploadedFile ? uploadedFile.name : projectName}
                         </span>
                       </div>
                     )}
@@ -291,5 +308,11 @@ const HomePage = () => {
     </ProtectedRoute>
   );
 };
+
+const HomePage = () => (
+  <Suspense>
+    <HomePageContent />
+  </Suspense>
+);
 
 export default HomePage;
