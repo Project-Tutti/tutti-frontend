@@ -128,6 +128,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
 
     const [hoveredEdge, setHoveredEdge] = useState<"left" | "right" | null>(null);
     const [pageCount, setPageCount] = useState(0);
+    const [currentPageIdx, setCurrentPageIdx] = useState(0);
 
     // -----------------------------
     // Utils
@@ -854,6 +855,10 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
       return decoder.decode(xmlData);
     }, [xmlData]);
 
+    useEffect(() => {
+      setCurrentPageIdx(0);
+    }, [xmlData]);
+
     // -----------------------------
     // Hit test
     // -----------------------------
@@ -1059,14 +1064,21 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           onMeasureHoverRef.current?.(null);
         };
 
+        const onScroll = () => {
+          const idx = getCurrentPageIndex();
+          setCurrentPageIdx((prev) => (prev !== idx ? idx : prev));
+        };
+
         root.addEventListener("click", onClick);
         root.addEventListener("pointermove", onPointerMove);
         root.addEventListener("mouseleave", onLeave);
+        root.addEventListener("scroll", onScroll, { passive: true });
 
         cleanupHandlersRef.current = () => {
           root.removeEventListener("click", onClick);
           root.removeEventListener("pointermove", onPointerMove);
           root.removeEventListener("mouseleave", onLeave);
+          root.removeEventListener("scroll", onScroll);
         };
 
         onScoreLoadedRef.current?.(osmdRef.current);
@@ -1080,6 +1092,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
       xmlData,
       readMusicXml,
       getAllSvgs,
+      getCurrentPageIndex,
       buildMeasureBoxesIndex,
       buildInstrumentYRanges,
       applyPointerCursorToMeasures,
@@ -1126,9 +1139,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
 
     return (
       <div className="score-viewer-root relative h-full w-full">
-        {pageCount > 1 && (
-        <>
-        {/* 왼쪽 hover 영역 — 이전 페이지 */}
+        {pageCount > 1 && currentPageIdx > 0 && (
         <div
           className="pointer-events-auto absolute bottom-0 left-0 top-0 z-10 flex w-20 items-center justify-start"
           style={{
@@ -1149,8 +1160,9 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
             </div>
           )}
         </div>
+        )}
 
-        {/* 오른쪽 hover 영역 — 다음 페이지 */}
+        {pageCount > 1 && currentPageIdx < pageCount - 1 && (
         <div
           className="pointer-events-auto absolute bottom-0 right-0 top-0 z-10 flex w-20 items-center justify-end"
           style={{
@@ -1171,7 +1183,6 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
             </div>
           )}
         </div>
-        </>
         )}
 
         <div

@@ -91,6 +91,10 @@ export default function MusicPlayer({
   const audioInitVersionRef = useRef(0);
   // resume() Promise 공유 — 동일 gesture 안에서 resume을 한 번만 Chrome에 제출
   const audioResumePromiseRef = useRef<Promise<void> | null>(null);
+  // player scheduler가 한 번이라도 PLAYING을 거쳤으면 true (cold → warm 판별)
+  const playerWarmRef = useRef(false);
+  // cold 상태에서 마디 클릭 시 저장해둔 시작 위치 (play 버튼 클릭 시 적용)
+  const pendingStartStepRef = useRef<number | null>(null);
 
   const getTopSafe = () => {
     const headerH =
@@ -462,6 +466,8 @@ export default function MusicPlayer({
     audioReadyRef.current = false;
     audioInitPromiseRef.current = null;
     audioInitVersionRef.current += 1; // 진행 중인 ensureAudioInitialized가 완료 후 상태를 덮어쓰지 못하도록
+    playerWarmRef.current = false;
+    pendingStartStepRef.current = null;
     const prevPlayer = playerRef.current;
     playerRef.current = null;
     if (prevPlayer) {
@@ -875,14 +881,28 @@ export default function MusicPlayer({
   const play = useCallback(async () => {
     // onMeasureClick과 동일하게 sync 구간에서 AudioContext 생성 + resume 시작
     if (!audioCtxRef.current || audioCtxRef.current.state === "closed") {
-      try { audioCtxRef.current = new AudioContext(); } catch {}
+      try {
+        audioCtxRef.current = new AudioContext();
+      } catch {}
     }
     if (audioCtxRef.current) {
       void resumeCtxShared(audioCtxRef.current);
     }
     const ok = await ensureAudioInitialized();
     if (!ok) return;
-    await playerRef.current?.play();
+    const p = playerRef.current;
+    if (!p) return;
+    await p.play();
+    playerWarmRef.current = true;
+    // cold → warm 전환: 저장된 시작 위치가 있으면 적용
+    if (
+      pendingStartStepRef.current != null &&
+      typeof p.jumpToStep === "function"
+    ) {
+      p.jumpToStep(pendingStartStepRef.current);
+      pendingStartStepRef.current = null;
+      await p.play(); // ← 추가
+    }
   }, [ensureAudioInitialized]);
 
   const pause = useCallback(() => {
@@ -931,7 +951,15 @@ export default function MusicPlayer({
 
     const prevPageEl = lastPageElRef.current ?? getPageElement();
 
-    p.jumpToStep(step);
+    if (!playerWarmRef.current) {
+      // cold 상태: 시작 위치만 저장, play 버튼이 warm-up + jumpToStep을 처리
+      pendingStartStepRef.current = step;
+    } else {
+      // warm 상태: 바로 위치 지정 후 필요 시 재생
+      p.jumpToStep(step);
+      if (autoplay) await play();
+    }
+
     setCurrentMeasure(m);
 
     const fromClick = source === "click";
@@ -956,8 +984,6 @@ export default function MusicPlayer({
       const curPageEl = getPageElement();
       if (curPageEl) lastPageElRef.current = curPageEl;
     }
-
-    if (autoplay) await play();
   };
 
   // ============================================================
