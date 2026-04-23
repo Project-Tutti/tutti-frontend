@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useCallback, useRef } from "react";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ArrowLeft } from "lucide-react";
 import { GiMusicalNotes } from "react-icons/gi";
 
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
@@ -34,7 +34,11 @@ const NOTE_RANGE_SLIDER_CLASS =
   "[&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:-mt-[1px] [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-[#3b82f6] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-[0_0_6px_rgba(59,130,246,0.55)] " +
   "[&::-moz-range-track]:h-2 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-transparent [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:box-border [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:bg-[#3b82f6] [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:shadow-[0_0_6px_rgba(59,130,246,0.55)]";
 
-const InstrumentSettingsPanel = () => {
+interface InstrumentSettingsPanelProps {
+  onBack?: () => void;
+}
+
+const InstrumentSettingsPanel = ({ onBack }: InstrumentSettingsPanelProps) => {
   const {
     selectedInstrument,
     noteRange,
@@ -180,6 +184,16 @@ const InstrumentSettingsPanel = () => {
             </span>
           ) : null}
         </div>
+        {onBack ? (
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex shrink-0 items-center gap-1.5 rounded-lg border border-[#3b82f6]/40 bg-blue-500/8 px-3.5 py-2 text-sm font-medium text-[#3b82f6] transition-colors hover:bg-blue-500/15 hover:border-[#3b82f6]/60"
+          >
+            <ArrowLeft className="size-4" strokeWidth={2} />
+            이전
+          </button>
+        ) : null}
       </div>
 
       <div className="space-y-8 px-4 py-4 md:px-5 md:py-5">

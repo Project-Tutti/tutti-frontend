@@ -1000,9 +1000,16 @@ export default function MusicPlayer({
   };
 
   const handleSolo = (index: number) => {
-    const next = new Set(
-      instrumentsRef.current.map((i) => i.index).filter((i) => i !== index),
-    );
+    const currentMuted = mutedIndicesRef.current;
+    const allInstruments = instrumentsRef.current;
+    const isSolo =
+      !currentMuted.has(index) &&
+      currentMuted.size === allInstruments.length - 1 &&
+      allInstruments.every((i) => i.index === index || currentMuted.has(i.index));
+
+    const next = isSolo
+      ? new Set<number>()
+      : new Set(allInstruments.map((i) => i.index).filter((i) => i !== index));
     mutedIndicesRef.current = next;
     setMutedIndices(next);
   };

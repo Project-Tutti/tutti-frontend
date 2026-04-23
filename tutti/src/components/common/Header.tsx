@@ -9,17 +9,19 @@ interface HeaderProps {
   title?: string;
   centerContent?: ReactNode;
   rightContent?: React.ReactNode;
+  leftExtra?: ReactNode;
 }
 
 const Header = ({
   title = "Workspace / Instrument Setup",
   centerContent,
   rightContent,
+  leftExtra,
 }: HeaderProps) => {
   return (
     <nav
       data-app-header
-      className="sticky top-0 z-50 min-h-17 w-full shrink-0 bg-[#0f1218]/80 px-3 backdrop-blur-md md:px-5"
+      className="sticky top-0 z-50 min-h-17 w-full shrink-0 bg-[#05070a] px-3 md:px-5"
     >
       <div className="relative flex min-h-17 w-full items-center justify-between gap-3">
         {/* Center (overlay): 아래 악보와 동일 폭으로 고정 */}
@@ -34,6 +36,7 @@ const Header = ({
         {/* Left */}
         <div className="flex min-w-0 items-center gap-3 md:gap-4">
           <LogoLink />
+          {leftExtra ?? null}
           {title ? (
             <span className="truncate text-[14px] font-semibold leading-snug text-gray-200">
               {title}

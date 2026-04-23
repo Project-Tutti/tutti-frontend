@@ -66,11 +66,8 @@ function GenerationEntryConnector({
     if (navigatedKeys.has(key)) return;
     navigatedKeys.add(key);
     toast.success("악보 생성이 완료되었습니다!");
-    router.push(
-      `/player?projectId=${encodeURIComponent(String(projectId))}&versionId=${encodeURIComponent(String(versionId))}`,
-    );
     clear(projectId, versionId);
-  }, [sse.isComplete, projectId, versionId, router, clear]);
+  }, [sse.isComplete, projectId, versionId, clear]);
 
   return null;
 }
