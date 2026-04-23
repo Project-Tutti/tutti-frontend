@@ -874,9 +874,6 @@ export default function MusicPlayer({
     return () => clearInterval(interval);
   }, [state, currentMeasure]);
 
-  useEffect(() => {
-    if (state === "playing") playerWarmRef.current = true;
-  }, [state]);
 
   // ============================================================
   // ✅ 재생 제어
@@ -895,6 +892,7 @@ export default function MusicPlayer({
     const p = playerRef.current;
     if (!p) return;
     await p.play();
+    playerWarmRef.current = true;
     // cold → warm 전환: 저장된 시작 위치가 있으면 적용
     if (pendingStartStepRef.current != null && typeof p.jumpToStep === "function") {
       p.jumpToStep(pendingStartStepRef.current);
