@@ -467,6 +467,7 @@ export default function MusicPlayer({
 
       // 네이티브 AudioContext를 직접 생성해 주입 — (player as any).ac는 래퍼라서
       // Chrome autoplay 정책이 user gesture로 인식 못 하는 문제 방지.
+      void audioCtxRef.current?.close();
       const nativeCtx = new AudioContext();
       audioCtxRef.current = nativeCtx;
 
@@ -789,7 +790,11 @@ export default function MusicPlayer({
     const p = playerRef.current;
     if (!p) return;
     const ctx = audioCtxRef.current;
-    if (ctx && ctx.state !== "running") await ctx.resume();
+    if (ctx && ctx.state !== "running") {
+      try { await ctx.resume(); } catch (e) {
+        if (isDev) console.warn("[MusicPlayer] AudioContext resume failed:", e);
+      }
+    }
     await p.play();
   }, []);
 
