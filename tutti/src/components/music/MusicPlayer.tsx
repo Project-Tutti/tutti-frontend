@@ -873,7 +873,10 @@ export default function MusicPlayer({
   // ============================================================
 
   const play = useCallback(async () => {
-    // sync 구간에서 resume을 먼저 시작해 gesture 유효 시간 안에 Promise를 등록
+    // onMeasureClick과 동일하게 sync 구간에서 AudioContext 생성 + resume 시작
+    if (!audioCtxRef.current || audioCtxRef.current.state === "closed") {
+      try { audioCtxRef.current = new AudioContext(); } catch {}
+    }
     if (audioCtxRef.current) {
       void resumeCtxShared(audioCtxRef.current);
     }
