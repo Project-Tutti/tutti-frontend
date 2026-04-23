@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useLibraryListInfiniteQuery } from "@api/library/hooks/queries/useLibraryListInfiniteQuery";
 import { useGeneratableInstrumentCategoriesQuery } from "@api/instruments/hooks/queries/useGeneratableInstrumentCategoriesQuery";
@@ -85,10 +85,10 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
     return null;
   }, [pathname, searchParams]);
 
-  const closeMenus = () => {
+  const closeMenus = useCallback(() => {
     setOpenMenuProjectId(null);
     setMenuPos(null);
-  };
+  }, []);
 
   useClickOutside(projectMenuHostRef, openMenuProjectId != null, closeMenus);
 
@@ -103,7 +103,7 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
     const onScroll = () => closeMenus();
     root.addEventListener("scroll", onScroll, { passive: true });
     return () => root.removeEventListener("scroll", onScroll);
-  }, [openMenuProjectId, isCollapsed]);
+  }, [openMenuProjectId, isCollapsed, closeMenus]);
 
   const startRename = (projectId: number, name: string) => {
     setRenamingProjectId(projectId);
