@@ -874,7 +874,6 @@ export default function MusicPlayer({
     return () => clearInterval(interval);
   }, [state, currentMeasure]);
 
-
   // ============================================================
   // ✅ 재생 제어
   // ============================================================
@@ -882,7 +881,9 @@ export default function MusicPlayer({
   const play = useCallback(async () => {
     // onMeasureClick과 동일하게 sync 구간에서 AudioContext 생성 + resume 시작
     if (!audioCtxRef.current || audioCtxRef.current.state === "closed") {
-      try { audioCtxRef.current = new AudioContext(); } catch {}
+      try {
+        audioCtxRef.current = new AudioContext();
+      } catch {}
     }
     if (audioCtxRef.current) {
       void resumeCtxShared(audioCtxRef.current);
@@ -894,9 +895,13 @@ export default function MusicPlayer({
     await p.play();
     playerWarmRef.current = true;
     // cold → warm 전환: 저장된 시작 위치가 있으면 적용
-    if (pendingStartStepRef.current != null && typeof p.jumpToStep === "function") {
+    if (
+      pendingStartStepRef.current != null &&
+      typeof p.jumpToStep === "function"
+    ) {
       p.jumpToStep(pendingStartStepRef.current);
       pendingStartStepRef.current = null;
+      await p.play(); // ← 추가
     }
   }, [ensureAudioInitialized]);
 
