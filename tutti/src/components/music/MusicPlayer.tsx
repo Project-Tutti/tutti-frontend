@@ -48,6 +48,7 @@ export default function MusicPlayer({
   const scoreViewerRef = useRef<ScoreViewerRef>(null);
 
   const playerRef = useRef<OsmdAudioPlayerLike | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
   const osmdRef = useRef<OpenSheetMusicDisplay | null>(null);
 
   const measureToStepRef = useRef<Map<number, number>>(new Map());
@@ -464,9 +465,14 @@ export default function MusicPlayer({
       const idx = buildMeasureIndex(osmd.cursor);
       measureToStepRef.current = idx.measureToStep;
 
+      // 네이티브 AudioContext를 직접 생성해 주입 — (player as any).ac는 래퍼라서
+      // Chrome autoplay 정책이 user gesture로 인식 못 하는 문제 방지.
+      const nativeCtx = new AudioContext();
+      audioCtxRef.current = nativeCtx;
+
       const AudioPlayerCtor =
-        AudioPlayer as unknown as new () => OsmdAudioPlayerLike;
-      const player = new AudioPlayerCtor();
+        AudioPlayer as unknown as new (ctx?: unknown) => OsmdAudioPlayerLike;
+      const player = new AudioPlayerCtor(nativeCtx);
       playerRef.current = player;
 
       await player.loadScore(osmd);
@@ -782,13 +788,8 @@ export default function MusicPlayer({
   const play = useCallback(async () => {
     const p = playerRef.current;
     if (!p) return;
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const ctx = (p as any).ac as AudioContext | undefined;
-      if (ctx && ctx.state === "suspended") {
-        await ctx.resume();
-      }
-    } catch {}
+    const ctx = audioCtxRef.current;
+    if (ctx && ctx.state !== "running") await ctx.resume();
     await p.play();
   }, []);
 
@@ -860,19 +861,7 @@ export default function MusicPlayer({
       if (curPageEl) lastPageElRef.current = curPageEl;
     }
 
-    if (autoplay) {
-      // jumpToStep() → pause() → ac.suspend() 가 microtask로 남아 있는 상태에서
-      // play() → ac.resume() 을 호출하면 prod(HTTPS) 환경에서 user gesture 창을
-      // 벗어나 소리가 안 남. ac를 직접 꺼내 먼저 resume() 해 race condition 방지.
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const ctx = (p as any).ac as AudioContext | undefined;
-        if (ctx && ctx.state === "suspended") {
-          await ctx.resume();
-        }
-      } catch {}
-      await p.play();
-    }
+    if (autoplay) await play();
   };
 
   // ============================================================
@@ -953,6 +942,8 @@ export default function MusicPlayer({
         // stop()은 Promise를 반환하고, 내부에서 cursor가 null이면 reject → 동기 try/catch로는 잡히지 않음
         void Promise.resolve(p.stop?.()).catch(() => {});
       }
+      void audioCtxRef.current?.close();
+      audioCtxRef.current = null;
     };
   }, []);
 
@@ -1019,7 +1010,12 @@ export default function MusicPlayer({
           ref={scoreViewerRef}
           xmlData={xmlData}
           onScoreLoaded={handleScoreLoaded}
-          onMeasureClick={(mm) => jumpToMeasure(mm, true, "click")}
+          onMeasureClick={(mm) => {
+            // 네이티브 AudioContext를 user gesture 안에서 동기적으로 resume
+            const ctx = audioCtxRef.current;
+            if (ctx && ctx.state !== "running") void ctx.resume();
+            void jumpToMeasure(mm, true, "click");
+          }}
           highlightedInstrumentIndex="last"
         />
       </div>
