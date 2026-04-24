@@ -30,6 +30,7 @@ interface GenerationStore {
   maximize: (projectId: number, versionId: number) => void;
   clear: (projectId: number, versionId: number) => void;
   clearAll: () => void;
+  updateLabel: (projectId: number, versionId: number, label: string) => void;
   _updateSse: (projectId: number, versionId: number, state: ProjectStatusState) => void;
   _setRetryFn: (projectId: number, versionId: number, fn: () => void) => void;
 }
@@ -82,6 +83,15 @@ export const useGenerationStore = create<GenerationStore>((set) => ({
   },
 
   clearAll: () => set({ entries: {} }),
+
+  updateLabel: (projectId, versionId, label) => {
+    const key = genKey(projectId, versionId);
+    set((s) => {
+      const entry = s.entries[key];
+      if (!entry) return s;
+      return { entries: { ...s.entries, [key]: { ...entry, label } } };
+    });
+  },
 
   _updateSse: (projectId, versionId, sseState) => {
     const key = genKey(projectId, versionId);

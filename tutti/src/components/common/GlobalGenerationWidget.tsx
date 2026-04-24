@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -33,6 +33,11 @@ function GenerationEntryConnector({
   const _updateSse = useGenerationStore((s) => s._updateSse);
   const _setRetryFn = useGenerationStore((s) => s._setRetryFn);
   const clear = useGenerationStore((s) => s.clear);
+  const isMinimized = useGenerationStore(
+    (s) => s.entries[genKey(projectId, versionId)]?.isMinimized ?? false,
+  );
+  const isMinimizedRef = useRef(isMinimized);
+  isMinimizedRef.current = isMinimized;
   const sse = useProjectStatusSSE(projectId, versionId);
 
   useEffect(() => {
@@ -66,8 +71,11 @@ function GenerationEntryConnector({
     if (navigatedKeys.has(key)) return;
     navigatedKeys.add(key);
     toast.success("악보 생성이 완료되었습니다!");
+    if (!isMinimizedRef.current) {
+      router.push(`/player?projectId=${projectId}&versionId=${versionId}`);
+    }
     clear(projectId, versionId);
-  }, [sse.isComplete, projectId, versionId, clear]);
+  }, [sse.isComplete, projectId, versionId, router, clear]);
 
   return null;
 }

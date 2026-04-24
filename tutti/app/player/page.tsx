@@ -15,6 +15,7 @@ import Sidebar from "@/components/common/Sidebar";
 import Header from "@/components/common/Header";
 import { Spinner } from "@/components/common/Spinner";
 import { getProject } from "@api/project/apis/get/get-project";
+import { useProjectQuery } from "@api/project/hooks/queries/useProjectQuery";
 import { useProjectScoreQuery } from "@api/project/hooks/queries/useProjectScoreQuery";
 import { useProjectTracksQuery } from "@api/project/hooks/queries/useProjectTracksQuery";
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
@@ -55,11 +56,16 @@ function PlayerPageContent() {
     start: genStart,
     maximize: genMaximize,
     clear: genClear,
+    updateLabel: genUpdateLabel,
   } = useGenerationStore();
 
   const tracksQuery = useProjectTracksQuery(
     Number.isFinite(projectId) ? projectId : null,
     false,
+  );
+
+  const { data: projectData } = useProjectQuery(
+    fetchScoreFromApi ? projectId : null,
   );
 
   const mainRef = useRef<HTMLElement>(null);
@@ -158,14 +164,17 @@ function PlayerPageContent() {
   useEffect(() => {
     if (!showScoreError) return;
     if (!Number.isFinite(projectId) || !Number.isFinite(versionId)) return;
+    const label = projectData?.result?.name;
     const key = genKey(projectId, versionId);
     const existing = useGenerationStore.getState().entries[key];
     if (existing) {
       if (existing.isMinimized) genMaximize(projectId, versionId);
+      // projectData가 나중에 로드됐을 때 label 보완
+      if (!existing.label && label) genUpdateLabel(projectId, versionId, label);
     } else {
-      genStart(projectId, versionId);
+      genStart(projectId, versionId, false, label);
     }
-  }, [showScoreError, projectId, versionId, genStart, genMaximize]);
+  }, [showScoreError, projectId, versionId, genStart, genMaximize, genUpdateLabel, projectData]);
 
   // score 에러 해제(재시도 성공) 시 generation-store 정리
   useEffect(() => {
