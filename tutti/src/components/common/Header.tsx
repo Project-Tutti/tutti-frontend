@@ -23,7 +23,7 @@ const Header = ({
       data-app-header
       className="sticky top-0 z-50 min-h-17 w-full shrink-0 bg-[#05070a] px-3 md:px-5"
     >
-      <div className="grid min-h-17 w-full items-center gap-3" style={{ gridTemplateColumns: "auto 1fr auto" }}>
+      <div className="grid min-h-17 w-full grid-cols-[auto_1fr_auto] items-center gap-3">
         {/* Left */}
         <div className="flex min-w-0 items-center gap-3 md:gap-4">
           <LogoLink />
@@ -42,10 +42,10 @@ const Header = ({
               {centerContent}
             </div>
           </div>
-        ) : <div />}
+        ) : <div aria-hidden="true" />}
 
         {/* Right */}
-        <div className="flex shrink-0 items-center gap-3 md:gap-4">
+        <div className="flex min-w-0 shrink-0 items-center gap-3 md:gap-4">
           {rightContent ?? null}
         </div>
       </div>
