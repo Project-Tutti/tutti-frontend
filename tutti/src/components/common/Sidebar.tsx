@@ -139,7 +139,10 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
       await deleteProjectMutation.mutateAsync(projectId);
       setDeleteConfirmProject(null);
 
-      if (pathname.startsWith(`/library/${projectId}`)) {
+      const isOnDeletedProject =
+        pathname.startsWith(`/library/${projectId}`) ||
+        searchParams.get("projectId") === String(projectId);
+      if (isOnDeletedProject) {
         router.push("/home");
       }
     } catch (e) {
