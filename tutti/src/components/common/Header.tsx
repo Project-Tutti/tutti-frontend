@@ -23,16 +23,7 @@ const Header = ({
       data-app-header
       className="sticky top-0 z-50 min-h-17 w-full shrink-0 bg-[#05070a] px-3 md:px-5"
     >
-      <div className="relative flex min-h-17 w-full items-center justify-between gap-3">
-        {/* Center (overlay): 아래 악보와 동일 폭으로 고정 */}
-        {centerContent ? (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <div className="pointer-events-auto w-full max-w-7xl">
-              {centerContent}
-            </div>
-          </div>
-        ) : null}
-
+      <div className="grid min-h-17 w-full items-center gap-3" style={{ gridTemplateColumns: "auto 1fr auto" }}>
         {/* Left */}
         <div className="flex min-w-0 items-center gap-3 md:gap-4">
           <LogoLink />
@@ -43,6 +34,15 @@ const Header = ({
             </span>
           ) : null}
         </div>
+
+        {/* Center */}
+        {centerContent ? (
+          <div className="flex min-w-0 items-center justify-center">
+            <div className="w-full max-w-7xl min-w-0">
+              {centerContent}
+            </div>
+          </div>
+        ) : <div />}
 
         {/* Right */}
         <div className="flex shrink-0 items-center gap-3 md:gap-4">
