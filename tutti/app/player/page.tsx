@@ -56,6 +56,7 @@ function PlayerPageContent() {
     start: genStart,
     maximize: genMaximize,
     clear: genClear,
+    updateLabel: genUpdateLabel,
   } = useGenerationStore();
 
   const tracksQuery = useProjectTracksQuery(
@@ -163,14 +164,17 @@ function PlayerPageContent() {
   useEffect(() => {
     if (!showScoreError) return;
     if (!Number.isFinite(projectId) || !Number.isFinite(versionId)) return;
+    const label = projectData?.result?.name;
     const key = genKey(projectId, versionId);
     const existing = useGenerationStore.getState().entries[key];
     if (existing) {
       if (existing.isMinimized) genMaximize(projectId, versionId);
+      // projectData가 나중에 로드됐을 때 label 보완
+      if (!existing.label && label) genUpdateLabel(projectId, versionId, label);
     } else {
-      genStart(projectId, versionId, false, projectData?.result?.name ?? undefined);
+      genStart(projectId, versionId, false, label);
     }
-  }, [showScoreError, projectId, versionId, genStart, genMaximize, projectData]);
+  }, [showScoreError, projectId, versionId, genStart, genMaximize, genUpdateLabel, projectData]);
 
   // score 에러 해제(재시도 성공) 시 generation-store 정리
   useEffect(() => {

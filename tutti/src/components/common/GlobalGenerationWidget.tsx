@@ -72,6 +72,7 @@ function GenerationEntryConnector({
     if (!isMinimized) {
       router.push(`/player?projectId=${projectId}&versionId=${versionId}`);
     }
+    navigatedKeys.delete(key);
     clear(projectId, versionId);
   }, [sse.isComplete, projectId, versionId, isMinimized, router, clear]);
 
