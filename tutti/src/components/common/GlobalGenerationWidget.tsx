@@ -33,6 +33,9 @@ function GenerationEntryConnector({
   const _updateSse = useGenerationStore((s) => s._updateSse);
   const _setRetryFn = useGenerationStore((s) => s._setRetryFn);
   const clear = useGenerationStore((s) => s.clear);
+  const isMinimized = useGenerationStore(
+    (s) => s.entries[genKey(projectId, versionId)]?.isMinimized ?? false,
+  );
   const sse = useProjectStatusSSE(projectId, versionId);
 
   useEffect(() => {
@@ -66,8 +69,11 @@ function GenerationEntryConnector({
     if (navigatedKeys.has(key)) return;
     navigatedKeys.add(key);
     toast.success("악보 생성이 완료되었습니다!");
+    if (!isMinimized) {
+      router.push(`/player?projectId=${projectId}&versionId=${versionId}`);
+    }
     clear(projectId, versionId);
-  }, [sse.isComplete, projectId, versionId, clear]);
+  }, [sse.isComplete, projectId, versionId, isMinimized, router, clear]);
 
   return null;
 }

@@ -15,6 +15,7 @@ import Sidebar from "@/components/common/Sidebar";
 import Header from "@/components/common/Header";
 import { Spinner } from "@/components/common/Spinner";
 import { getProject } from "@api/project/apis/get/get-project";
+import { useProjectQuery } from "@api/project/hooks/queries/useProjectQuery";
 import { useProjectScoreQuery } from "@api/project/hooks/queries/useProjectScoreQuery";
 import { useProjectTracksQuery } from "@api/project/hooks/queries/useProjectTracksQuery";
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
@@ -60,6 +61,10 @@ function PlayerPageContent() {
   const tracksQuery = useProjectTracksQuery(
     Number.isFinite(projectId) ? projectId : null,
     false,
+  );
+
+  const { data: projectData } = useProjectQuery(
+    fetchScoreFromApi ? projectId : null,
   );
 
   const mainRef = useRef<HTMLElement>(null);
@@ -163,9 +168,9 @@ function PlayerPageContent() {
     if (existing) {
       if (existing.isMinimized) genMaximize(projectId, versionId);
     } else {
-      genStart(projectId, versionId);
+      genStart(projectId, versionId, false, projectData?.result?.name ?? undefined);
     }
-  }, [showScoreError, projectId, versionId, genStart, genMaximize]);
+  }, [showScoreError, projectId, versionId, genStart, genMaximize, projectData]);
 
   // score 에러 해제(재시도 성공) 시 generation-store 정리
   useEffect(() => {

@@ -147,7 +147,13 @@ export function useProjectStatusSSE(
     close();
     terminalRef.current = false;
     lastProgressAtRef.current = Date.now();
-    setState({ ...INITIAL_STATE, status: "pending", message: "재연결 중..." });
+    setState((prev) => ({
+      ...prev,
+      status: "pending",
+      message: "재연결 중...",
+      error: null,
+      isFailed: false,
+    }));
     setRetryKey((k) => k + 1);
   }, [close]);
 
@@ -166,7 +172,12 @@ export function useProjectStatusSSE(
     }
     terminalRef.current = false;
     lastProgressAtRef.current = Date.now();
-    setState({ ...INITIAL_STATE, status: "pending", message: "연결 중..." });
+    // 재연결(retryKey > 0)이면 기존 progress 유지, 최초 연결만 INITIAL_STATE로 초기화
+    setState((prev) =>
+      retryKey === 0
+        ? { ...INITIAL_STATE, status: "pending", message: "연결 중..." }
+        : { ...prev, status: "pending", message: "연결 중...", error: null, isFailed: false },
+    );
 
     const path = PROJECT_API_ENDPOINTS.status(projectId, versionId);
     const url = `${BASE_URL}${path}`;
