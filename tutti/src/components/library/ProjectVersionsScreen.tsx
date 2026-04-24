@@ -8,6 +8,7 @@ import { useMemo, useRef, useState } from "react";
 import { useProjectQuery } from "@api/project/hooks/queries/useProjectQuery";
 import { getProjectTracks } from "@api/project/apis/get/get-project-tracks";
 import type { ProjectVersionResponseDto } from "@api/project/types/api.types";
+import { useGeneratableInstrumentCategoriesQuery } from "@api/instruments/hooks/queries/useGeneratableInstrumentCategoriesQuery";
 
 import { useClickOutside } from "@/common/hooks/useClickOutside";
 import Modal from "@/components/common/Modal";
@@ -28,7 +29,7 @@ interface VersionRow {
   savedAt: string;
   isMaster: boolean;
   genre: string;
-  temperature: number;
+  instrumentName: string;
 }
 
 function formatVersionTime(iso: string): string {
@@ -47,6 +48,7 @@ function formatVersionTime(iso: string): string {
 function mapVersionsToRows(
   projectName: string,
   versions: ProjectVersionResponseDto[],
+  instrumentNameMap: Map<number, string>,
 ): VersionRow[] {
   if (!versions.length) return [];
   const sorted = [...versions].sort(
@@ -62,7 +64,7 @@ function mapVersionsToRows(
     savedAt: formatVersionTime(v.createdAt),
     isMaster: v.versionId === masterId,
     genre: v.genre,
-    temperature: v.temperature,
+    instrumentName: instrumentNameMap.get(v.instrumentId) ?? "알 수 없는 악기",
   }));
 }
 
@@ -80,13 +82,24 @@ const ProjectVersionsScreen = () => {
     projectIdParam || null,
     !!projectIdParam,
   );
+  const { data: instrumentCategories } = useGeneratableInstrumentCategoriesQuery();
 
   const result = data?.result;
   const projectName = result?.name ?? fallbackName;
 
+  const instrumentNameMap = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const category of instrumentCategories ?? []) {
+      for (const inst of category.instruments ?? []) {
+        map.set(inst.midiProgram, inst.name);
+      }
+    }
+    return map;
+  }, [instrumentCategories]);
+
   const rows = useMemo(
-    () => mapVersionsToRows(projectName, result?.versions ?? []),
-    [projectName, result?.versions],
+    () => mapVersionsToRows(projectName, result?.versions ?? [], instrumentNameMap),
+    [projectName, result?.versions, instrumentNameMap],
   );
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -259,7 +272,7 @@ const ProjectVersionsScreen = () => {
                                 {v.versionLabel}
                               </div>
                               <p className="mt-0.5 text-[12px] text-gray-500 truncate">
-                                {v.genre} · 자유도 {v.temperature}
+                                {v.genre} · {v.instrumentName}
                               </p>
                             </>
                           ) : (
