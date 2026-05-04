@@ -63,13 +63,13 @@ const Modal = ({
 
       <div
         className={[
-          "relative mx-auto flex w-full max-w-lg max-h-[min(88vh,720px)] flex-col overflow-hidden rounded-xl border border-[#1e293b] bg-[#0f1218] shadow-2xl animate-fade-in",
+          "relative mx-auto flex w-full max-w-lg max-h-[min(88vh,720px)] flex-col overflow-hidden rounded-xl border border-[#2d4a6a] bg-[#0f1218] shadow-2xl animate-fade-in",
           panelClassName ?? "",
         ].join(" ")}
       >
         <div
           className={[
-            "flex shrink-0 items-center justify-between gap-3 border-b border-[#1e293b] px-4 py-3",
+            "flex shrink-0 items-center justify-between gap-3 border-b border-[#2d4a6a] px-4 py-3",
             headerClassName ?? "",
           ].join(" ")}
         >
@@ -96,7 +96,7 @@ const Modal = ({
             {children}
           </div>
           {footer ? (
-            <div className="shrink-0 border-t border-[#1e293b] bg-[#0a0c12]/95 px-4 py-3">
+            <div className="shrink-0 border-t border-[#2d4a6a] bg-[#0a0c12]/95 px-4 py-3">
               {footer}
             </div>
           ) : null}

@@ -104,7 +104,7 @@ export function TrackMappingPickerSection({
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
             placeholder="악기 이름 또는 번호"
-            className="mb-2.5 w-full rounded-lg border border-[#1e293b] bg-[#030508] px-2.5 py-2 text-sm text-white placeholder:text-slate-600 focus:border-blue-500/60 focus:outline-none focus:ring-1 focus:ring-blue-500/30"
+            className="mb-2.5 w-full rounded-lg border border-[#2d4a6a] bg-[#030508] px-2.5 py-2 text-sm text-white placeholder:text-slate-600 focus:border-blue-500/60 focus:outline-none focus:ring-1 focus:ring-blue-500/30"
           />
 
           <p className="mb-1.5 text-xs font-medium text-slate-500">
@@ -113,7 +113,7 @@ export function TrackMappingPickerSection({
           <div
             role="listbox"
             aria-label="악기 목록"
-            className="flex max-h-[min(280px,38vh)] flex-col gap-0.5 overflow-y-auto rounded-lg border border-[#1e293b] bg-[#030508] p-1.5"
+            className="flex max-h-[min(280px,38vh)] flex-col gap-0.5 overflow-y-auto rounded-lg border border-[#2d4a6a] bg-[#030508] p-1.5"
           >
             {filteredOptions.length === 0 ? (
               <p className="px-3 py-5 text-center text-sm text-slate-500">
@@ -162,7 +162,7 @@ export function TrackMappingPickerSection({
               value={customValue}
               onChange={(e) => setCustomValue(e.target.value)}
               onBlur={(e) => onApplyCustomValue(e.target.value)}
-              className="w-full rounded-lg border border-[#1e293b] bg-[#030508] px-2.5 py-2.5 font-mono text-sm text-white tabular-nums focus:border-blue-500/60 focus:outline-none focus:ring-1 focus:ring-blue-500/30"
+              className="w-full rounded-lg border border-[#2d4a6a] bg-[#030508] px-2.5 py-2.5 font-mono text-sm text-white tabular-nums focus:border-blue-500/60 focus:outline-none focus:ring-1 focus:ring-blue-500/30"
             />
             <p className="mt-1.5 text-xs leading-relaxed text-slate-600">
               포커스를 잃으면 입력한 번호가 적용됩니다.

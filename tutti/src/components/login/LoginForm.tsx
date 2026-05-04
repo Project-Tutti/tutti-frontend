@@ -176,7 +176,7 @@ const LoginForm = () => {
       {/* 구분선 */}
       <div className="relative py-3">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-[#1e293b]"></div>
+          <div className="w-full border-t border-[#2d4a6a]"></div>
         </div>
         <div className="relative flex justify-center text-[12px] uppercase tracking-widest font-bold">
           <span className="bg-[#05070a] px-4 text-gray-500">또는</span>

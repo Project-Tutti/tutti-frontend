@@ -1155,7 +1155,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           aria-label="이전 페이지"
         >
           {hoveredEdge === "left" && (
-            <div className="ml-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#1e293b] shadow-lg ring-1 ring-white/10" style={{ color: "#e2e8f0", fontSize: "18px", fontWeight: 600, lineHeight: 1 }}>
+            <div className="ml-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#2d4a6a] shadow-lg ring-1 ring-white/10" style={{ color: "#e2e8f0", fontSize: "18px", fontWeight: 600, lineHeight: 1 }}>
               ‹
             </div>
           )}
@@ -1178,7 +1178,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           aria-label="다음 페이지"
         >
           {hoveredEdge === "right" && (
-            <div className="mr-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#1e293b] shadow-lg ring-1 ring-white/10" style={{ color: "#e2e8f0", fontSize: "18px", fontWeight: 600, lineHeight: 1 }}>
+            <div className="mr-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#2d4a6a] shadow-lg ring-1 ring-white/10" style={{ color: "#e2e8f0", fontSize: "18px", fontWeight: 600, lineHeight: 1 }}>
               ›
             </div>
           )}

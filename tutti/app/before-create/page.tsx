@@ -296,7 +296,7 @@ function BeforeCreatePageContent() {
                   className={`w-full rounded-lg border bg-[#0f1218]/60 px-4 py-4 text-[20px] text-white outline-none transition-colors focus:bg-[#0f1218]/80 placeholder:text-rose-200/45 ${
                     projectNameMissing
                       ? "border-red-500/50 focus:border-red-500/60"
-                      : "border-[#1e293b] focus:border-[#3b82f6]/50"
+                      : "border-[#2d4a6a] focus:border-[#3b82f6]/50"
                   }`}
                 />
               </label>
@@ -321,7 +321,7 @@ function BeforeCreatePageContent() {
             <button
               type="button"
               onClick={() => setIsTrackInfoOpen(true)}
-              className="w-full rounded-xl border border-[#1e293b] bg-[#0f1218]/35 px-4 py-3 text-left transition-colors hover:bg-[#0f1218]/55"
+              className="w-full rounded-xl border border-[#2d4a6a] bg-[#0f1218]/35 px-4 py-3 text-left transition-colors hover:bg-[#0f1218]/55"
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="flex flex-col">

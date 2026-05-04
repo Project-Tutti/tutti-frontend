@@ -11,7 +11,7 @@ const SidebarToggleButton = ({ isCollapsed, onClick }: SidebarToggleButtonProps)
   return (
     <button
       onClick={onClick}
-      className="fixed top-4 left-4 z-[70] text-gray-400 hover:text-white transition-colors bg-[#0a0c10] p-2 rounded-lg border border-[#1e293b]"
+      className="fixed top-4 left-4 z-[70] text-gray-400 hover:text-white transition-colors bg-[#0a0c10] p-2 rounded-lg border border-[#2d4a6a]"
       aria-label={isCollapsed ? 'Open sidebar' : 'Close sidebar'}
     >
       {isCollapsed ? (

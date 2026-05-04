@@ -40,7 +40,7 @@ const CategoryCard = ({
           ${
             isSelected
               ? "border-[#3b82f6] shadow-[0_0_24px_rgba(59,130,246,0.35)]"
-              : "border-[#1e293b] hover:border-[#3b82f6]/50 hover:shadow-[0_0_12px_rgba(59,130,246,0.1)]"
+              : "border-[#2d4a6a] hover:border-[#3b82f6]/50 hover:shadow-[0_0_12px_rgba(59,130,246,0.1)]"
           }
         `}
       >

@@ -118,7 +118,7 @@ export default function DownloadFormatModal({
       }}
     >
       <div
-        className="relative z-[10000] w-full max-w-lg rounded-2xl border border-[#1e293b] bg-[#0f1218] text-gray-100 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.55),0_0_48px_-14px_rgba(59,130,246,0.16)]"
+        className="relative z-[10000] w-full max-w-lg rounded-2xl border border-[#2d4a6a] bg-[#0f1218] text-gray-100 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.55),0_0_48px_-14px_rgba(59,130,246,0.16)]"
         role="dialog"
         aria-modal="true"
         aria-labelledby="download-format-title"
@@ -153,7 +153,7 @@ export default function DownloadFormatModal({
                 type="button"
                 disabled={pendingType != null}
                 onClick={() => void handlePick(opt.type)}
-                className="group flex w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-[#1e293b] bg-[#0a0c10] px-5 py-8 transition-all duration-200 hover:border-[#3b82f6]/55 hover:bg-[#3b82f6]/[0.07] hover:shadow-[0_0_20px_-6px_rgba(59,130,246,0.35)] disabled:pointer-events-none disabled:opacity-50"
+                className="group flex w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-[#2d4a6a] bg-[#0a0c10] px-5 py-8 transition-all duration-200 hover:border-[#3b82f6]/55 hover:bg-[#3b82f6]/[0.07] hover:shadow-[0_0_20px_-6px_rgba(59,130,246,0.35)] disabled:pointer-events-none disabled:opacity-50"
               >
                 <opt.Icon
                   className="size-9 text-gray-400 transition-colors group-hover:text-[#3b82f6]"

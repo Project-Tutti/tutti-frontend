@@ -182,8 +182,8 @@ const InstrumentSettingsPanel = ({
   }, [instrumentInfo, noteRange]);
 
   return (
-    <section className="mx-auto w-full max-w-3xl overflow-hidden rounded-xl border border-[#1e293b] bg-[#0f1218]/35">
-      <div className="flex items-center justify-between gap-3 border-b border-[#1e293b] px-4 py-3">
+    <section className="mx-auto w-full max-w-3xl overflow-hidden rounded-xl border border-[#2d4a6a] bg-[#0f1218]/35">
+      <div className="flex items-center justify-between gap-3 border-b border-[#2d4a6a] px-4 py-3">
         <div className="flex min-w-0 items-center gap-2">
           {instrumentInfo ? (
             <instrumentInfo.Icon className="size-7 text-[#3b82f6]" />
@@ -215,7 +215,7 @@ const InstrumentSettingsPanel = ({
               <h3 className="text-[16px] font-bold uppercase tracking-wider text-gray-300">
                 Instrument
               </h3>
-              <div className="flex items-center justify-between gap-3 rounded-lg border border-[#1e293b] bg-[#080a0f] px-4 py-3">
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-[#2d4a6a] bg-[#080a0f] px-4 py-3">
                 <div className="flex min-w-0 items-center gap-3">
                   {instrumentInfo ? (
                     <instrumentInfo.Icon className="size-6 shrink-0 text-[#3b82f6]" />
@@ -242,7 +242,7 @@ const InstrumentSettingsPanel = ({
                 </button>
               </div>
             </section>
-            <div className="h-px bg-[#1e293b]" />
+            <div className="h-px bg-[#2d4a6a]" />
 
             <Modal
               isOpen={isInstrumentModalOpen}
@@ -292,7 +292,7 @@ const InstrumentSettingsPanel = ({
               {midiToNoteName(noteRange.min)} – {midiToNoteName(noteRange.max)}
             </p>
 
-            <div className="rounded-lg border border-[#1e293b]/50 bg-[#080a0f] px-4 py-3">
+            <div className="rounded-lg border border-[#2d4a6a]/50 bg-[#080a0f] px-4 py-3">
               <NoteRangeStaff minNote={noteRange.min} maxNote={noteRange.max} />
             </div>
 
@@ -313,7 +313,7 @@ const InstrumentSettingsPanel = ({
                 {noteRangeSliderVisual ? (
                   <div className="relative w-full">
                     <div
-                      className="pointer-events-none absolute left-[13px] right-[13px] top-[19px] h-2 rounded-full bg-[#1e293b]"
+                      className="pointer-events-none absolute left-[13px] right-[13px] top-[19px] h-2 rounded-full bg-[#2d4a6a]"
                       aria-hidden
                     />
                     <div
@@ -364,7 +364,7 @@ const InstrumentSettingsPanel = ({
           </section>
         ) : null}
 
-        <div className="h-px bg-[#1e293b]" />
+        <div className="h-px bg-[#2d4a6a]" />
 
         {/* 2. 장르 선택 */}
         <section className="space-y-4">
@@ -386,7 +386,7 @@ const InstrumentSettingsPanel = ({
                   className={`rounded-full border px-3.5 py-2.5 text-xs font-medium transition-all ${
                     isSelected
                       ? "bg-[#3b82f6]/20 border-[#3b82f6] text-[#3b82f6]"
-                      : "bg-[#0f1218] border-[#1e293b] text-gray-400 hover:border-gray-500 hover:text-gray-300"
+                      : "bg-[#0f1218] border-[#2d4a6a] text-gray-400 hover:border-gray-500 hover:text-gray-300"
                   }`}
                 >
                   {g.label}

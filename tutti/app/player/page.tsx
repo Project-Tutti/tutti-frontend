@@ -174,7 +174,15 @@ function PlayerPageContent() {
     } else {
       genStart(projectId, versionId, false, label);
     }
-  }, [showScoreError, projectId, versionId, genStart, genMaximize, genUpdateLabel, projectData]);
+  }, [
+    showScoreError,
+    projectId,
+    versionId,
+    genStart,
+    genMaximize,
+    genUpdateLabel,
+    projectData,
+  ]);
 
   // score 에러 해제(재시도 성공) 시 generation-store 정리
   useEffect(() => {
@@ -216,14 +224,14 @@ function PlayerPageContent() {
             !showScoreLoading && fetchScoreFromApi && controlBar ? (
               <div className="flex items-center gap-3 md:gap-4">
                 <div
-                  className="hidden h-7 w-px shrink-0 bg-[#1e293b] sm:block"
+                  className="hidden h-7 w-px shrink-0 bg-[#2d4a6a] sm:block"
                   aria-hidden
                 />
                 <button
                   type="button"
                   onClick={() => void handleRegenerate()}
                   disabled={isScorePending || tracksQuery.isFetching}
-                  className="group inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border border-[#1e293b] bg-[#0a0c11] px-4 py-2.5 text-[16px] font-semibold text-gray-200 shadow-sm transition-all hover:border-[#334155] hover:bg-[#12151d] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
+                  className="group inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border border-[#2d4a6a] bg-[#0a0c11] px-4 py-2.5 text-[16px] font-semibold text-gray-200 shadow-sm transition-all hover:border-[#334155] hover:bg-[#12151d] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
                 >
                   {tracksQuery.isFetching ? (
                     <Loader2
@@ -247,14 +255,13 @@ function PlayerPageContent() {
                   type="button"
                   onClick={() => openDownloadModal()}
                   disabled={isScorePending}
-                  className="group inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border border-[#3b82f6]/35 bg-[#3b82f6]/10 px-4 py-2.5 text-[16px] font-semibold text-blue-100 shadow-[0_0_0_1px_rgba(59,130,246,0.08)] transition-all hover:border-[#3b82f6]/55 hover:bg-[#3b82f6]/18 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
+                  className="group inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border border-[#3b82f6]/35 bg-[#3b82f6]/10 px-3 py-2.5 text-[16px] font-semibold text-blue-100 shadow-[0_0_0_1px_rgba(59,130,246,0.08)] transition-all hover:border-[#3b82f6]/55 hover:bg-[#3b82f6]/18 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
                 >
                   <Download
                     className="size-4 shrink-0 text-[#60a5fa] transition-colors group-hover:text-blue-200"
                     strokeWidth={2}
                     aria-hidden
                   />
-                  <span>다운로드</span>
                 </button>
               </div>
             ) : undefined
@@ -267,7 +274,7 @@ function PlayerPageContent() {
         >
           <div className="max-w-7xl mx-auto space-y-6 w-full">
             {showInvalidParams && (
-              <div className="max-w-xl mx-auto mt-16 p-8 rounded-xl border border-[#1e293b] bg-[#0f1218] text-center">
+              <div className="max-w-xl mx-auto mt-16 p-8 rounded-xl border border-[#2d4a6a] bg-[#0f1218] text-center">
                 <p className="text-gray-300 text-sm">
                   악보를 보려면{" "}
                   <span className="text-[#93c5fd]">projectId</span>와{" "}

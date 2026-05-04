@@ -28,7 +28,7 @@ const StepProgress = ({ steps }: StepProgressProps) => {
                   <IconComponent className="size-3 md:size-3.5" strokeWidth={2.5} />
                 </div>
               ) : (
-                <div className="flex size-5 items-center justify-center rounded-full border-2 border-[#1e293b] text-gray-500 md:size-6">
+                <div className="flex size-5 items-center justify-center rounded-full border-2 border-[#2d4a6a] text-gray-500 md:size-6">
                   <IconComponent className="size-3 md:size-3.5" strokeWidth={2} />
                 </div>
               )}

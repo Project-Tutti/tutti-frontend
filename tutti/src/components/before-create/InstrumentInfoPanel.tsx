@@ -83,7 +83,7 @@ const InstrumentInfoPanel = ({ onOpenSettings }: InstrumentInfoPanelProps) => {
     <button
       type="button"
       onClick={onOpenSettings}
-      className="mx-auto w-full max-w-3xl cursor-pointer rounded-lg border border-[#1e293b] bg-[#0f1218]/60 p-3 text-left transition-all hover:border-[#3b82f6]/40 hover:bg-[#0f1218]/80"
+      className="mx-auto w-full max-w-3xl cursor-pointer rounded-lg border border-[#2d4a6a] bg-[#0f1218]/60 p-3 text-left transition-all hover:border-[#3b82f6]/40 hover:bg-[#0f1218]/80"
     >
       <div className="flex items-center gap-2">
         <instrumentInfo.Icon className="size-4 text-[#3b82f6]" />
@@ -101,7 +101,7 @@ const InstrumentInfoPanel = ({ onOpenSettings }: InstrumentInfoPanelProps) => {
         </div>
 
         <div className="ml-auto flex shrink-0 items-center gap-1.5">
-          <span className="rounded bg-[#1e293b]/60 px-1.5 py-0.5 text-xs text-gray-500">
+          <span className="rounded bg-[#2d4a6a]/60 px-1.5 py-0.5 text-xs text-gray-500">
             {rangeText}
           </span>
           {genre ? (

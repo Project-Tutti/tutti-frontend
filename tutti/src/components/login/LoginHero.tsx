@@ -4,7 +4,7 @@ import { BrandGraphicEqIcon } from "./BrandGraphicEqIcon";
 const LoginHero = () => {
   return (
     <div
-      className="hidden lg:flex lg:w-[25%] relative items-center justify-center overflow-hidden border-r border-[#1e293b]"
+      className="hidden lg:flex lg:w-[25%] relative items-center justify-center overflow-hidden border-r border-[#2d4a6a]"
       style={{
         background:
           "radial-gradient(circle at center, #0a111f 0%, #05070a 100%)",

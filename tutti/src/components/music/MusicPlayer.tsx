@@ -1100,7 +1100,7 @@ export default function MusicPlayer({
       {/* INSTRUMENTS: player 스크롤 중에도 Header 아래에 고정 */}
       <div data-instruments-sticky className="sticky top-0 z-30 shrink-0">
         <div className="relative">
-          <div className="w-full border border-[#1e293b] bg-[#0f1218]/70 backdrop-blur">
+          <div className="w-full border border-[#2d4a6a] bg-[#0f1218]/70 backdrop-blur">
             <button
               type="button"
               onClick={() => setIsInstrumentsOpen((v) => !v)}
@@ -1121,7 +1121,7 @@ export default function MusicPlayer({
           </div>
 
           {isInstrumentsOpen ? (
-            <div className="absolute left-0 right-0 top-full border border-[#1e293b] bg-[#0f1218]/95 px-4 py-3 backdrop-blur">
+            <div className="absolute left-0 right-0 top-full border border-[#2d4a6a] bg-[#0f1218]/95 px-4 py-3 backdrop-blur">
               <InstrumentMixer
                 instruments={instruments}
                 mutedIndices={mutedIndices}

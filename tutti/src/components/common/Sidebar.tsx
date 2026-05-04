@@ -173,7 +173,7 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
   return (
     <aside
       className={`
-        bg-[#0a0c10] border-r border-[#1e293b] flex flex-col
+        bg-[#0a0c10] border-r border-[#2d4a6a] flex flex-col
         sticky top-0 h-dvh max-h-dvh shrink-0
         transition-all duration-300 ease-in-out z-60
         ${isCollapsed ? "w-18" : "w-77"}
@@ -310,7 +310,7 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
                               footer/overflow 영향 없이 렌더 + clickOutside 범위에도 포함 */}
                           {openMenuProjectId === item.projectId && menuPos ? (
                             <div
-                              className="fixed z-200 w-36 overflow-hidden rounded-xl border border-[#1e293b] bg-[#0f1218] shadow-xl"
+                              className="fixed z-200 w-36 overflow-hidden rounded-xl border border-[#2d4a6a] bg-[#0f1218] shadow-xl"
                               style={{ top: menuPos.top, left: menuPos.left }}
                             >
                               <button

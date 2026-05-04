@@ -62,7 +62,7 @@ const InstrumentDetailOverlay = ({
 
       {/* panel */}
       <motion.div
-        className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-[#1e293b] bg-[#0c0e14]/97 shadow-2xl backdrop-blur-xl"
+        className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-[#2d4a6a] bg-[#0c0e14]/97 shadow-2xl backdrop-blur-xl"
         initial={{ opacity: 0, scale: 0.93, y: 24 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.93, y: 24 }}
@@ -96,7 +96,7 @@ const InstrumentDetailOverlay = ({
         </div>
 
         {/* divider */}
-        <div className="mx-6 h-px bg-gradient-to-r from-transparent via-[#1e293b] to-transparent" />
+        <div className="mx-6 h-px bg-gradient-to-r from-transparent via-[#2d4a6a] to-transparent" />
 
         {/* instruments grid */}
         <div className="max-h-[60vh] overflow-y-auto px-6 py-6">
@@ -124,7 +124,7 @@ const InstrumentDetailOverlay = ({
                     "relative rounded-xl border px-4 py-4 text-left transition-colors duration-200 cursor-pointer",
                     isActive
                       ? "border-[#3b82f6]/60 bg-[#3b82f6]/12 shadow-[0_0_16px_rgba(59,130,246,0.15)]"
-                      : "border-[#1e293b] bg-[#080a0f] hover:border-[#3b82f6]/35 hover:bg-[#0f1218]",
+                      : "border-[#2d4a6a] bg-[#080a0f] hover:border-[#3b82f6]/35 hover:bg-[#0f1218]",
                   ].join(" ")}
                 >
                   {isActive && (

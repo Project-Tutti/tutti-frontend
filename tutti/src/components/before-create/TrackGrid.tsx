@@ -43,7 +43,7 @@ const TrackGrid = ({
             disabled={currentPage === 0}
             className={`
               absolute top-1/2 -translate-y-1/2 -left-2 md:-left-4 z-10 p-3 md:p-4 rounded-full 
-              bg-[#0f1218] border border-[#1e293b] 
+              bg-[#0f1218] border border-[#2d4a6a] 
               shadow-lg transition-all
               ${
                 currentPage === 0
@@ -94,7 +94,7 @@ const TrackGrid = ({
             disabled={currentPage === totalPages - 1}
             className={`
               absolute top-1/2 -translate-y-1/2 -right-2 md:-right-4 z-10 p-3 md:p-4 rounded-full 
-              bg-[#0f1218] border border-[#1e293b] 
+              bg-[#0f1218] border border-[#2d4a6a] 
               shadow-lg transition-all
               ${
                 currentPage === totalPages - 1
