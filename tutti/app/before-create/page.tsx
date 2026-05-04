@@ -311,6 +311,8 @@ function BeforeCreatePageContent() {
                   ? () => router.push("/home?step=2")
                   : undefined
               }
+              showInstrumentSelector={isRegenerateMode}
+              isSidebarCollapsed={isSidebarCollapsed}
             />
           </div>
 

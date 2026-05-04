@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useCallback, useRef } from "react";
+import { useEffect, useMemo, useCallback, useRef, useState } from "react";
 import { AlertCircle, ArrowLeft } from "lucide-react";
 import { GiMusicalNotes } from "react-icons/gi";
 
@@ -10,6 +10,8 @@ import { INSTRUMENT_GROUP_ICON } from "@features/midi-create/constants/instrumen
 import { midiToNoteName } from "@common/utils/midi-utils";
 
 import NoteRangeStaff from "./NoteRangeStaff";
+import InstrumentSelector from "@/components/home/InstrumentSelector/InstrumentSelector";
+import Modal from "@/components/common/Modal";
 
 const GENRE_DEFS = [
   { value: "CLASSICAL", label: "Classical" },
@@ -36,11 +38,20 @@ const NOTE_RANGE_SLIDER_CLASS =
 
 interface InstrumentSettingsPanelProps {
   onBack?: () => void;
+  showInstrumentSelector?: boolean;
+  isSidebarCollapsed?: boolean;
 }
 
-const InstrumentSettingsPanel = ({ onBack }: InstrumentSettingsPanelProps) => {
+const InstrumentSettingsPanel = ({
+  onBack,
+  showInstrumentSelector,
+  isSidebarCollapsed,
+}: InstrumentSettingsPanelProps) => {
+  const [isInstrumentModalOpen, setIsInstrumentModalOpen] = useState(false);
+
   const {
     selectedInstrument,
+    setSelectedInstrument,
     noteRange,
     setNoteRange,
     genre,
@@ -197,6 +208,65 @@ const InstrumentSettingsPanel = ({ onBack }: InstrumentSettingsPanelProps) => {
       </div>
 
       <div className="space-y-8 px-4 py-4 md:px-5 md:py-5">
+        {/* 0. 악기 선택 (재생성 모드에서만) */}
+        {showInstrumentSelector && (
+          <>
+            <section className="space-y-3">
+              <h3 className="text-[16px] font-bold uppercase tracking-wider text-gray-300">
+                Instrument
+              </h3>
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-[#1e293b] bg-[#080a0f] px-4 py-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  {instrumentInfo ? (
+                    <instrumentInfo.Icon className="size-6 shrink-0 text-[#3b82f6]" />
+                  ) : (
+                    <GiMusicalNotes className="size-6 shrink-0 text-gray-500" />
+                  )}
+                  <div className="min-w-0">
+                    <p className="truncate text-[14px] font-semibold text-white">
+                      {instrumentInfo?.name ?? "악기 미선택"}
+                    </p>
+                    {instrumentInfo?.category && (
+                      <p className="truncate text-[12px] text-gray-500">
+                        {instrumentInfo.category}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsInstrumentModalOpen(true)}
+                  className="shrink-0 rounded-lg border border-[#3b82f6]/40 bg-blue-500/8 px-3.5 py-2 text-[13px] font-medium text-[#3b82f6] transition-colors hover:border-[#3b82f6]/60 hover:bg-blue-500/15"
+                >
+                  변경
+                </button>
+              </div>
+            </section>
+            <div className="h-px bg-[#1e293b]" />
+
+            <Modal
+              isOpen={isInstrumentModalOpen}
+              onClose={() => setIsInstrumentModalOpen(false)}
+              title="악기 선택"
+              panelClassName="min-w-2xl"
+              contentClassName="px-5 py-5"
+              containerStyle={{
+                left: isSidebarCollapsed ? 72 : 308,
+                transition: "left 0.3s ease",
+              }}
+            >
+              <InstrumentSelector
+                selectedInstrument={selectedInstrument}
+                onInstrumentSelect={(midiProgram) => {
+                  setSelectedInstrument(midiProgram);
+                  setIsInstrumentModalOpen(false);
+                }}
+                isSidebarCollapsed={isSidebarCollapsed}
+              />
+            </Modal>
+          </>
+        )}
+
         {/* 1. 음역대 설정 */}
         {noteRange && instrumentInfo ? (
           <section className="space-y-3">
@@ -331,7 +401,6 @@ const InstrumentSettingsPanel = ({ onBack }: InstrumentSettingsPanelProps) => {
             </p>
           ) : null}
         </section>
-
       </div>
     </section>
   );

@@ -199,7 +199,7 @@ const ProjectVersionsScreen = () => {
               저장된 프로젝트의 버전 목록입니다.
             </p>
 
-            <h1 className="mb-1 text-[30px] font-bold tracking-tight text-foreground">
+            <h1 className="mb-1 text-[30px] font-bold tracking-tight text-foreground break-all">
               {projectName}
             </h1>
             {result?.originalFileName && (
@@ -239,12 +239,12 @@ const ProjectVersionsScreen = () => {
                           ? versionMenuHostRef
                           : undefined
                       }
-                      className="group flex items-center gap-3"
+                      className="group relative flex items-center"
                     >
                       <Link
                         href={href}
                         className={[
-                          "flex min-w-0 flex-1 items-start gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors",
+                          "flex min-w-0 w-full items-start gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors",
                           "outline-none hover:bg-white/5 focus-visible:bg-white/6",
                           v.isMaster
                             ? "border-[#1e293b] bg-[#0f1218]"
@@ -434,37 +434,40 @@ const ProjectVersionsScreen = () => {
                         </div>
                       </Link>
 
-                      <button
-                        type="button"
-                        className={[
-                          "hidden sm:inline-flex w-[88px] items-center justify-center gap-1.5",
-                          "h-9 rounded-xl border px-3.5 text-[14px] font-semibold tabular-nums",
-                          "border-[#3b82f6]/35 bg-[#0b1220] text-blue-100 shadow-sm",
-                          "opacity-0 pointer-events-none transition-all duration-150",
-                          "group-hover:opacity-100 group-hover:pointer-events-auto",
-                          "hover:border-[#3b82f6]/55 hover:bg-[#0e172a] active:scale-[0.98]",
-                          regeneratingVersionId === v.id
-                            ? "opacity-60 pointer-events-none"
-                            : "",
-                        ].join(" ")}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          void handleRegenerateFromLibrary(v.id);
-                        }}
-                        aria-label="재생성"
-                      >
-                        <RefreshCw
-                          className="size-4"
-                          strokeWidth={2}
-                          aria-hidden
-                        />
-                        <span className="whitespace-nowrap">
-                          {regeneratingVersionId === v.id
-                            ? "준비 중…"
-                            : "재생성"}
-                        </span>
-                      </button>
+                      {/* hover bridge: li 우측 끝과 버튼 사이 갭을 hover 영역에 포함시켜 버튼 사라짐 방지 */}
+                      <div className="absolute left-full top-0 bottom-0 hidden sm:flex items-center">
+                        <button
+                          type="button"
+                          className={[
+                            "ml-3 inline-flex w-[88px] items-center justify-center gap-1.5",
+                            "h-9 rounded-xl border px-3.5 text-[14px] font-semibold tabular-nums",
+                            "border-[#3b82f6]/35 bg-[#0b1220] text-blue-100 shadow-sm",
+                            "opacity-0 pointer-events-none transition-all duration-150",
+                            "group-hover:opacity-100 group-hover:pointer-events-auto",
+                            "hover:border-[#3b82f6]/55 hover:bg-[#0e172a] active:scale-[0.98]",
+                            regeneratingVersionId === v.id
+                              ? "opacity-60 pointer-events-none"
+                              : "",
+                          ].join(" ")}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            void handleRegenerateFromLibrary(v.id);
+                          }}
+                          aria-label="재생성"
+                        >
+                          <RefreshCw
+                            className="size-4"
+                            strokeWidth={2}
+                            aria-hidden
+                          />
+                          <span className="whitespace-nowrap">
+                            {regeneratingVersionId === v.id
+                              ? "준비 중…"
+                              : "재생성"}
+                          </span>
+                        </button>
+                      </div>
                     </li>
                   );
                 })}

@@ -45,7 +45,7 @@ const SidebarAccountFooter = ({
       ref={accountMenuRootRef}
       className={
         variant === "icon"
-          ? "relative w-full py-2 flex items-center justify-center"
+          ? "relative w-full pt-0 pb-6 flex items-start px-4"
           : "group relative min-w-54 border-t border-[#1e293b] h-[88px] flex items-stretch"
       }
     >

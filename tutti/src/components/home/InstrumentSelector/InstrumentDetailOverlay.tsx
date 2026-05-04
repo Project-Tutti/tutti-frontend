@@ -41,7 +41,7 @@ const InstrumentDetailOverlay = ({
 
   return createPortal(
     <motion.div
-      className="fixed bottom-0 right-0 top-0 z-50 flex items-center justify-center px-4"
+      className="fixed bottom-0 right-0 top-0 z-[150] flex items-center justify-center px-4"
       style={{
         left: isSidebarCollapsed ? 72 : 308,
         transition: "left 0.3s ease",
