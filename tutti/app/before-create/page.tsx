@@ -177,6 +177,12 @@ function BeforeCreatePageContent() {
 
   const handleGenerate = async () => {
     setCreateError(null);
+
+    if (!isRegenerateMode && !projectName.trim()) {
+      toast.error("프로젝트 이름을 입력해주세요.");
+      return;
+    }
+
     const label = isRegenerateMode
       ? `${projectQuery.data?.result?.name ?? `Project #${parsedRegenerateProjectId ?? ""}`} · ${nextVersionName}`
       : projectName.trim();
@@ -232,12 +238,6 @@ function BeforeCreatePageContent() {
         }
 
         genConfirm(tempKey, res.result.projectId, res.result.versionId);
-        return;
-      }
-
-      if (!projectName.trim()) {
-        toast.error("프로젝트 이름을 입력해주세요.");
-        clearByKey(tempKey);
         return;
       }
 

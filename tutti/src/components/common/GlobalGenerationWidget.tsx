@@ -5,7 +5,6 @@ import { useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   useGenerationStore,
-  genKey,
   type GenEntry,
 } from "@features/midi-create/stores/generation-store";
 import { useProjectStatusSSE } from "@api/project/hooks/useProjectStatusSSE";
@@ -70,9 +69,8 @@ function GenerationEntryConnector({
 
   useEffect(() => {
     if (!sse.isComplete) return;
-    const key = genKey(projectId, versionId);
-    if (navigatedKeys.has(key)) return;
-    navigatedKeys.add(key);
+    if (navigatedKeys.has(entryKey)) return;
+    navigatedKeys.add(entryKey);
     toast.success("악보 생성이 완료되었습니다!");
     if (!isMinimizedRef.current) {
       router.push(`/player?projectId=${projectId}&versionId=${versionId}`);

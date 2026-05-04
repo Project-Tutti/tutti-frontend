@@ -53,7 +53,7 @@ export const useGenerationStore = create<GenerationStore>((set) => ({
   entries: {},
 
   startPending: (label) => {
-    const tempKey = `pending-${Date.now()}`;
+    const tempKey = `pending-${crypto.randomUUID()}`;
     set((s) => ({
       entries: {
         ...s.entries,

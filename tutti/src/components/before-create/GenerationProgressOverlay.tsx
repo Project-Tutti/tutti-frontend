@@ -11,7 +11,7 @@ interface GenerationProgressOverlayProps {
   label?: string;
   onRetry?: () => void;
   onCancel?: () => void;
-  onMinimize?: () => void;
+  onMinimize: () => void;
 }
 const R = 52;
 const CIRC = 2 * Math.PI * R;
