@@ -190,7 +190,7 @@ const ProjectVersionsScreen = () => {
       />
 
       <div className="grow flex flex-col min-h-0 min-w-0">
-        <div className="flex min-h-17 shrink-0 items-center px-4">
+        <div className="flex min-h-17 shrink-0 items-center px-3 md:px-5">
           <LogoLink />
         </div>
         <main className="grow flex flex-col items-center px-4 md:px-6 pt-17 pb-8">
@@ -247,8 +247,8 @@ const ProjectVersionsScreen = () => {
                           "flex min-w-0 w-full items-start gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors",
                           "outline-none hover:bg-white/5 focus-visible:bg-white/6",
                           v.isMaster
-                            ? "border-[#1e293b] bg-[#0f1218]"
-                            : "border-transparent hover:border-[#1e293b]/70",
+                            ? "border-[#2d4a6a] bg-[#0f1218]"
+                            : "border-transparent hover:border-[#2d4a6a]/70",
                         ].join(" ")}
                         onClick={() => {
                           // 다른 메뉴/인풋 상태 정리 (네비게이션은 그대로)
@@ -331,7 +331,7 @@ const ProjectVersionsScreen = () => {
                                 }}
                                 autoFocus
                                 className={[
-                                  "min-w-0 flex-1 bg-black/30 border border-[#1e293b] rounded-md px-2 py-1",
+                                  "min-w-0 flex-1 bg-black/30 border border-[#2d4a6a] rounded-md px-2 py-1",
                                   "text-[14px] text-gray-100 outline-none",
                                   "focus:ring-1 focus:ring-[#3b82f6]/60 focus:border-[#3b82f6]/60",
                                 ].join(" ")}
@@ -383,7 +383,7 @@ const ProjectVersionsScreen = () => {
                             <div
                               className={[
                                 "absolute right-0 top-full z-200 mt-1 w-44 overflow-hidden",
-                                "rounded-lg border border-[#1e293b] bg-[#0f1218] shadow-xl",
+                                "rounded-lg border border-[#2d4a6a] bg-[#0f1218] shadow-xl",
                               ].join(" ")}
                               onClick={(e) => {
                                 e.preventDefault();
