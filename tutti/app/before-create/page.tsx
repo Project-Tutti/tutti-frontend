@@ -53,7 +53,7 @@ function BeforeCreatePageContent() {
     return Number.isFinite(n) ? n : null;
   }, [isRegenerateMode, regenerateVersionId]);
 
-  const { entries, start: genStart } = useGenerationStore();
+  const { entries, startPending: genStartPending, confirm: genConfirm, clearByKey } = useGenerationStore();
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
@@ -62,7 +62,6 @@ function BeforeCreatePageContent() {
   const [hasHydrated, setHasHydrated] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [isTrackInfoOpen, setIsTrackInfoOpen] = useState(false);
-
   const createProjectMutation = useCreateProjectMutation();
   const regenerateMutation = useRegenerateProjectMutation();
 
@@ -178,6 +177,10 @@ function BeforeCreatePageContent() {
 
   const handleGenerate = async () => {
     setCreateError(null);
+    const label = isRegenerateMode
+      ? `${projectQuery.data?.result?.name ?? `Project #${parsedRegenerateProjectId ?? ""}`} · ${nextVersionName}`
+      : projectName.trim();
+    const tempKey = genStartPending(label);
 
     try {
       if (isRegenerateMode) {
@@ -228,26 +231,20 @@ function BeforeCreatePageContent() {
           throw new Error(res.message ?? "재생성 실패");
         }
 
-        const regenProjectName =
-          projectQuery.data?.result?.name ??
-          `Project #${parsedRegenerateProjectId}`;
-        genStart(
-          res.result.projectId,
-          res.result.versionId,
-          false,
-          `${regenProjectName} · ${nextVersionName}`,
-        );
+        genConfirm(tempKey, res.result.projectId, res.result.versionId);
         return;
       }
 
       if (!projectName.trim()) {
         toast.error("프로젝트 이름을 입력해주세요.");
+        clearByKey(tempKey);
         return;
       }
 
       const result = await createProjectMutation.mutateAsync();
-      genStart(result.projectId, result.versionId, false, projectName.trim());
+      genConfirm(tempKey, result.projectId, result.versionId);
     } catch (err) {
+      clearByKey(tempKey);
       setCreateError(err instanceof Error ? err.message : "프로젝트 생성 실패");
     }
   };
@@ -390,6 +387,7 @@ function BeforeCreatePageContent() {
         track={selectedTrack}
         onClose={() => setIsModalOpen(false)}
       />
+
     </div>
   );
 }

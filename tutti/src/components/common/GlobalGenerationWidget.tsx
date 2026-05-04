@@ -23,9 +23,11 @@ const navigatedKeys = new Set<string>();
 const NAVIGATE_ON_MINIMIZE_PREFIXES = ["/player", "/before-create"];
 
 function GenerationEntryConnector({
+  entryKey,
   projectId,
   versionId,
 }: {
+  entryKey: string;
   projectId: number;
   versionId: number;
 }) {
@@ -34,13 +36,14 @@ function GenerationEntryConnector({
   const _setRetryFn = useGenerationStore((s) => s._setRetryFn);
   const clear = useGenerationStore((s) => s.clear);
   const isMinimized = useGenerationStore(
-    (s) => s.entries[genKey(projectId, versionId)]?.isMinimized ?? false,
+    (s) => s.entries[entryKey]?.isMinimized ?? false,
   );
   const isMinimizedRef = useRef(isMinimized);
   isMinimizedRef.current = isMinimized;
   const sse = useProjectStatusSSE(projectId, versionId);
 
   useEffect(() => {
+    if (!sse.status) return;
     _updateSse(projectId, versionId, {
       status: sse.status,
       progress: sse.progress,
@@ -80,10 +83,10 @@ function GenerationEntryConnector({
   return null;
 }
 
-function MiniWidget({ entry }: { entry: GenEntry }) {
-  const maximize = useGenerationStore((s) => s.maximize);
-  const clear = useGenerationStore((s) => s.clear);
-  const { projectId, versionId, sseState } = entry;
+function MiniWidget({ entryKey, entry }: { entryKey: string; entry: GenEntry }) {
+  const maximizeByKey = useGenerationStore((s) => s.maximizeByKey);
+  const clearByKey = useGenerationStore((s) => s.clearByKey);
+  const { sseState } = entry;
 
   const pct = Math.min(Math.max(sseState.progress, 0), 100);
   const dashOffset = CIRC * (1 - pct / 100);
@@ -168,7 +171,7 @@ function MiniWidget({ entry }: { entry: GenEntry }) {
           {sseState.isFailed ? (
             <button
               type="button"
-              onClick={() => clear(projectId, versionId)}
+              onClick={() => clearByKey(entryKey)}
               className="flex items-center justify-center rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
               aria-label="닫기"
             >
@@ -178,7 +181,7 @@ function MiniWidget({ entry }: { entry: GenEntry }) {
 
           <button
             type="button"
-            onClick={() => maximize(projectId, versionId)}
+            onClick={() => maximizeByKey(entryKey)}
             className="flex items-center justify-center rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
             aria-label="펼치기"
           >
@@ -208,50 +211,54 @@ export default function GlobalGenerationWidget() {
   const router = useRouter();
   const pathname = usePathname();
   const entries = useGenerationStore((s) => s.entries);
-  const clear = useGenerationStore((s) => s.clear);
-  const minimize = useGenerationStore((s) => s.minimize);
-  const entryList = Object.values(entries);
-  const minimizedEntries = entryList.filter(
-    (e) => e.isMinimized && !e.sseState.isComplete,
+  const clearByKey = useGenerationStore((s) => s.clearByKey);
+  const minimizeByKey = useGenerationStore((s) => s.minimizeByKey);
+  const entryPairs = Object.entries(entries);
+  const minimizedEntries = entryPairs.filter(
+    ([, e]) => e.isMinimized && !e.sseState.isComplete,
   );
-  const overlayEntries = entryList.filter((e) => !e.isMinimized);
+  const overlayEntries = entryPairs.filter(([, e]) => !e.isMinimized);
 
   const handleMinimize = useCallback(
-    (projectId: number, versionId: number) => {
-      minimize(projectId, versionId);
+    (key: string) => {
+      minimizeByKey(key);
       if (NAVIGATE_ON_MINIMIZE_PREFIXES.some((p) => pathname.startsWith(p))) {
         router.push("/home");
       }
     },
-    [minimize, pathname, router],
+    [minimizeByKey, pathname, router],
   );
 
   return (
     <>
-      {entryList.map((entry) => (
-        <GenerationEntryConnector
-          key={genKey(entry.projectId, entry.versionId)}
-          projectId={entry.projectId}
-          versionId={entry.versionId}
-        />
-      ))}
+      {entryPairs.map(([key, entry]) =>
+        entry.projectId != null && entry.versionId != null ? (
+          <GenerationEntryConnector
+            key={key}
+            entryKey={key}
+            projectId={entry.projectId}
+            versionId={entry.versionId}
+          />
+        ) : null,
+      )}
 
-      {overlayEntries.map((entry) => (
+      {overlayEntries.map(([key, entry]) => (
         <GenerationProgressOverlay
-          key={genKey(entry.projectId, entry.versionId)}
+          key={key}
           state={entry.sseState}
           label={entry.label}
           onRetry={entry.retryFn ?? undefined}
-          onCancel={() => clear(entry.projectId, entry.versionId)}
-          onMinimize={() => handleMinimize(entry.projectId, entry.versionId)}
+          onCancel={() => clearByKey(key)}
+          onMinimize={() => handleMinimize(key)}
         />
       ))}
 
       <div className="pointer-events-none fixed bottom-6 right-6 z-[200] flex flex-col gap-2">
         <AnimatePresence>
-          {minimizedEntries.map((entry) => (
+          {minimizedEntries.map(([key, entry]) => (
             <MiniWidget
-              key={genKey(entry.projectId, entry.versionId)}
+              key={key}
+              entryKey={key}
               entry={entry}
             />
           ))}
