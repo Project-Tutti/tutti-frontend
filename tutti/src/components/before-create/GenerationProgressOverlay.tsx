@@ -11,7 +11,7 @@ interface GenerationProgressOverlayProps {
   label?: string;
   onRetry?: () => void;
   onCancel?: () => void;
-  onMinimize?: () => void;
+  onMinimize: () => void;
 }
 const R = 52;
 const CIRC = 2 * Math.PI * R;
@@ -201,15 +201,13 @@ const GenerationProgressOverlay = ({
               완료되면 악보 페이지로 자동 이동합니다.
             </p>
 
-            {onMinimize && (
-              <button
-                type="button"
-                onClick={onMinimize}
-                className="mt-1 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-[13px] font-medium text-slate-300 transition-colors hover:bg-white/10 active:scale-[0.99]"
-              >
-                백그라운드에서 계속
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={onMinimize}
+              className="mt-1 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-[13px] font-medium text-slate-300 transition-colors hover:bg-white/10 active:scale-[0.99]"
+            >
+              백그라운드에서 계속
+            </button>
           </div>
         )}
       </motion.div>
