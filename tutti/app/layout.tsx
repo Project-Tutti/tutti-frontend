@@ -13,10 +13,10 @@ const pretendard = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "tutti | Instrument Setup",
+  title: "Tutti | Instrument Setup",
   description: "Configure your ensemble and generate musical partials with AI",
   icons: {
-    icon: '/favicon.ico',
+    icon: "/browser_icon.svg",
   },
 };
 

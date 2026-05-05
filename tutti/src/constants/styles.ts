@@ -3,7 +3,7 @@ export const COMMON_STYLES = {
   // 버튼 스타일
   button: {
     primary: 'px-8 md:px-10 py-2.5 md:py-3 bg-[#3b82f6] hover:bg-blue-600 text-white rounded-full font-bold text-sm md:text-base transition-all shadow-lg hover:shadow-[0_0_30px_rgba(59,130,246,0.4)] hover:-translate-y-1',
-    secondary: 'px-4 py-1.5 rounded-full bg-white/5 border border-[#1e293b] text-xs font-semibold text-gray-300 hover:bg-white/10 transition-colors',
+    secondary: 'px-4 py-1.5 rounded-full bg-white/5 border border-[#2d4a6a] text-xs font-semibold text-gray-300 hover:bg-white/10 transition-colors',
     icon: 'text-gray-400 hover:text-white transition-colors',
   },
   
@@ -11,7 +11,7 @@ export const COMMON_STYLES = {
   sidebarItem: 'sidebar-item group flex items-center gap-2 px-2 py-2 rounded-lg text-xs text-gray-300 hover:text-white transition-all hover:bg-white/5',
   
   // 인스트루먼트 노드
-  instrumentNode: 'instrument-node w-24 h-24 md:w-32 md:h-32 rounded-full bg-[#0f1218] border border-[#1e293b] flex flex-col items-center justify-center group z-30 transition-all duration-300 hover:border-[#3b82f6] hover:-translate-y-1',
+  instrumentNode: 'instrument-node w-24 h-24 md:w-32 md:h-32 rounded-full bg-[#0f1218] border border-[#2d4a6a] flex flex-col items-center justify-center group z-30 transition-all duration-300 hover:border-[#3b82f6] hover:-translate-y-1',
   instrumentNodeSelected: 'border-[#3b82f6] bg-blue-900/10 shadow-[0_0_15px_rgba(59,130,246,0.5)]',
   
   // 아이콘 컨테이너

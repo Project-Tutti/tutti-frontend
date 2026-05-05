@@ -11,6 +11,7 @@ import { useClickOutside } from "@/common/hooks/useClickOutside";
 import { toast } from "@/components/common/Toast";
 import SidebarAccountFooter from "@/components/common/SidebarAccountFooter";
 import SidebarDeleteProjectModal from "@/components/common/SidebarDeleteProjectModal";
+import SidebarRenameProjectModal from "@/components/common/SidebarRenameProjectModal";
 
 import { Spinner } from "@/components/common/Spinner";
 import { CirclePlus, Menu, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
@@ -38,11 +39,11 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
     null,
   );
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
-  const [renamingProjectId, setRenamingProjectId] = useState<number | null>(
-    null,
-  );
-  const [renameDraft, setRenameDraft] = useState("");
   const [deleteConfirmProject, setDeleteConfirmProject] = useState<{
+    projectId: number;
+    name: string;
+  } | null>(null);
+  const [renameConfirmProject, setRenameConfirmProject] = useState<{
     projectId: number;
     name: string;
   } | null>(null);
@@ -106,23 +107,17 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
   }, [openMenuProjectId, isCollapsed, closeMenus]);
 
   const startRename = (projectId: number, name: string) => {
-    setRenamingProjectId(projectId);
-    setRenameDraft(name);
+    setRenameConfirmProject({ projectId, name });
     closeMenus();
   };
 
-  const submitRename = async (projectId: number, originalName: string) => {
-    const next = renameDraft.trim();
-    if (!next) return;
-    if (next === originalName) {
-      setRenamingProjectId(null);
-      return;
-    }
-    setRenamingProjectId(null);
+  const runRename = async (name: string) => {
+    if (!renameConfirmProject) return;
+    const { projectId } = renameConfirmProject;
     try {
-      await patchProjectNameMutation.mutateAsync({ projectId, name: next });
+      await patchProjectNameMutation.mutateAsync({ projectId, name });
+      setRenameConfirmProject(null);
     } catch (e) {
-      console.error(e);
       toast.error(e instanceof Error ? e.message : "이름 변경에 실패했습니다.");
     }
   };
@@ -178,7 +173,7 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
   return (
     <aside
       className={`
-        bg-[#0a0c10] border-r border-[#1e293b] flex flex-col
+        bg-[#0a0c10] border-r border-[#2d4a6a] flex flex-col
         sticky top-0 h-dvh max-h-dvh shrink-0
         transition-all duration-300 ease-in-out z-60
         ${isCollapsed ? "w-18" : "w-77"}
@@ -219,10 +214,7 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
         >
           <Link
             href="/home"
-            onClick={() => {
-              closeMenus();
-              setRenamingProjectId(null);
-            }}
+            onClick={closeMenus}
             className={[
               "group flex items-center rounded-full text-[14px] font-semibold text-gray-200 transition-colors hover:bg-white/5 hover:text-white focus:outline-none focus-visible:ring-1 focus-visible:ring-[#3b82f6]/60",
               isCollapsed ? "w-10 justify-center" : "w-[268px] gap-2",
@@ -281,35 +273,16 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
                             isActive ? "bg-[#ffffff]/10" : "sidebar-item"
                           }`}
                         >
-                          {renamingProjectId === item.projectId ? (
-                            <input
-                              autoFocus
-                              value={renameDraft}
-                              onChange={(e) => setRenameDraft(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Escape") {
-                                  setRenamingProjectId(null);
-                                }
-                                if (e.key === "Enter") {
-                                  void submitRename(item.projectId, item.name);
-                                }
-                              }}
-                              onBlur={() => setRenamingProjectId(null)}
-                              className="w-full bg-transparent outline-none text-[14px] text-gray-100 placeholder:text-gray-600"
-                              disabled={patchProjectNameMutation.isPending}
-                            />
-                          ) : (
-                            <Link
-                              href={`/library/${item.projectId}?name=${encodeURIComponent(item.name)}`}
-                              className={`block min-w-0 flex-1 text-left text-[14px] leading-snug transition-colors truncate ${
-                                isActive
-                                  ? "font-medium text-white"
-                                  : "text-gray-200"
-                              }`}
-                            >
-                              {item.name}
-                            </Link>
-                          )}
+                          <Link
+                            href={`/library/${item.projectId}?name=${encodeURIComponent(item.name)}`}
+                            className={`block min-w-0 flex-1 text-left text-[14px] leading-snug transition-colors truncate ${
+                              isActive
+                                ? "font-medium text-white"
+                                : "text-gray-200"
+                            }`}
+                          >
+                            {item.name}
+                          </Link>
 
                           <button
                             type="button"
@@ -337,7 +310,7 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
                               footer/overflow 영향 없이 렌더 + clickOutside 범위에도 포함 */}
                           {openMenuProjectId === item.projectId && menuPos ? (
                             <div
-                              className="fixed z-200 w-36 overflow-hidden rounded-xl border border-[#1e293b] bg-[#0f1218] shadow-xl"
+                              className="fixed z-200 w-36 overflow-hidden rounded-xl border border-[#2d4a6a] bg-[#0f1218] shadow-xl"
                               style={{ top: menuPos.top, left: menuPos.left }}
                             >
                               <button
@@ -409,6 +382,14 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
         onClose={() => setDeleteConfirmProject(null)}
         onConfirm={runDelete}
         isPending={deleteProjectMutation.isPending}
+      />
+
+      <SidebarRenameProjectModal
+        isOpen={renameConfirmProject != null}
+        projectName={renameConfirmProject?.name}
+        onClose={() => setRenameConfirmProject(null)}
+        onConfirm={(name) => void runRename(name)}
+        isPending={patchProjectNameMutation.isPending}
       />
     </aside>
   );

@@ -57,7 +57,7 @@ const UploadCenter = ({ onFileUpload, uploadedFile }: UploadCenterProps) => {
           ? "border-[#3b82f6]/60 bg-blue-500/8 shadow-[0_0_80px_rgba(59,130,246,0.12)]"
           : isDragging
             ? "scale-[1.01] border-[#3b82f6] bg-blue-500/10 shadow-[0_0_60px_rgba(59,130,246,0.15)]"
-            : "border-[#1e293b] bg-[#0f1218]/50 hover:border-[#3b82f6]/50 hover:bg-[#0a0c12]/80",
+            : "border-[#2d4a6a] bg-[#0f1218]/50 hover:border-[#3b82f6]/50 hover:bg-[#0a0c12]/80",
       ].join(" ")}
     >
       {/* 업로드 완료 시 내부 글로우 */}
@@ -92,7 +92,7 @@ const UploadCenter = ({ onFileUpload, uploadedFile }: UploadCenterProps) => {
               "rounded-2xl border p-5 transition-colors",
               isDragging
                 ? "border-[#3b82f6]/40 bg-blue-500/20"
-                : "border-[#1e293b] bg-[#1e293b]/40",
+                : "border-[#2d4a6a] bg-[#2d4a6a]/40",
             ].join(" ")}
           >
             <CloudUpload

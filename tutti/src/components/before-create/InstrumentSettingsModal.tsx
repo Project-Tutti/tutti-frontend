@@ -153,9 +153,9 @@ const InstrumentSettingsModal = ({
         onClick={onClose}
       />
 
-      <div className="relative mx-4 w-full max-w-lg max-h-[85vh] overflow-hidden rounded-xl border border-[#1e293b] bg-[#0f1218] shadow-2xl animate-fade-in">
+      <div className="relative mx-4 w-full max-w-lg max-h-[85vh] overflow-hidden rounded-xl border border-[#2d4a6a] bg-[#0f1218] shadow-2xl animate-fade-in">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#1e293b] px-5 py-3.5">
+        <div className="flex items-center justify-between border-b border-[#2d4a6a] px-5 py-3.5">
           <div className="flex items-center gap-2">
             {instrumentInfo && (
               <instrumentInfo.Icon className="size-4 text-[#3b82f6]" />
@@ -202,7 +202,7 @@ const InstrumentSettingsModal = ({
               </p>
 
               {/* 오선지 시각화 */}
-              <div className="rounded-lg border border-[#1e293b]/50 bg-[#080a0f] px-4 py-3">
+              <div className="rounded-lg border border-[#2d4a6a]/50 bg-[#080a0f] px-4 py-3">
                 <NoteRangeStaff
                   minNote={noteRange.min}
                   maxNote={noteRange.max}
@@ -226,7 +226,7 @@ const InstrumentSettingsModal = ({
                   {noteRangeSliderVisual && (
                     <div className="relative w-full">
                       <div
-                        className="pointer-events-none absolute left-[13px] right-[13px] top-[19px] h-2 rounded-full bg-[#1e293b]"
+                        className="pointer-events-none absolute left-[13px] right-[13px] top-[19px] h-2 rounded-full bg-[#2d4a6a]"
                         aria-hidden
                       />
                       <div
@@ -280,7 +280,7 @@ const InstrumentSettingsModal = ({
           )}
 
           {/* 구분선 */}
-          <div className="h-px bg-[#1e293b]" />
+          <div className="h-px bg-[#2d4a6a]" />
 
           {/* 2. 장르 선택 */}
           <section className="space-y-4">
@@ -302,7 +302,7 @@ const InstrumentSettingsModal = ({
                     className={`rounded-full border px-3.5 py-2.5 text-xs font-medium transition-all ${
                       isSelected
                         ? "bg-[#3b82f6]/20 border-[#3b82f6] text-[#3b82f6]"
-                        : "bg-[#0f1218] border-[#1e293b] text-gray-400 hover:border-gray-500 hover:text-gray-300"
+                        : "bg-[#0f1218] border-[#2d4a6a] text-gray-400 hover:border-gray-500 hover:text-gray-300"
                     }`}
                   >
                     {g.label}
@@ -319,7 +319,7 @@ const InstrumentSettingsModal = ({
           </section>
 
           {/* 구분선 */}
-          <div className="h-px bg-[#1e293b]" />
+          <div className="h-px bg-[#2d4a6a]" />
         </div>
       </div>
     </div>

@@ -56,7 +56,7 @@ const GoogleSignInButton = ({
       type="button"
       onClick={handleClick}
       disabled={disabled}
-      className={`w-full flex items-center justify-center gap-2.5 bg-[#0f1218] border border-[#1e293b] py-4 rounded-xl transition-all ${disabled ? "opacity-50 cursor-not-allowed" : "hover:border-gray-500"}`}
+      className={`w-full flex items-center justify-center gap-2.5 bg-[#0f1218] border border-[#2d4a6a] py-4 rounded-xl transition-all ${disabled ? "opacity-50 cursor-not-allowed" : "hover:border-gray-500"}`}
     >
       <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden>
         <path

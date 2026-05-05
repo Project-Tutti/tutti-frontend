@@ -11,6 +11,8 @@ interface ModalProps {
   title?: string;
   /** 스크롤 영역 아래 고정(예: 안내 문구 + 확인) */
   footer?: React.ReactNode;
+  /** 최외곽 fixed 컨테이너 style (예: 사이드바 left 오프셋) */
+  containerStyle?: React.CSSProperties;
   /** 오버레이(배경 dim) 커스터마이징 */
   overlayClassName?: string;
   /** 내부 패널(div) 커스터마이징 (예: max-w-5xl) */
@@ -27,6 +29,7 @@ const Modal = ({
   children,
   title,
   footer,
+  containerStyle,
   overlayClassName,
   panelClassName,
   headerClassName,
@@ -48,7 +51,7 @@ const Modal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-100 flex items-center justify-center p-4" style={containerStyle}>
       <div
         className={[
           "absolute inset-0 bg-black/80 backdrop-blur-sm",
@@ -60,13 +63,13 @@ const Modal = ({
 
       <div
         className={[
-          "relative mx-auto flex w-full max-w-lg max-h-[min(88vh,720px)] flex-col overflow-hidden rounded-xl border border-[#1e293b] bg-[#0f1218] shadow-2xl animate-fade-in",
+          "relative mx-auto flex w-full max-w-lg max-h-[min(88vh,720px)] flex-col overflow-hidden rounded-xl border border-[#2d4a6a] bg-[#0f1218] shadow-2xl animate-fade-in",
           panelClassName ?? "",
         ].join(" ")}
       >
         <div
           className={[
-            "flex shrink-0 items-center justify-between gap-3 border-b border-[#1e293b] px-4 py-3",
+            "flex shrink-0 items-center justify-between gap-3 border-b border-[#2d4a6a] px-4 py-3",
             headerClassName ?? "",
           ].join(" ")}
         >
@@ -93,7 +96,7 @@ const Modal = ({
             {children}
           </div>
           {footer ? (
-            <div className="shrink-0 border-t border-[#1e293b] bg-[#0a0c12]/95 px-4 py-3">
+            <div className="shrink-0 border-t border-[#2d4a6a] bg-[#0a0c12]/95 px-4 py-3">
               {footer}
             </div>
           ) : null}

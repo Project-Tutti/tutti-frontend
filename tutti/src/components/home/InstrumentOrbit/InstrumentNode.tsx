@@ -30,7 +30,7 @@ const InstrumentNode = ({
       className={`
         w-20 h-20 md:w-28 md:h-28
         ${positionClasses[position]}
-        rounded-full bg-[#0f1218] border border-[#1e293b] 
+        rounded-full bg-[#0f1218] border border-[#2d4a6a] 
         flex flex-col items-center justify-center group z-30 
         transition-all duration-300 hover:border-[#3b82f6] hover:-translate-y-1
         ${isSelected ? COMMON_STYLES.instrumentNodeSelected : ''}

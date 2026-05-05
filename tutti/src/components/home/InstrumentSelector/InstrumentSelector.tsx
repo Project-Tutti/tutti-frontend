@@ -66,7 +66,7 @@ const InstrumentSelector = ({
                 "transition-all duration-300",
                 isSelected
                   ? "border-[#3b82f6]/50 bg-blue-500/10 shadow-[0_0_32px_rgba(59,130,246,0.15)]"
-                  : "border-[#1e293b] bg-[#0f1218]/60 hover:border-[#3b82f6]/30 hover:bg-[#0f1218]/90 hover:shadow-[0_0_20px_rgba(59,130,246,0.06)]",
+                  : "border-[#2d4a6a] bg-[#0f1218]/60 hover:border-[#3b82f6]/30 hover:bg-[#0f1218]/90 hover:shadow-[0_0_20px_rgba(59,130,246,0.06)]",
               ].join(" ")}
             >
               {/* 선택된 카드 상단 액센트 바 */}
@@ -83,7 +83,7 @@ const InstrumentSelector = ({
                   "relative rounded-2xl p-4 transition-all duration-300",
                   isSelected
                     ? "bg-blue-500/25 shadow-[0_0_24px_rgba(59,130,246,0.25)]"
-                    : "bg-[#1e293b]/70 group-hover:bg-[#1e293b] group-hover:shadow-[0_0_16px_rgba(59,130,246,0.08)]",
+                    : "bg-[#2d4a6a]/70 group-hover:bg-[#2d4a6a] group-hover:shadow-[0_0_16px_rgba(59,130,246,0.08)]",
                 ].join(" ")}
               >
                 <Icon

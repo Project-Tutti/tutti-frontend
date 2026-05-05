@@ -23,7 +23,7 @@ export function Spinner({ size = "md", className = "", label }: SpinnerProps) {
       aria-label={label ?? "로딩 중"}
     >
       <span
-        className={`${sizeClass[size]} shrink-0 rounded-full border-[#1e293b] border-t-[#3b82f6] animate-spin`}
+        className={`${sizeClass[size]} shrink-0 rounded-full border-[#2d4a6a] border-t-[#3b82f6] animate-spin`}
         aria-hidden
       />
       {label ? (

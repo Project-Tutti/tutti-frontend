@@ -45,8 +45,8 @@ const SidebarAccountFooter = ({
       ref={accountMenuRootRef}
       className={
         variant === "icon"
-          ? "relative w-full py-2 flex items-center justify-center"
-          : "group relative min-w-54 border-t border-[#1e293b] h-[88px] flex items-stretch"
+          ? "relative w-full pt-0 pb-6 flex items-start px-4"
+          : "group relative min-w-54 border-t border-[#2d4a6a] h-[88px] flex items-stretch"
       }
     >
       <Modal
@@ -69,7 +69,7 @@ const SidebarAccountFooter = ({
             <button
               type="button"
               onClick={() => setIsDeleteAccountModalOpen(false)}
-              className="rounded-lg bg-[#1e293b] px-4 py-2.5 text-[14px] font-semibold text-gray-200 transition-colors hover:bg-[#334155]"
+              className="rounded-lg bg-[#2d4a6a] px-4 py-2.5 text-[14px] font-semibold text-gray-200 transition-colors hover:bg-[#334155]"
               disabled={deleteUserMeMutation.isPending}
             >
               취소
@@ -129,7 +129,7 @@ const SidebarAccountFooter = ({
           }
         >
           {variant === "icon" ? (
-            <div className="flex min-w-44 flex-col whitespace-nowrap rounded-xl border border-[#1e293b] bg-[#0f1218] p-1 shadow-xl">
+            <div className="flex min-w-44 flex-col whitespace-nowrap rounded-xl border border-[#2d4a6a] bg-[#0f1218] p-1 shadow-xl">
               <button
                 type="button"
                 onClick={() => {
@@ -161,7 +161,7 @@ const SidebarAccountFooter = ({
               </button>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-xl border border-[#1e293b] bg-[#0f1218] shadow-xl">
+            <div className="overflow-hidden rounded-xl border border-[#2d4a6a] bg-[#0f1218] shadow-xl">
               <button
                 type="button"
                 onClick={() => {

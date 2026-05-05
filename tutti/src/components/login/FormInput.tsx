@@ -46,7 +46,7 @@ const FormInput = ({
           focus:ring-2 focus:border-transparent transition-all placeholder-gray-600
           ${error 
             ? 'border-red-500 focus:ring-red-500' 
-            : 'border-[#1e293b] focus:ring-[#3b82f6]'
+            : 'border-[#2d4a6a] focus:ring-[#3b82f6]'
           }
         `}
       />

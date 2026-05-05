@@ -38,7 +38,7 @@ export default function SidebarDeleteProjectModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg bg-[#1e293b] px-4 py-2.5 text-[14px] font-semibold text-gray-200 transition-colors hover:bg-[#334155]"
+            className="rounded-lg bg-[#2d4a6a] px-4 py-2.5 text-[14px] font-semibold text-gray-200 transition-colors hover:bg-[#334155]"
             disabled={isPending}
           >
             취소

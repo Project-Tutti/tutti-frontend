@@ -59,16 +59,21 @@ type MeasureBox = {
 
 type BBoxUnion = { minX: number; minY: number; maxX: number; maxY: number };
 
-/** instrument별 시스템의 y 범위 캐시 */
-type SystemYInfo = {
-  minY: number;
-  maxY: number;
-  ratio: number;
+/**
+ * 마디 단위로 instrument별 GraphicalMeasure 영역(SVG 좌표 기준).
+ * highlightMeasure 분리 모드에서 위쪽 트랙 / 마지막 트랙 Y 범위 산정에 사용.
+ * - x/y/w/h: GraphicalMeasure (음표/stem 포함) 영역
+ * - staffY/staffH: staff line(5줄) 정확한 영역. stem이나 marker 무관 → 침범 방지 + 쉼표 마디 정상 색칠
+ */
+type MeasureInstrumentEntry = {
+  instrumentIdx: number;
   svg: SVGSVGElement;
-};
-type InstrumentYRange = {
-  // pages[pageIdx][sysIdx] = info | null
-  pages: Array<Array<SystemYInfo | null>>;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  staffY: number;
+  staffH: number;
 };
 
 const ACTIVE_CLASS = "osmd-active-measure-highlight"; // 단일 모드
@@ -102,8 +107,10 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
     const hoveredMeasureRef = useRef<number | null>(null);
     const cleanupHandlersRef = useRef<(() => void) | null>(null);
 
-    /** instrument별 y 범위 캐시 */
-    const instrumentYRangesRef = useRef<InstrumentYRange[]>([]);
+    /** 마디별 instrument GraphicalMeasure 박스 캐시 (분리 모드 Y 산정용) */
+    const measureInstrumentBoxesRef = useRef<
+      Map<number, MeasureInstrumentEntry[]>
+    >(new Map());
 
     /** 최신 prop ref */
     const highlightedInstrumentIndexRef = useRef(highlightedInstrumentIndex);
@@ -179,84 +186,27 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
     );
 
     const buildMeasureBoxesIndex = useCallback(() => {
+      // OSMD GraphicalMeasure.PositionAndShape 기반으로 마디 정확한 staff 영역 계산.
+      // 음표(notehead) bounding box union 방식과 달리 이음줄/슬러로 노트가 다음
+      // 마디 영역까지 늘어져도 마디 너비/높이를 정확하게 잡아 침범 문제를 해결.
+      // - measureBoxMap: 마디 전체 union (모든 instrument). hover/click hit test/단일 active용.
+      // - measureInstrumentBoxes: 마디별 각 instrument 박스. 분리 모드 Y 산정용.
       const map = new Map<number, MeasureBox>();
       const all: MeasureBox[] = [];
+      const perInstrument = new Map<number, MeasureInstrumentEntry[]>();
 
-      const svgs = getAllSvgs();
-      for (const svg of svgs) {
-        const groups = Array.from(
-          svg.querySelectorAll(
-            'g[class*="measure"], g[class*="Measure"], g[id*="measure"], g[id*="Measure"]',
-          ),
-        ) as SVGGraphicsElement[];
-
-        const union = new Map<number, BBoxUnion>();
-
-        for (const g of groups) {
-          const id = g.getAttribute("id") || "";
-          const cls = g.getAttribute("class") || "";
-          const label = `${id} ${cls}`.trim();
-
-          const m = parseMeasureNumberFromLabel(label);
-          if (m == null) continue;
-
-          try {
-            const b = g.getBBox();
-            const u = union.get(m);
-            if (!u) {
-              union.set(m, {
-                minX: b.x,
-                minY: b.y,
-                maxX: b.x + b.width,
-                maxY: b.y + b.height,
-              });
-            } else {
-              u.minX = Math.min(u.minX, b.x);
-              u.minY = Math.min(u.minY, b.y);
-              u.maxX = Math.max(u.maxX, b.x + b.width);
-              u.maxY = Math.max(u.maxY, b.y + b.height);
-            }
-          } catch (e) { if (isDev) console.warn("[ScoreViewer]", e); }
-        }
-
-        for (const [measure, u] of union.entries()) {
-          const x = u.minX;
-          const y = u.minY;
-          const w = Math.max(0, u.maxX - u.minX);
-          const h = Math.max(0, u.maxY - u.minY);
-          const box: MeasureBox = {
-            measure,
-            svg,
-            x,
-            y,
-            w,
-            h,
-            cx: x + w / 2,
-            cy: y + h / 2,
-          };
-          all.push(box);
-
-          if (!map.has(measure)) map.set(measure, box);
-        }
-      }
-
-      measureBoxMapRef.current = map;
-      measureBoxesRef.current = all;
-    }, [getAllSvgs, parseMeasureNumberFromLabel]);
-
-    // ============================================================
-    // ✅ instrument별 y 범위 캐시 빌드 (GraphicSheet 기반)
-    // ============================================================
-    const buildInstrumentYRanges = useCallback(() => {
       const osmd = osmdRef.current;
-      if (!osmd) {
-        instrumentYRangesRef.current = [];
+      const svgs = getAllSvgs();
+      if (!osmd || svgs.length === 0) {
+        measureBoxMapRef.current = map;
+        measureBoxesRef.current = all;
+        measureInstrumentBoxesRef.current = perInstrument;
         return;
       }
 
       try {
         /* eslint-disable @typescript-eslint/no-explicit-any */
-        const sheet = osmd.Sheet as any;
+        const sheet = (osmd as any).Sheet ?? (osmd as any).sheet;
         const graphic =
           (osmd as any).graphicSheet ??
           (osmd as any).GraphicSheet ??
@@ -264,17 +214,14 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
         /* eslint-enable @typescript-eslint/no-explicit-any */
 
         const instruments = sheet?.Instruments ?? sheet?.instruments ?? [];
+        const instrumentIdToIdx = new Map<number | string, number>();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        instruments.forEach((ins: any, idx: number) => {
+          const id = ins?.Id ?? ins?.id ?? ins?.IdString;
+          if (id != null) instrumentIdToIdx.set(id, idx);
+        });
+
         const pages = graphic?.MusicPages ?? graphic?.musicPages ?? [];
-        const svgs = getAllSvgs();
-
-        if (!Array.isArray(instruments) || instruments.length === 0) {
-          instrumentYRangesRef.current = [];
-          return;
-        }
-
-        const result: InstrumentYRange[] = instruments.map(() => ({
-          pages: [],
-        }));
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         pages.forEach((page: any, pageIdx: number) => {
@@ -291,155 +238,126 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           const ratio = viewBox.width / pageSize.width;
           const systems = page?.MusicSystems ?? page?.musicSystems ?? [];
 
-          // 이 페이지의 systems 슬롯 초기화
-          instruments.forEach((_: unknown, insIdx: number) => {
-            const arr: Array<SystemYInfo | null> = new Array(
-              systems.length,
-            ).fill(null);
-            result[insIdx].pages[pageIdx] = arr;
-          });
+          // 한 마디에 대해 모든 staff의 GraphicalMeasure를 union → staff 전체 영역
+          const unionByMeasure = new Map<number, BBoxUnion>();
 
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          systems.forEach((system: any, sysIdx: number) => {
+          systems.forEach((system: any) => {
             const staffLines = system?.StaffLines ?? system?.staffLines ?? [];
 
-            // 객체 참조 비교 대신 Id로 비교 (OSMD가 렌더링 시 다른 인스턴스를 반환할 수 있음)
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const byInstrumentId = new Map<number, any[]>();
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             staffLines.forEach((sl: any) => {
-              const staff = sl?.ParentStaff ?? sl?.parentStaff ?? null;
-              const ins =
-                staff?.ParentInstrument ?? staff?.parentInstrument ?? null;
-              if (!ins) return;
-              const insId: number = ins?.Id ?? ins?.id ?? ins?.IdString ?? -1;
-              if (insId < 0) return;
-              if (!byInstrumentId.has(insId)) byInstrumentId.set(insId, []);
-              byInstrumentId.get(insId)!.push(sl);
-            });
+              const staff = sl?.ParentStaff ?? sl?.parentStaff;
+              const ins = staff?.ParentInstrument ?? staff?.parentInstrument;
+              const insId = ins?.Id ?? ins?.id ?? ins?.IdString;
+              const insIdx =
+                insId != null ? instrumentIdToIdx.get(insId) : undefined;
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            instruments.forEach((ins: any, insIdx: number) => {
-              const insId: number =
-                ins?.Id ?? ins?.id ?? ins?.IdString ?? insIdx;
-              const matched = byInstrumentId.get(insId) ?? [];
-              if (matched.length === 0) return;
+              // staff line(5줄) 정확한 Y 범위 — 음표/stem/marker 무관.
+              // OSMD staffLine.PositionAndShape.Size.height는 staff 외부 영역(BorderBottom 등)을
+              // 포함할 수 있어서, OSMD 표준 staff height(4 unit, 5줄 사이의 4 staff space)를
+              // 직접 사용해 모든 staff에 일관된 값을 강제 → 일부 staff에서 아래로 벗어남 방지.
+              const STAFF_HEIGHT_UNITS = 4;
+              const slPs = sl?.PositionAndShape ?? sl?.positionAndShape;
+              const slPos = slPs?.AbsolutePosition ?? slPs?.absolutePosition;
+              const staffY =
+                slPos && typeof slPos.y === "number" ? slPos.y * ratio : NaN;
+              const staffH = STAFF_HEIGHT_UNITS * ratio;
 
-              let minY = Infinity;
-              let maxY = -Infinity;
+              const measures = sl?.Measures ?? sl?.measures ?? [];
 
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              matched.forEach((sl: any) => {
-                const ps = sl?.PositionAndShape ?? sl?.positionAndShape ?? null;
+              measures.forEach((gm: any) => {
+                const measureNumber: number | null =
+                  gm?.MeasureNumber ??
+                  gm?.measureNumber ??
+                  gm?.parentSourceMeasure?.MeasureNumber ??
+                  gm?.ParentSourceMeasure?.MeasureNumber ??
+                  null;
+                if (measureNumber == null) return;
+
+                const ps = gm?.PositionAndShape ?? gm?.positionAndShape;
                 if (!ps) return;
                 const pos = ps.AbsolutePosition ?? ps.absolutePosition;
                 const size = ps.Size ?? ps.size;
                 if (!pos || !size) return;
                 if (
+                  typeof pos.x !== "number" ||
                   typeof pos.y !== "number" ||
+                  typeof size.width !== "number" ||
                   typeof size.height !== "number"
                 )
                   return;
+                if (size.width <= 0 || size.height <= 0) return;
 
-                if (pos.y < minY) minY = pos.y;
-                if (pos.y + size.height > maxY) maxY = pos.y + size.height;
+                const x = pos.x * ratio;
+                const y = pos.y * ratio;
+                const w = size.width * ratio;
+                const h = size.height * ratio;
+
+                // 마디 전체 union
+                const u = unionByMeasure.get(measureNumber);
+                if (!u) {
+                  unionByMeasure.set(measureNumber, {
+                    minX: x,
+                    minY: y,
+                    maxX: x + w,
+                    maxY: y + h,
+                  });
+                } else {
+                  u.minX = Math.min(u.minX, x);
+                  u.minY = Math.min(u.minY, y);
+                  u.maxX = Math.max(u.maxX, x + w);
+                  u.maxY = Math.max(u.maxY, y + h);
+                }
+
+                // per-instrument 박스 저장 (분리 모드 Y 산정용)
+                if (insIdx != null) {
+                  const arr = perInstrument.get(measureNumber) ?? [];
+                  arr.push({
+                    instrumentIdx: insIdx,
+                    svg,
+                    x,
+                    y,
+                    w,
+                    h,
+                    staffY: isFinite(staffY) ? staffY : y,
+                    staffH: isFinite(staffH) ? staffH : h,
+                  });
+                  perInstrument.set(measureNumber, arr);
+                }
               });
-
-              if (!isFinite(minY)) return;
-
-              result[insIdx].pages[pageIdx][sysIdx] = {
-                minY,
-                maxY,
-                ratio,
-                svg,
-              };
             });
           });
-        });
 
-        instrumentYRangesRef.current = result;
-        if (isDev) {
-          console.log(
-            `[ScoreViewer] instrument Y ranges built: ${result.length} instruments`,
-          );
-        }
-      } catch (e) {
-        console.error("[ScoreViewer] buildInstrumentYRanges failed:", e);
-        instrumentYRangesRef.current = [];
-      }
-    }, [getAllSvgs]);
-
-    // ============================================================
-    // ✅ measureBox → 어느 system에 속하는지 찾기
-    // ============================================================
-    const findSystemForMeasureBox = useCallback(
-      (box: MeasureBox): { pageIdx: number; sysIdx: number } | null => {
-        const osmd = osmdRef.current;
-        if (!osmd) return null;
-
-        try {
-          /* eslint-disable @typescript-eslint/no-explicit-any */
-          const graphic =
-            (osmd as any).graphicSheet ??
-            (osmd as any).GraphicSheet ??
-            (osmd as any).graphic;
-          /* eslint-enable @typescript-eslint/no-explicit-any */
-          const pages = graphic?.MusicPages ?? graphic?.musicPages ?? [];
-          const svgs = getAllSvgs();
-
-          const pageIdx = svgs.indexOf(box.svg);
-          if (pageIdx < 0) return null;
-
-          const page = pages[pageIdx];
-          if (!page) return null;
-
-          const viewBox = box.svg.viewBox?.baseVal;
-          const pageSize =
-            page?.PositionAndShape?.Size ??
-            page?.positionAndShape?.size ??
-            null;
-          if (!viewBox || !pageSize || pageSize.width <= 0) return null;
-          const ratio = viewBox.width / pageSize.width;
-
-          const systems = page?.MusicSystems ?? page?.musicSystems ?? [];
-
-          // box.cy(SVG unit) → OSMD unit
-          const cyOsmd = box.cy / ratio;
-
-          let bestIdx = -1;
-          let bestDist = Infinity;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          systems.forEach((system: any, sysIdx: number) => {
-            const ps =
-              system?.PositionAndShape ?? system?.positionAndShape ?? null;
-            if (!ps) return;
-            const pos = ps.AbsolutePosition ?? ps.absolutePosition;
-            const size = ps.Size ?? ps.size;
-            if (!pos || !size) return;
-
-            const top = pos.y;
-            const bottom = pos.y + size.height;
-            const center = (top + bottom) / 2;
-
-            if (cyOsmd >= top && cyOsmd <= bottom) {
-              bestIdx = sysIdx;
-              bestDist = 0;
-              return;
-            }
-            const d = Math.abs(cyOsmd - center);
-            if (d < bestDist) {
-              bestDist = d;
-              bestIdx = sysIdx;
-            }
+          unionByMeasure.forEach((u, measure) => {
+            const x = u.minX;
+            const y = u.minY;
+            const w = Math.max(0, u.maxX - u.minX);
+            const h = Math.max(0, u.maxY - u.minY);
+            const box: MeasureBox = {
+              measure,
+              svg,
+              x,
+              y,
+              w,
+              h,
+              cx: x + w / 2,
+              cy: y + h / 2,
+            };
+            all.push(box);
+            if (!map.has(measure)) map.set(measure, box);
           });
+        });
+      } catch (e) {
+        if (isDev)
+          console.warn("[ScoreViewer] buildMeasureBoxesIndex failed:", e);
+      }
 
-          return bestIdx >= 0 ? { pageIdx, sysIdx: bestIdx } : null;
-        } catch {
-          return null;
-        }
-      },
-      [getAllSvgs],
-    );
+      measureBoxMapRef.current = map;
+      measureBoxesRef.current = all;
+      measureInstrumentBoxesRef.current = perInstrument;
+    }, [getAllSvgs]);
 
     // ============================================================
     // Rect 삽입
@@ -649,7 +567,6 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
         if (!box) return;
 
         const target = highlightedInstrumentIndexRef.current;
-        const ranges = instrumentYRangesRef.current;
         const osmd = osmdRef.current;
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -657,7 +574,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
         const instruments = sheet?.Instruments ?? sheet?.instruments ?? [];
 
         // 분리 모드 비활성 또는 instrument 1개 → 단일 active
-        if (target == null || instruments.length < 2 || ranges.length === 0) {
+        if (target == null || instruments.length < 2) {
           insertRect(
             box,
             ACTIVE_CLASS,
@@ -680,8 +597,9 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           return;
         }
 
-        const sysInfo = findSystemForMeasureBox(box);
-        if (!sysInfo) {
+        const entries =
+          measureInstrumentBoxesRef.current.get(measureNumber) ?? [];
+        if (entries.length === 0) {
           insertRect(
             box,
             ACTIVE_CLASS,
@@ -692,27 +610,25 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           return;
         }
 
-        const { pageIdx, sysIdx } = sysInfo;
-
-        let topMinY = Infinity;
-        let topMaxY = -Infinity;
-        let bottomMinY = Infinity;
-        let bottomMaxY = -Infinity;
-        let ratio = 1;
+        // 각 instrument의 staff line(5줄) 영역만으로 위쪽/마지막 트랙 Y 범위 산정.
+        // GraphicalMeasure가 stem/marker 포함이라 staff 외부로 침범하던 문제 해결.
+        // 쉼표 마디처럼 음표가 좁아도 staff line 영역은 일정 → staff 전체 색칠 보장.
+        let topMinSY = Infinity;
+        let topMaxSY = -Infinity;
+        let bottomMinSY = Infinity;
+        let bottomMaxSY = -Infinity;
         let svg: SVGSVGElement | null = null;
 
-        for (let i = 0; i < instruments.length; i++) {
-          const r = ranges[i]?.pages?.[pageIdx]?.[sysIdx];
-          if (!r) continue;
-          ratio = r.ratio;
-          svg = r.svg;
-
-          if (i === targetIdx) {
-            if (r.minY < bottomMinY) bottomMinY = r.minY;
-            if (r.maxY > bottomMaxY) bottomMaxY = r.maxY;
+        for (const e of entries) {
+          svg = e.svg;
+          const sy = e.staffY;
+          const sh = e.staffH;
+          if (e.instrumentIdx === targetIdx) {
+            if (sy < bottomMinSY) bottomMinSY = sy;
+            if (sy + sh > bottomMaxSY) bottomMaxSY = sy + sh;
           } else {
-            if (r.minY < topMinY) topMinY = r.minY;
-            if (r.maxY > topMaxY) topMaxY = r.maxY;
+            if (sy < topMinSY) topMinSY = sy;
+            if (sy + sh > topMaxSY) topMaxSY = sy + sh;
           }
         }
 
@@ -727,35 +643,30 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           return;
         }
 
-        // 위쪽 트랙 (파란색)
-        if (isFinite(topMinY)) {
-          const padTop = 8;
-          const padBottom = -26; // ✅ 초록 padTop(30) - 기본(8) = 22 만큼 줄임
-          const y = topMinY * ratio - padTop;
-          const h = (topMaxY - topMinY) * ratio + padTop + padBottom;
+        const hasTop = isFinite(topMinSY);
+        const hasBottom = isFinite(bottomMinSY);
+
+        // staff line(5줄) 영역만 정확히 색칠 — padding 없이 staff 외부로 절대 안 벗어남
+        // 위쪽 staff들 사이 빈 공간은 union 단일 rect로 자연 색칠됨
+        if (hasTop) {
           insertRawRect(
             svg,
             box.x + HIGHLIGHT_X_INSET,
-            y,
+            topMinSY,
             Math.max(0, box.w - HIGHLIGHT_X_INSET),
-            h,
+            Math.max(0, topMaxSY - topMinSY),
             ACTIVE_TOP_CLASS,
             "rgba(59,130,246,0.16)",
           );
         }
 
-        // 맨 아래 트랙 (초록색 — generated)
-        if (isFinite(bottomMinY)) {
-          const padTop = 30;
-          const padBottom = 8;
-          const y = bottomMinY * ratio - padTop;
-          const h = (bottomMaxY - bottomMinY) * ratio + padTop + padBottom;
+        if (hasBottom) {
           insertRawRect(
             svg,
             box.x + HIGHLIGHT_X_INSET,
-            y,
+            bottomMinSY,
             Math.max(0, box.w - HIGHLIGHT_X_INSET),
-            h,
+            Math.max(0, bottomMaxSY - bottomMinSY),
             ACTIVE_BOTTOM_CLASS,
             "rgba(16,185,129,0.22)",
           );
@@ -763,13 +674,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
 
         if (opts?.scrollIntoView) scrollPageIntoView(box);
       },
-      [
-        clearHighlightByClass,
-        insertRect,
-        insertRawRect,
-        scrollPageIntoView,
-        findSystemForMeasureBox,
-      ],
+      [clearHighlightByClass, insertRect, insertRawRect, scrollPageIntoView],
     );
 
     const highlightHover = useCallback(
@@ -780,9 +685,38 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
         const box = measureBoxMapRef.current.get(measureNumber);
         if (!box) return;
 
-        insertRect(box, HOVER_CLASS, "rgba(148,163,184,0.16)");
+        // staff line(5줄) 영역만 사용 — 음표/stem이 staff 외부로 벗어나도 침범 X
+        const entries =
+          measureInstrumentBoxesRef.current.get(measureNumber) ?? [];
+        if (entries.length === 0) {
+          insertRect(box, HOVER_CLASS, "rgba(148,163,184,0.16)");
+          return;
+        }
+
+        let minSY = Infinity;
+        let maxSY = -Infinity;
+        let svg: SVGSVGElement | null = null;
+        for (const e of entries) {
+          svg = e.svg;
+          if (e.staffY < minSY) minSY = e.staffY;
+          if (e.staffY + e.staffH > maxSY) maxSY = e.staffY + e.staffH;
+        }
+        if (!svg || !isFinite(minSY)) {
+          insertRect(box, HOVER_CLASS, "rgba(148,163,184,0.16)");
+          return;
+        }
+
+        insertRawRect(
+          svg,
+          box.x + HIGHLIGHT_X_INSET,
+          minSY,
+          Math.max(0, box.w - HIGHLIGHT_X_INSET),
+          Math.max(0, maxSY - minSY),
+          HOVER_CLASS,
+          "rgba(148,163,184,0.16)",
+        );
       },
-      [clearHighlightByClass, insertRect],
+      [clearHighlightByClass, insertRect, insertRawRect],
     );
 
     // highlightHover ref 동기화
@@ -1006,7 +940,6 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
         }
 
         buildMeasureBoxesIndex();
-        buildInstrumentYRanges();
         clipSvgsToContent();
         applyPointerCursorToMeasures();
         setPageCount(getAllSvgs().length);
@@ -1094,7 +1027,6 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
       getAllSvgs,
       getCurrentPageIndex,
       buildMeasureBoxesIndex,
-      buildInstrumentYRanges,
       applyPointerCursorToMeasures,
       clipSvgsToContent,
       highlightMeasure,
@@ -1155,7 +1087,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           aria-label="이전 페이지"
         >
           {hoveredEdge === "left" && (
-            <div className="ml-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#1e293b] shadow-lg ring-1 ring-white/10" style={{ color: "#e2e8f0", fontSize: "18px", fontWeight: 600, lineHeight: 1 }}>
+            <div className="ml-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#2d4a6a] shadow-lg ring-1 ring-white/10" style={{ color: "#e2e8f0", fontSize: "18px", fontWeight: 600, lineHeight: 1 }}>
               ‹
             </div>
           )}
@@ -1178,7 +1110,7 @@ const ScoreViewer = forwardRef<ScoreViewerRef, ScoreViewerProps>(
           aria-label="다음 페이지"
         >
           {hoveredEdge === "right" && (
-            <div className="mr-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#1e293b] shadow-lg ring-1 ring-white/10" style={{ color: "#e2e8f0", fontSize: "18px", fontWeight: 600, lineHeight: 1 }}>
+            <div className="mr-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#2d4a6a] shadow-lg ring-1 ring-white/10" style={{ color: "#e2e8f0", fontSize: "18px", fontWeight: 600, lineHeight: 1 }}>
               ›
             </div>
           )}

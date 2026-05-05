@@ -22,7 +22,7 @@ const TrackCard = ({ track, onClick }: TrackCardProps) => {
   return (
     <button
       onClick={onClick}
-      className="group flex aspect-square w-full flex-col justify-between rounded-lg border border-[#1e293b] bg-[#0f1218]/40 p-3 transition-all duration-300 hover:scale-[1.02] hover:border-[#3b82f6]/50 hover:bg-[#0f1218]/60 hover:shadow-[0_0_16px_rgba(59,130,246,0.15)] active:scale-[0.98] md:p-3.5"
+      className="group flex aspect-square w-full flex-col justify-between rounded-lg border border-[#2d4a6a] bg-[#0f1218]/40 p-3 transition-all duration-300 hover:scale-[1.02] hover:border-[#3b82f6]/50 hover:bg-[#0f1218]/60 hover:shadow-[0_0_16px_rgba(59,130,246,0.15)] active:scale-[0.98] md:p-3.5"
     >
       {/* 상단: 아이콘 + 태그 */}
       <div className="flex items-start justify-between">

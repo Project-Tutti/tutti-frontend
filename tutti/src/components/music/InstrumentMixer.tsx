@@ -37,7 +37,7 @@ export default function InstrumentMixer({
     <div
       className={
         showHeader
-          ? "w-full rounded-xl border border-[#1e293b] bg-[#0f1218]/70 backdrop-blur px-4 py-3"
+          ? "w-full rounded-xl border border-[#2d4a6a] bg-[#0f1218]/70 backdrop-blur px-4 py-3"
           : "w-full"
       }
     >
@@ -78,7 +78,7 @@ export default function InstrumentMixer({
           {[0, 1, 2].map((i) => (
             <li
               key={i}
-              className="flex items-center gap-1 rounded-lg border border-[#1e293b]/80 bg-[#05070a]/25 px-2 py-1"
+              className="flex items-center gap-1 rounded-lg border border-[#2d4a6a]/80 bg-[#05070a]/25 px-2 py-1"
             >
               <div
                 className="h-6 w-24 rounded-md bg-slate-400/18 animate-pulse duration-[1.6s] ease-in-out motion-reduce:animate-none"
@@ -111,10 +111,10 @@ export default function InstrumentMixer({
                 key={ins.index}
                 className={`flex items-center gap-1 rounded-lg border px-2 py-1 transition-all ${
                   isMuted
-                    ? "border-[#1e293b] bg-[#05070a]/60 opacity-50"
+                    ? "border-[#2d4a6a] bg-[#05070a]/60 opacity-50"
                     : isSolo
                       ? "border-[#3b82f6]/60 bg-[#3b82f6]/10"
-                      : "border-[#1e293b] bg-[#05070a]/30"
+                      : "border-[#2d4a6a] bg-[#05070a]/30"
                 }`}
               >
                 <button

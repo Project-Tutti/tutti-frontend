@@ -10,7 +10,7 @@ export const COLORS = {
   accentGlow: 'rgba(59, 130, 246, 0.5)',
   
   // 보더 색상
-  borderColor: '#1e293b',
+  borderColor: '#2d4a6a',
   
   // 텍스트 색상
   textWhite: '#f8fafc',
@@ -27,7 +27,7 @@ export const BG_CLASSES = {
 } as const;
 
 export const BORDER_CLASSES = {
-  default: 'border-[#1e293b]',
+  default: 'border-[#2d4a6a]',
   accent: 'border-[#3b82f6]',
 } as const;
 

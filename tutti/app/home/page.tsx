@@ -146,7 +146,7 @@ const HomePageContent = () => {
                     <div
                       className={[
                         "h-px flex-1 transition-colors duration-500",
-                        uploadedFile ? "bg-[#3b82f6]/50" : "bg-[#1e293b]",
+                        uploadedFile ? "bg-[#3b82f6]/50" : "bg-[#2d4a6a]",
                       ].join(" ")}
                     />
                     <span
@@ -160,7 +160,7 @@ const HomePageContent = () => {
                     <div
                       className={[
                         "h-px flex-1 transition-colors duration-500",
-                        uploadedFile ? "bg-[#3b82f6]/50" : "bg-[#1e293b]",
+                        uploadedFile ? "bg-[#3b82f6]/50" : "bg-[#2d4a6a]",
                       ].join(" ")}
                     />
                   </div>
@@ -169,7 +169,7 @@ const HomePageContent = () => {
                       "flex size-9 items-center justify-center rounded-full text-sm font-bold transition-all duration-300",
                       currentStep === 2
                         ? "bg-[#3b82f6] text-white shadow-[0_0_16px_rgba(59,130,246,0.4)]"
-                        : "bg-[#1e293b] text-gray-500",
+                        : "bg-[#2d4a6a] text-gray-500",
                     ].join(" ")}
                   >
                     2
@@ -201,7 +201,7 @@ const HomePageContent = () => {
                         "flex w-full items-center justify-center gap-2 rounded-xl py-4 text-base font-semibold transition-all",
                         uploadedFile
                           ? "bg-[#3b82f6] text-white hover:bg-[#2563eb] active:bg-[#1d4ed8]"
-                          : "cursor-not-allowed bg-[#1e293b] text-gray-500",
+                          : "cursor-not-allowed bg-[#2d4a6a] text-gray-500",
                       ].join(" ")}
                     >
                       다음 단계
@@ -234,7 +234,7 @@ const HomePageContent = () => {
 
                     {/* 업로드된 파일 뱃지 */}
                     {(uploadedFile || tracks.length > 0) && (
-                      <div className="flex items-center gap-2.5 rounded-xl border border-[#1e293b] bg-[#0f1218]/60 px-4 py-3">
+                      <div className="flex items-center gap-2.5 rounded-xl border border-[#2d4a6a] bg-[#0f1218]/60 px-4 py-3">
                         <Music
                           className="size-4 shrink-0 text-[#3b82f6]"
                           strokeWidth={2}
@@ -260,7 +260,7 @@ const HomePageContent = () => {
                           "flex w-full items-center justify-center gap-2 rounded-xl py-4 text-base font-semibold transition-all",
                           canGenerate
                             ? "bg-[#3b82f6] text-white hover:bg-[#2563eb] active:bg-[#1d4ed8]"
-                            : "cursor-not-allowed bg-[#1e293b] text-gray-500",
+                            : "cursor-not-allowed bg-[#2d4a6a] text-gray-500",
                         ].join(" ")}
                       >
                         {isParsing ? (
