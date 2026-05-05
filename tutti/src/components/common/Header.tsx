@@ -24,10 +24,30 @@ const Header = ({
       className="sticky top-0 z-50 min-h-17 w-full shrink-0 bg-[#05070a] px-3 md:px-5"
     >
       <div className="grid min-h-17 w-full grid-cols-[auto_1fr_auto] items-center gap-3">
-        {/* Left: logo는 absolute로 띄우고, rightContent와 같은 너비의 invisible spacer로
-            좌측 auto column 너비를 우측과 균형 맞춤 → center 1fr이 헤더 정확한 가운데에 옴 */}
-        <div className="relative flex min-w-0 items-center gap-3 md:gap-4">
-          <div className="absolute inset-y-0 left-0 flex items-center gap-3 md:gap-4">
+        {/* Left: rightContent가 있으면 logo는 absolute, invisible spacer로 좌우 균형 맞춤
+            → center 1fr이 헤더 정확한 가운데에 옴.
+            rightContent가 없으면 spacer가 없어 좌측 column이 0이 되므로,
+            logo를 normal flow로 두어 column 너비를 logo 영역으로 확보. */}
+        {rightContent ? (
+          <div className="relative flex min-w-0 items-center gap-3 md:gap-4">
+            <div className="absolute inset-y-0 left-0 flex items-center gap-3 md:gap-4">
+              <LogoLink />
+              {leftExtra ?? null}
+              {title ? (
+                <span className="truncate text-[14px] font-semibold leading-snug text-gray-200">
+                  {title}
+                </span>
+              ) : null}
+            </div>
+            <div
+              className="invisible flex items-center gap-3 md:gap-4"
+              aria-hidden
+            >
+              {rightContent}
+            </div>
+          </div>
+        ) : (
+          <div className="flex min-w-0 items-center gap-3 md:gap-4">
             <LogoLink />
             {leftExtra ?? null}
             {title ? (
@@ -36,15 +56,7 @@ const Header = ({
               </span>
             ) : null}
           </div>
-          {rightContent ? (
-            <div
-              className="invisible flex items-center gap-3 md:gap-4"
-              aria-hidden
-            >
-              {rightContent}
-            </div>
-          ) : null}
-        </div>
+        )}
 
         {/* Center */}
         {centerContent ? (

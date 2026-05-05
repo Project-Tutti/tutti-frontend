@@ -255,6 +255,8 @@ function PlayerPageContent() {
                   type="button"
                   onClick={() => openDownloadModal()}
                   disabled={isScorePending}
+                  title="다운로드"
+                  aria-label="다운로드"
                   className="group inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border border-[#3b82f6]/35 bg-[#3b82f6]/10 px-3 py-2.5 text-[16px] font-semibold text-blue-100 shadow-[0_0_0_1px_rgba(59,130,246,0.08)] transition-all hover:border-[#3b82f6]/55 hover:bg-[#3b82f6]/18 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
                 >
                   <Download

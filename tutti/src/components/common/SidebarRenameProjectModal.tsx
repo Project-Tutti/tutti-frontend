@@ -70,7 +70,11 @@ export default function SidebarRenameProjectModal({
           <button
             type="button"
             onClick={handleConfirm}
-            disabled={isPending || !draft.trim()}
+            disabled={
+              isPending ||
+              !draft.trim() ||
+              draft.trim() === (projectName ?? "")
+            }
             className="rounded-lg bg-[#3b82f6] px-4 py-2.5 text-[14px] font-semibold text-white shadow-[0_0_16px_rgba(59,130,246,0.4)] transition-colors hover:bg-blue-500 disabled:opacity-50 disabled:shadow-none"
           >
             {isPending ? "저장 중…" : "저장"}
