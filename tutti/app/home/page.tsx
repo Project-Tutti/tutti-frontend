@@ -110,7 +110,7 @@ const HomePageContent = () => {
         />
 
         <div className="flex h-dvh max-h-dvh min-h-0 grow flex-col overflow-hidden">
-          <div className="flex min-h-17 shrink-0 items-center px-4">
+          <div className="flex min-h-17 shrink-0 items-center px-3 md:px-5">
             <LogoLink />
           </div>
           <main className="relative flex min-h-0 grow flex-col overflow-y-auto bg-[#05070a]">
