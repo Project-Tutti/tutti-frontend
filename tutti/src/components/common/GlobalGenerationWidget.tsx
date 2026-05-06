@@ -21,6 +21,10 @@ const navigatedKeys = new Set<string>();
 
 const NAVIGATE_ON_MINIMIZE_PREFIXES = ["/player", "/before-create"];
 
+/** 생성 완료 후 router.push와 modal unmount 사이의 지연 시간.
+ *  navigation이 완료되기 전에 modal을 unmount하면 빈 화면이 잠깐 보이는 깜빡임 발생. */
+const NAVIGATION_LINGER_MS = 600;
+
 function GenerationEntryConnector({
   entryKey,
   projectId,
@@ -75,10 +79,10 @@ function GenerationEntryConnector({
     if (!isMinimizedRef.current) {
       router.push(`/player?projectId=${projectId}&versionId=${versionId}`);
       // navigation 완료 전에 clear 하면 modal 먼저 사라져 빈 화면이 잠깐 보임.
-      // navigation 시작 후 충분한 지연(약 600ms) 후 clear → modal이 navigation 완료까지 유지됨.
+      // navigation 시작 후 NAVIGATION_LINGER_MS 만큼 지연 후 clear → modal 유지.
       const t = window.setTimeout(() => {
         clear(projectId, versionId);
-      }, 600);
+      }, NAVIGATION_LINGER_MS);
       return () => window.clearTimeout(t);
     }
     clear(projectId, versionId);
