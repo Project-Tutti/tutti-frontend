@@ -30,8 +30,10 @@ const GenerationProgressOverlay = ({
   const pct = Math.min(Math.max(state.progress, 0), 100);
   const dashOffset = CIRC * (1 - pct / 100);
 
-  // 숫자 카운터 애니메이션: 현재 값에서 새 값으로 부드럽게
-  const springPct = useSpring(0, { stiffness: 55, damping: 18, mass: 0.5 });
+  // 숫자 카운터 애니메이션: 현재 값에서 새 값으로 부드럽게.
+  // 초기값을 0이 아닌 pct로 → 백그라운드에서 진행되던 중 모달이 새로 mount될 때
+  // 0→62 카운트업 애니메이션 발생 방지. useSpring 첫 인자는 마운트 시 한 번만 쓰임.
+  const springPct = useSpring(pct, { stiffness: 55, damping: 18, mass: 0.5 });
   const animatedPct = useTransform(springPct, (v) => Math.round(v));
 
   useEffect(() => {

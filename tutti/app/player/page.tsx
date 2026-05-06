@@ -19,10 +19,7 @@ import { useProjectQuery } from "@api/project/hooks/queries/useProjectQuery";
 import { useProjectScoreQuery } from "@api/project/hooks/queries/useProjectScoreQuery";
 import { useProjectTracksQuery } from "@api/project/hooks/queries/useProjectTracksQuery";
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
-import {
-  useGenerationStore,
-  genKey,
-} from "@features/midi-create/stores/generation-store";
+import { useGenerationStore } from "@features/midi-create/stores/generation-store";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { toast } from "@/components/common/Toast";
 
@@ -185,8 +182,9 @@ function PlayerPageContent() {
     if (!showScoreError) return;
     if (!Number.isFinite(projectId) || !Number.isFinite(versionId)) return;
     const label = projectData?.result?.name;
-    const key = genKey(projectId, versionId);
-    const existing = useGenerationStore.getState().entries[key];
+    const existing = Object.values(useGenerationStore.getState().entries).find(
+      (e) => e.projectId === projectId && e.versionId === versionId,
+    );
     if (existing) {
       if (existing.isMinimized) genMaximize(projectId, versionId);
       // projectData가 나중에 로드됐을 때 label 보완
@@ -208,8 +206,10 @@ function PlayerPageContent() {
   useEffect(() => {
     if (showScoreError) return;
     if (!Number.isFinite(projectId) || !Number.isFinite(versionId)) return;
-    const key = genKey(projectId, versionId);
-    if (!useGenerationStore.getState().entries[key]) return;
+    const hasEntry = Object.values(useGenerationStore.getState().entries).some(
+      (e) => e.projectId === projectId && e.versionId === versionId,
+    );
+    if (!hasEntry) return;
     genClear(projectId, versionId);
   }, [showScoreError, projectId, versionId, genClear]);
 
