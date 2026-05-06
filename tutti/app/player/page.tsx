@@ -74,7 +74,27 @@ function PlayerPageContent() {
     data: scoreXml,
     isPending: isScorePending,
     isError: isScoreError,
+    refetch: refetchScore,
   } = useProjectScoreQuery(projectId, versionId, fetchScoreFromApi);
+
+  // 같은 /player URL에 머문 채로 SSE가 완료되면 router.push가 no-op이라
+  // score query가 자동으로 다시 fetch되지 않음 → 모달이 닫혀도 화면이 비어 있음.
+  // store에 (pid,vid)와 매칭되는 entry가 isComplete가 되는 순간 score를 refetch한다.
+  const sseCompletedForThisVersion = useGenerationStore((s) => {
+    if (!Number.isFinite(projectId) || !Number.isFinite(versionId)) return false;
+    const existingKey = Object.keys(s.entries).find(
+      (k) =>
+        s.entries[k].projectId === projectId &&
+        s.entries[k].versionId === versionId,
+    );
+    return existingKey ? s.entries[existingKey].sseState.isComplete : false;
+  });
+
+  useEffect(() => {
+    if (!sseCompletedForThisVersion) return;
+    if (!fetchScoreFromApi) return;
+    void refetchScore();
+  }, [sseCompletedForThisVersion, fetchScoreFromApi, refetchScore]);
 
   // 새로운 악보 로드 시 스크롤 최상단으로 이동
   useEffect(() => {
