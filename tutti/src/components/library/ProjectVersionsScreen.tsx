@@ -34,7 +34,10 @@ interface VersionRow {
 
 function formatVersionTime(iso: string): string {
   try {
-    return new Date(iso).toLocaleString("ko-KR", {
+    // 백엔드가 UTC(끝의 Z) 또는 timezone offset(±HH:MM)을 빼먹는 경우에도 UTC로 안전하게 해석.
+    // toLocaleString은 timeZone 옵션을 지정하지 않으면 사용자 브라우저 기본 timezone으로 변환.
+    const normalized = /Z$|[+-]\d{2}:?\d{2}$/.test(iso) ? iso : `${iso}Z`;
+    return new Date(normalized).toLocaleString("ko-KR", {
       month: "short",
       day: "numeric",
       hour: "2-digit",

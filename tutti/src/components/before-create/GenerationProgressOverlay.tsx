@@ -39,7 +39,8 @@ const GenerationProgressOverlay = ({
   }, [pct, springPct]);
 
   if (!state.status) return null;
-  if (state.isComplete) return null;
+  // isComplete 시에도 modal을 잠깐 유지 → navigation 완료 전 빈 페이지가 보이는 깜빡임 방지.
+  // 실제 unmount는 GlobalGenerationWidget의 clear가 setTimeout으로 지연 처리.
 
   return createPortal(
     <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
@@ -59,7 +60,7 @@ const GenerationProgressOverlay = ({
         initial={{ opacity: 0, scale: 0.96, y: 8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ type: "spring", damping: 26, stiffness: 320 }}
-        className="relative w-full max-w-[420px] overflow-hidden rounded-2xl border border-white/10 bg-linear-to-b from-[#121a2a]/95 to-[#0a0f18]/98 px-8 py-8 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_24px_48px_-12px_rgba(0,0,0,0.55),0_0_80px_-20px_rgba(59,130,246,0.35),0_0_140px_-48px_rgba(59,130,246,0.14)] sm:max-w-[460px] sm:px-10 sm:py-10"
+        className="relative w-full max-w-[420px] overflow-hidden rounded-2xl border border-[#2d4a6a] bg-linear-to-b from-[#121a2a]/95 to-[#0a0f18]/98 px-8 py-8 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_24px_48px_-12px_rgba(0,0,0,0.55),0_0_80px_-20px_rgba(59,130,246,0.35),0_0_140px_-48px_rgba(59,130,246,0.14)] sm:max-w-[460px] sm:px-10 sm:py-10"
       >
         <div
           className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent"
@@ -100,7 +101,7 @@ const GenerationProgressOverlay = ({
                 <button
                   type="button"
                   onClick={onCancel}
-                  className="min-h-10 w-full rounded-lg border border-white/10 bg-white/5 px-4 text-[13px] font-medium text-slate-300 transition-colors hover:bg-white/10 active:scale-[0.99]"
+                  className="min-h-10 w-full rounded-lg border border-[#2d4a6a] bg-[#0a0c11] px-4 text-[13px] font-medium text-slate-300 transition-colors hover:border-[#334155] hover:bg-[#12151d] active:scale-[0.99]"
                 >
                   취소
                 </button>
@@ -114,7 +115,7 @@ const GenerationProgressOverlay = ({
                 id="generation-progress-title"
                 className="text-[18px] font-semibold tracking-tight text-white"
               >
-                악보 생성 중
+                {state.isComplete ? "생성 완료" : "악보 생성 중"}
               </p>
               {label ? (
                 <p className="mt-1 text-[13px] font-medium text-[#60a5fa] truncate">
@@ -122,7 +123,9 @@ const GenerationProgressOverlay = ({
                 </p>
               ) : null}
               <p className="mt-2 text-[14px] leading-snug text-slate-400">
-                잠시만 기다려 주세요
+                {state.isComplete
+                  ? "악보 페이지로 이동합니다"
+                  : "잠시만 기다려 주세요"}
               </p>
             </div>
 
@@ -204,7 +207,7 @@ const GenerationProgressOverlay = ({
             <button
               type="button"
               onClick={onMinimize}
-              className="mt-1 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-[13px] font-medium text-slate-300 transition-colors hover:bg-white/10 active:scale-[0.99]"
+              className="mt-1 rounded-lg border border-[#2d4a6a] bg-[#0a0c11] px-4 py-2 text-[13px] font-medium text-slate-300 transition-colors hover:border-[#334155] hover:bg-[#12151d] active:scale-[0.99]"
             >
               백그라운드에서 계속
             </button>

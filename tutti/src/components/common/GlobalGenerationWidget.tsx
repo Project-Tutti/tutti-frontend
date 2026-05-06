@@ -74,9 +74,15 @@ function GenerationEntryConnector({
     toast.success("악보 생성이 완료되었습니다!");
     if (!isMinimizedRef.current) {
       router.push(`/player?projectId=${projectId}&versionId=${versionId}`);
+      // navigation 완료 전에 clear 하면 modal 먼저 사라져 빈 화면이 잠깐 보임.
+      // navigation 시작 후 충분한 지연(약 600ms) 후 clear → modal이 navigation 완료까지 유지됨.
+      const t = window.setTimeout(() => {
+        clear(projectId, versionId);
+      }, 600);
+      return () => window.clearTimeout(t);
     }
     clear(projectId, versionId);
-  }, [sse.isComplete, projectId, versionId, router, clear]);
+  }, [sse.isComplete, projectId, versionId, router, clear, entryKey]);
 
   return null;
 }
@@ -95,7 +101,7 @@ function MiniWidget({ entryKey, entry }: { entryKey: string; entry: GenEntry }) 
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 20, scale: 0.95 }}
       transition={{ type: "spring", damping: 26, stiffness: 320 }}
-      className="pointer-events-auto w-64 overflow-hidden rounded-2xl border border-white/10 bg-[#0f1218]/95 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_16px_32px_-8px_rgba(0,0,0,0.55),0_0_60px_-16px_rgba(59,130,246,0.35)] backdrop-blur-md"
+      className="pointer-events-auto w-64 overflow-hidden rounded-2xl border border-[#2d4a6a] bg-[#0f1218]/95 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_16px_32px_-8px_rgba(0,0,0,0.55),0_0_60px_-16px_rgba(59,130,246,0.35)] backdrop-blur-md"
     >
       <div
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent"
