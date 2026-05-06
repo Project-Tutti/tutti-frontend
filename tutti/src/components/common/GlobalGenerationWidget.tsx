@@ -21,6 +21,10 @@ const navigatedKeys = new Set<string>();
 
 const NAVIGATE_ON_MINIMIZE_PREFIXES = ["/player", "/before-create"];
 
+/** 생성 완료 후 router.push와 modal unmount 사이의 지연 시간.
+ *  navigation이 완료되기 전에 modal을 unmount하면 빈 화면이 잠깐 보이는 깜빡임 발생. */
+const NAVIGATION_LINGER_MS = 600;
+
 function GenerationEntryConnector({
   entryKey,
   projectId,
@@ -74,9 +78,15 @@ function GenerationEntryConnector({
     toast.success("악보 생성이 완료되었습니다!");
     if (!isMinimizedRef.current) {
       router.push(`/player?projectId=${projectId}&versionId=${versionId}`);
+      // navigation 완료 전에 clear 하면 modal 먼저 사라져 빈 화면이 잠깐 보임.
+      // navigation 시작 후 NAVIGATION_LINGER_MS 만큼 지연 후 clear → modal 유지.
+      const t = window.setTimeout(() => {
+        clear(projectId, versionId);
+      }, NAVIGATION_LINGER_MS);
+      return () => window.clearTimeout(t);
     }
     clear(projectId, versionId);
-  }, [sse.isComplete, projectId, versionId, router, clear]);
+  }, [sse.isComplete, projectId, versionId, router, clear, entryKey]);
 
   return null;
 }
@@ -95,7 +105,7 @@ function MiniWidget({ entryKey, entry }: { entryKey: string; entry: GenEntry }) 
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 20, scale: 0.95 }}
       transition={{ type: "spring", damping: 26, stiffness: 320 }}
-      className="pointer-events-auto w-64 overflow-hidden rounded-2xl border border-white/10 bg-[#0f1218]/95 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_16px_32px_-8px_rgba(0,0,0,0.55),0_0_60px_-16px_rgba(59,130,246,0.35)] backdrop-blur-md"
+      className="pointer-events-auto w-64 overflow-hidden rounded-2xl border border-[#2d4a6a] bg-[#0f1218]/95 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_16px_32px_-8px_rgba(0,0,0,0.55),0_0_60px_-16px_rgba(59,130,246,0.35)] backdrop-blur-md"
     >
       <div
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent"

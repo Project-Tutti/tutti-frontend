@@ -32,9 +32,15 @@ interface VersionRow {
   instrumentName: string;
 }
 
+/** 백엔드가 UTC(끝의 Z) 또는 timezone offset(±HH:MM)을 빼먹는 경우 UTC로 안전하게 해석되도록 보정. */
+function normalizeIsoToUtc(iso: string): string {
+  return /Z$|[+-]\d{2}:?\d{2}$/.test(iso) ? iso : `${iso}Z`;
+}
+
 function formatVersionTime(iso: string): string {
   try {
-    return new Date(iso).toLocaleString("ko-KR", {
+    // toLocaleString은 timeZone 옵션을 지정하지 않으면 사용자 브라우저 기본 timezone으로 변환.
+    return new Date(normalizeIsoToUtc(iso)).toLocaleString("ko-KR", {
       month: "short",
       day: "numeric",
       hour: "2-digit",
@@ -52,7 +58,9 @@ function mapVersionsToRows(
 ): VersionRow[] {
   if (!versions.length) return [];
   const sorted = [...versions].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    (a, b) =>
+      new Date(normalizeIsoToUtc(b.createdAt)).getTime() -
+      new Date(normalizeIsoToUtc(a.createdAt)).getTime(),
   );
   const masterId = sorted[0]?.versionId;
   const n = sorted.length;
