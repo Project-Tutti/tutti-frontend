@@ -176,7 +176,13 @@ export function useProjectStatusSSE(
     setState((prev) =>
       retryKey === 0
         ? { ...INITIAL_STATE, status: "pending", message: "연결 중..." }
-        : { ...prev, status: "pending", message: "연결 중...", error: null, isFailed: false },
+        : {
+            ...prev,
+            status: "pending",
+            message: "연결 중...",
+            error: null,
+            isFailed: false,
+          },
     );
 
     const path = PROJECT_API_ENDPOINTS.status(projectId, versionId);
@@ -289,14 +295,16 @@ export function useProjectStatusSSE(
               const { status, progress } = parsed.result;
               lastProgressAtRef.current = Date.now();
               reconnectAttemptRef.current = 0;
-              setState({
+              setState((prev) => ({
                 status,
-                progress,
+                // 진행 중에 늦게 도착한 작은 값(예: 게이지가 일시적으로 0%로 내려가는 현상) 무시.
+                // complete 시에는 100을 그대로 반영해야 하므로 Math.max로 충분.
+                progress: Math.max(prev.progress, progress),
                 message: parsed.message,
                 error: null,
                 isComplete: status === "complete",
                 isFailed: status === "failed",
-              });
+              }));
 
               if (status === "complete" || status === "failed") {
                 terminalRef.current = true;
