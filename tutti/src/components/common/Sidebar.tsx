@@ -38,7 +38,9 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
   const [openMenuProjectId, setOpenMenuProjectId] = useState<number | null>(
     null,
   );
-  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(
+    null,
+  );
   const [deleteConfirmProject, setDeleteConfirmProject] = useState<{
     projectId: number;
     name: string;
@@ -293,8 +295,13 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
                               if (openMenuProjectId === item.projectId) {
                                 closeMenus();
                               } else {
-                                const rect = (e.currentTarget as HTMLButtonElement).getBoundingClientRect();
-                                setMenuPos({ top: rect.top, left: rect.left - 144 - 4 });
+                                const rect = (
+                                  e.currentTarget as HTMLButtonElement
+                                ).getBoundingClientRect();
+                                setMenuPos({
+                                  top: rect.top,
+                                  left: rect.right + 4,
+                                });
                                 setOpenMenuProjectId(item.projectId);
                               }
                             }}
