@@ -53,7 +53,13 @@ function BeforeCreatePageContent() {
     return Number.isFinite(n) ? n : null;
   }, [isRegenerateMode, regenerateVersionId]);
 
-  const { entries, startPending: genStartPending, confirm: genConfirm, clearByKey } = useGenerationStore();
+  const {
+    entries,
+    startPending: genStartPending,
+    confirm: genConfirm,
+    clearByKey,
+    setActiveBeforeCreateKey,
+  } = useGenerationStore();
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
@@ -148,6 +154,12 @@ function BeforeCreatePageContent() {
     return unsub;
   }, []);
 
+  // before-create 세션 시작/종료 시: 이번 세션의 active key를 리셋
+  useEffect(() => {
+    setActiveBeforeCreateKey(null);
+    return () => setActiveBeforeCreateKey(null);
+  }, [setActiveBeforeCreateKey]);
+
   // 재수화 완료 후에만: 분석 데이터 없으면 업로드 화면으로
   useEffect(() => {
     if (!hasHydrated) return;
@@ -187,6 +199,7 @@ function BeforeCreatePageContent() {
       ? `${projectQuery.data?.result?.name ?? `Project #${parsedRegenerateProjectId ?? ""}`} · ${nextVersionName}`
       : projectName.trim();
     const tempKey = genStartPending(label);
+    setActiveBeforeCreateKey(tempKey); // 현재 before-create 세션 키 기록
 
     try {
       if (isRegenerateMode) {
@@ -389,7 +402,6 @@ function BeforeCreatePageContent() {
         track={selectedTrack}
         onClose={() => setIsModalOpen(false)}
       />
-
     </div>
   );
 }

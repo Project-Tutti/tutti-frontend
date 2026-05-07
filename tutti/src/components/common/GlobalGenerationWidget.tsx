@@ -19,8 +19,6 @@ const CIRC = 2 * Math.PI * R;
 // 모듈 레벨 Set으로 완료 키를 추적
 const navigatedKeys = new Set<string>();
 
-const NAVIGATE_ON_MINIMIZE_PREFIXES = ["/player", "/before-create"];
-
 /** 생성 완료 후 router.push와 modal unmount 사이의 지연 시간.
  *  navigation이 완료되기 전에 modal을 unmount하면 빈 화면이 잠깐 보이는 깜빡임 발생. */
 const NAVIGATION_LINGER_MS = 600;
@@ -91,7 +89,13 @@ function GenerationEntryConnector({
   return null;
 }
 
-function MiniWidget({ entryKey, entry }: { entryKey: string; entry: GenEntry }) {
+function MiniWidget({
+  entryKey,
+  entry,
+}: {
+  entryKey: string;
+  entry: GenEntry;
+}) {
   const maximizeByKey = useGenerationStore((s) => s.maximizeByKey);
   const clearByKey = useGenerationStore((s) => s.clearByKey);
   const { sseState } = entry;
@@ -219,6 +223,9 @@ export default function GlobalGenerationWidget() {
   const router = useRouter();
   const pathname = usePathname();
   const entries = useGenerationStore((s) => s.entries);
+  const activeBeforeCreateKey = useGenerationStore(
+    (s) => s.activeBeforeCreateKey,
+  );
   const clearByKey = useGenerationStore((s) => s.clearByKey);
   const minimizeByKey = useGenerationStore((s) => s.minimizeByKey);
   const entryPairs = Object.entries(entries);
@@ -230,11 +237,30 @@ export default function GlobalGenerationWidget() {
   const handleMinimize = useCallback(
     (key: string) => {
       minimizeByKey(key);
-      if (NAVIGATE_ON_MINIMIZE_PREFIXES.some((p) => pathname.startsWith(p))) {
-        router.push("/home");
+      // /before-create: 악기 선택 등 현재 생성 플로우에서 시작된 SSE(pending-xxx key)일 때만 home으로.
+      // 다른 버전의 SSE 모달을 백그라운드로 내리는 경우엔 악기 선택 진행 상태 유지.
+      if (pathname.startsWith("/before-create")) {
+        if (key === activeBeforeCreateKey) {
+          router.push("/home");
+        }
+        return;
+      }
+
+      // /player: 현재 보고 있는 버전의 생성인 경우에만 home으로 이동.
+      // 다른 버전 생성 모달을 백그라운드로 내리는 경우엔 현재 악보 페이지 유지.
+      if (pathname.startsWith("/player")) {
+        const entry = useGenerationStore.getState().entries[key];
+        const params = new URLSearchParams(window.location.search);
+        if (
+          entry &&
+          String(entry.versionId) === params.get("versionId") &&
+          String(entry.projectId) === params.get("projectId")
+        ) {
+          router.push("/home");
+        }
       }
     },
-    [minimizeByKey, pathname, router],
+    [minimizeByKey, pathname, router, activeBeforeCreateKey],
   );
 
   return (
@@ -261,14 +287,10 @@ export default function GlobalGenerationWidget() {
         />
       ))}
 
-      <div className="pointer-events-none fixed bottom-6 right-6 z-[200] flex flex-col gap-2">
+      <div className="pointer-events-none fixed bottom-6 right-6 z-200 flex flex-col gap-2">
         <AnimatePresence>
           {minimizedEntries.map(([key, entry]) => (
-            <MiniWidget
-              key={key}
-              entryKey={key}
-              entry={entry}
-            />
+            <MiniWidget key={key} entryKey={key} entry={entry} />
           ))}
         </AnimatePresence>
       </div>
