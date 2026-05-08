@@ -1,8 +1,9 @@
-/** GET …/download?type= — midi | xml | pdf (200 시 바이너리) */
+/** GET …/download?type= — midi | xml | pdf | mp3 (200 시 바이너리) */
 export const PROJECT_DOWNLOAD_TYPE = {
   MIDI: "midi",
   XML: "xml",
   PDF: "pdf",
+  MP3: "mp3",
 } as const;
 
 export type ProjectDownloadType =
