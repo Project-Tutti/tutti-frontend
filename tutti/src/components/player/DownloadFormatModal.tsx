@@ -1,7 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { X, Music, FileCode, FileText, type LucideIcon } from "lucide-react";
+import {
+  X,
+  Music,
+  FileCode,
+  FileText,
+  FileAudio,
+  type LucideIcon,
+} from "lucide-react";
 
 import {
   PROJECT_DOWNLOAD_TYPE,
@@ -14,6 +21,13 @@ type DownloadFormatModalProps = {
   projectId: string;
   versionId: string;
   onClose: () => void;
+};
+
+const EXT_MAP: Record<ProjectDownloadType, string> = {
+  [PROJECT_DOWNLOAD_TYPE.MIDI]: "mid",
+  [PROJECT_DOWNLOAD_TYPE.XML]: "xml",
+  [PROJECT_DOWNLOAD_TYPE.PDF]: "pdf",
+  [PROJECT_DOWNLOAD_TYPE.MP3]: "mp3",
 };
 
 const OPTIONS: {
@@ -40,6 +54,12 @@ const OPTIONS: {
     sub: "악보 PDF 파일 (.pdf)",
     Icon: FileText,
   },
+  {
+    type: PROJECT_DOWNLOAD_TYPE.MP3,
+    label: "MP3 다운로드",
+    sub: "오디오 파일 (.mp3)",
+    Icon: FileAudio,
+  },
 ];
 
 export default function DownloadFormatModal({
@@ -61,12 +81,7 @@ export default function DownloadFormatModal({
         versionId,
         type,
       });
-      const ext =
-        type === PROJECT_DOWNLOAD_TYPE.MIDI
-          ? "mid"
-          : type === PROJECT_DOWNLOAD_TYPE.XML
-            ? "xml"
-            : "pdf";
+      const ext = EXT_MAP[type] ?? "pdf";
       const filename = `project-${projectId}-v${versionId}.${ext}`;
 
       // Supabase Storage signed URL에 download 파라미터를 주면 attachment로 내려줍니다.
@@ -101,9 +116,7 @@ export default function DownloadFormatModal({
       onClose();
     } catch (e) {
       console.error(e);
-      toast.error(
-        e instanceof Error ? e.message : "다운로드에 실패했습니다.",
-      );
+      toast.error(e instanceof Error ? e.message : "다운로드에 실패했습니다.");
     } finally {
       setPendingType(null);
     }
@@ -114,6 +127,8 @@ export default function DownloadFormatModal({
       className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-[#05070a]/80 backdrop-blur-sm"
       role="presentation"
       onClick={(e) => {
+        // 다운로드 진행 중에는 외부 클릭으로 닫지 않음
+        if (pendingType != null) return;
         if (e.target === e.currentTarget) onClose();
       }}
     >
@@ -126,8 +141,9 @@ export default function DownloadFormatModal({
       >
         <button
           type="button"
-          onClick={onClose}
-          className="absolute right-2.5 top-2.5 grid size-9 place-items-center rounded-lg text-gray-500 outline-none ring-0 transition-colors hover:bg-white/8 hover:text-gray-200 focus-visible:bg-white/10 focus-visible:text-gray-200 focus-visible:ring-0"
+          onClick={pendingType != null ? undefined : onClose}
+          disabled={pendingType != null}
+          className="absolute right-2.5 top-2.5 grid size-9 place-items-center rounded-lg text-gray-500 outline-none ring-0 transition-colors hover:bg-white/8 hover:text-gray-200 focus-visible:bg-white/10 focus-visible:text-gray-200 focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-40"
           aria-label="닫기"
         >
           <X className="size-5" strokeWidth={1.75} aria-hidden />

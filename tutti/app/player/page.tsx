@@ -19,10 +19,7 @@ import { useProjectQuery } from "@api/project/hooks/queries/useProjectQuery";
 import { useProjectScoreQuery } from "@api/project/hooks/queries/useProjectScoreQuery";
 import { useProjectTracksQuery } from "@api/project/hooks/queries/useProjectTracksQuery";
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
-import {
-  useGenerationStore,
-  genKey,
-} from "@features/midi-create/stores/generation-store";
+import { useGenerationStore } from "@features/midi-create/stores/generation-store";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { toast } from "@/components/common/Toast";
 
@@ -74,7 +71,27 @@ function PlayerPageContent() {
     data: scoreXml,
     isPending: isScorePending,
     isError: isScoreError,
+    refetch: refetchScore,
   } = useProjectScoreQuery(projectId, versionId, fetchScoreFromApi);
+
+  // 같은 /player URL에 머문 채로 SSE가 완료되면 router.push가 no-op이라
+  // score query가 자동으로 다시 fetch되지 않음 → 모달이 닫혀도 화면이 비어 있음.
+  // store에 (pid,vid)와 매칭되는 entry가 isComplete가 되는 순간 score를 refetch한다.
+  const sseCompletedForThisVersion = useGenerationStore((s) => {
+    if (!Number.isFinite(projectId) || !Number.isFinite(versionId)) return false;
+    const existingKey = Object.keys(s.entries).find(
+      (k) =>
+        s.entries[k].projectId === projectId &&
+        s.entries[k].versionId === versionId,
+    );
+    return existingKey ? s.entries[existingKey].sseState.isComplete : false;
+  });
+
+  useEffect(() => {
+    if (!sseCompletedForThisVersion) return;
+    if (!fetchScoreFromApi) return;
+    void refetchScore();
+  }, [sseCompletedForThisVersion, fetchScoreFromApi, refetchScore]);
 
   // 새로운 악보 로드 시 스크롤 최상단으로 이동
   useEffect(() => {
@@ -165,8 +182,9 @@ function PlayerPageContent() {
     if (!showScoreError) return;
     if (!Number.isFinite(projectId) || !Number.isFinite(versionId)) return;
     const label = projectData?.result?.name;
-    const key = genKey(projectId, versionId);
-    const existing = useGenerationStore.getState().entries[key];
+    const existing = Object.values(useGenerationStore.getState().entries).find(
+      (e) => e.projectId === projectId && e.versionId === versionId,
+    );
     if (existing) {
       if (existing.isMinimized) genMaximize(projectId, versionId);
       // projectData가 나중에 로드됐을 때 label 보완
@@ -188,8 +206,10 @@ function PlayerPageContent() {
   useEffect(() => {
     if (showScoreError) return;
     if (!Number.isFinite(projectId) || !Number.isFinite(versionId)) return;
-    const key = genKey(projectId, versionId);
-    if (!useGenerationStore.getState().entries[key]) return;
+    const hasEntry = Object.values(useGenerationStore.getState().entries).some(
+      (e) => e.projectId === projectId && e.versionId === versionId,
+    );
+    if (!hasEntry) return;
     genClear(projectId, versionId);
   }, [showScoreError, projectId, versionId, genClear]);
 

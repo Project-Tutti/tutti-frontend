@@ -35,7 +35,15 @@ export type GenEntry = {
 
 interface GenerationStore {
   entries: Record<string, GenEntry>;
-  start: (projectId: number, versionId: number, minimized?: boolean, label?: string) => void;
+  /** before-create 현재 세션에서 startPending으로 생성한 키. 세션 전환 시 null로 리셋. */
+  activeBeforeCreateKey: string | null;
+  setActiveBeforeCreateKey: (key: string | null) => void;
+  start: (
+    projectId: number,
+    versionId: number,
+    minimized?: boolean,
+    label?: string,
+  ) => void;
   startPending: (label?: string) => string;
   confirm: (tempKey: string, projectId: number, versionId: number) => void;
   clearByKey: (key: string) => void;
@@ -45,12 +53,18 @@ interface GenerationStore {
   clear: (projectId: number, versionId: number) => void;
   clearAll: () => void;
   updateLabel: (projectId: number, versionId: number, label: string) => void;
-  _updateSse: (projectId: number, versionId: number, state: ProjectStatusState) => void;
+  _updateSse: (
+    projectId: number,
+    versionId: number,
+    state: ProjectStatusState,
+  ) => void;
   _setRetryFn: (projectId: number, versionId: number, fn: () => void) => void;
 }
 
 export const useGenerationStore = create<GenerationStore>((set) => ({
   entries: {},
+  activeBeforeCreateKey: null,
+  setActiveBeforeCreateKey: (key) => set({ activeBeforeCreateKey: key }),
 
   startPending: (label) => {
     const tempKey = `pending-${crypto.randomUUID()}`;
@@ -95,7 +109,9 @@ export const useGenerationStore = create<GenerationStore>((set) => ({
     set((s) => {
       const entry = s.entries[key];
       if (!entry) return s;
-      return { entries: { ...s.entries, [key]: { ...entry, isMinimized: true } } };
+      return {
+        entries: { ...s.entries, [key]: { ...entry, isMinimized: true } },
+      };
     });
   },
 
@@ -103,7 +119,9 @@ export const useGenerationStore = create<GenerationStore>((set) => ({
     set((s) => {
       const entry = s.entries[key];
       if (!entry) return s;
-      return { entries: { ...s.entries, [key]: { ...entry, isMinimized: false } } };
+      return {
+        entries: { ...s.entries, [key]: { ...entry, isMinimized: false } },
+      };
     });
   },
 
@@ -128,7 +146,12 @@ export const useGenerationStore = create<GenerationStore>((set) => ({
     set((s) => {
       const key = findKeyByPidVid(s.entries, projectId, versionId);
       if (!key) return s;
-      return { entries: { ...s.entries, [key]: { ...s.entries[key], isMinimized: false } } };
+      return {
+        entries: {
+          ...s.entries,
+          [key]: { ...s.entries[key], isMinimized: false },
+        },
+      };
     });
   },
 
@@ -156,7 +179,9 @@ export const useGenerationStore = create<GenerationStore>((set) => ({
     set((s) => {
       const key = findKeyByPidVid(s.entries, projectId, versionId);
       if (!key) return s;
-      return { entries: { ...s.entries, [key]: { ...s.entries[key], sseState } } };
+      return {
+        entries: { ...s.entries, [key]: { ...s.entries[key], sseState } },
+      };
     });
   },
 
@@ -164,7 +189,9 @@ export const useGenerationStore = create<GenerationStore>((set) => ({
     set((s) => {
       const key = findKeyByPidVid(s.entries, projectId, versionId);
       if (!key) return s;
-      return { entries: { ...s.entries, [key]: { ...s.entries[key], retryFn } } };
+      return {
+        entries: { ...s.entries, [key]: { ...s.entries[key], retryFn } },
+      };
     });
   },
 }));
