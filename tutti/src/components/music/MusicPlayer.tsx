@@ -59,7 +59,7 @@ export default function MusicPlayer({
   // ✅ 악기 믹서 상태
   const [instruments, setInstruments] = useState<InstrumentInfo[]>([]);
   const [mutedIndices, setMutedIndices] = useState<Set<number>>(new Set());
-  const [isInstrumentsOpen, setIsInstrumentsOpen] = useState(false);
+  const [isInstrumentsOpen, setIsInstrumentsOpen] = useState(true);
 
   // ✅ 콜백에서 stale 방지용 ref
   const instrumentsRef = useRef<InstrumentInfo[]>([]);

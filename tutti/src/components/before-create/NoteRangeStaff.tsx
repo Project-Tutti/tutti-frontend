@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 
 interface NoteRangeStaffProps {
   minNote: number;
@@ -131,43 +131,47 @@ const NoteRangeStaff = ({ minNote, maxNote }: NoteRangeStaffProps) => {
     };
   }, []);
 
-  useEffect(() => {
-    if (!ready || !osmdRef.current) return;
-
-    const timer = setTimeout(async () => {
-      if (isRenderingRef.current) return;
-      isRenderingRef.current = true;
-      try {
-        const xml = buildMusicXML(minNote, maxNote);
-        await osmdRef.current!.load(xml);
-        osmdRef.current!.render();
-        if (containerRef.current) {
-          try {
-            trimOsmdSvg(containerRef.current);
-          } catch {
-            // ignore (e.g. getBBox not ready yet)
-          }
+  const renderRange = useCallback(async (min: number, max: number) => {
+    if (!osmdRef.current) return;
+    if (isRenderingRef.current) return;
+    isRenderingRef.current = true;
+    try {
+      const xml = buildMusicXML(min, max);
+      await osmdRef.current.load(xml);
+      osmdRef.current.render();
+      if (containerRef.current) {
+        try {
+          trimOsmdSvg(containerRef.current);
+        } catch {
+          // ignore (e.g. getBBox not ready yet)
         }
-      } catch {
-        /* ignore transient render errors during rapid slider updates */
-      } finally {
-        isRenderingRef.current = false;
       }
-    }, 100);
+    } catch {
+      /* ignore transient render errors during rapid slider updates */
+    } finally {
+      isRenderingRef.current = false;
+    }
+  }, []);
 
+  // 첫 ready 시점에는 debounce 없이 즉시 render (mount 직후 깜빡임 최소화).
+  useEffect(() => {
+    if (!ready) return;
+    void renderRange(minNote, maxNote);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
+
+  // 이후 slider 변경에는 100ms debounce로 rapid update 중 race 방지.
+  useEffect(() => {
+    if (!ready) return;
+    const timer = setTimeout(() => void renderRange(minNote, maxNote), 100);
     return () => clearTimeout(timer);
-  }, [ready, minNote, maxNote]);
+  }, [ready, minNote, maxNote, renderRange]);
 
   return (
     <div className="relative">
-      {!ready && (
-        <div className="flex items-center justify-center h-16">
-          <span className="text-[10px] text-gray-500">악보 로딩 중...</span>
-        </div>
-      )}
       <div
         ref={containerRef}
-        className="rounded bg-white overflow-hidden flex justify-center [&_svg]:bg-white! [&_svg]:mx-auto [&_svg]:block"
+        className="min-h-16 rounded bg-white overflow-hidden flex justify-center [&_svg]:bg-white! [&_svg]:mx-auto [&_svg]:block"
       />
     </div>
   );

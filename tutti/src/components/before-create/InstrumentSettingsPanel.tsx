@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useCallback, useRef, useState } from "react";
-import { AlertCircle, ArrowLeft } from "lucide-react";
+import { AlertCircle, Settings } from "lucide-react";
 import { GiMusicalNotes } from "react-icons/gi";
 
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
@@ -37,13 +37,11 @@ const NOTE_RANGE_SLIDER_CLASS =
   "[&::-moz-range-track]:h-2 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-transparent [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:box-border [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:bg-[#3b82f6] [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:shadow-[0_0_6px_rgba(59,130,246,0.55)]";
 
 interface InstrumentSettingsPanelProps {
-  onBack?: () => void;
   showInstrumentSelector?: boolean;
   isSidebarCollapsed?: boolean;
 }
 
 const InstrumentSettingsPanel = ({
-  onBack,
   showInstrumentSelector,
   isSidebarCollapsed,
 }: InstrumentSettingsPanelProps) => {
@@ -181,30 +179,23 @@ const InstrumentSettingsPanel = ({
     };
   }, [instrumentInfo, noteRange]);
 
+
   return (
     <section className="mx-auto w-full max-w-3xl overflow-hidden rounded-xl border border-[#2d4a6a] bg-[#0f1218]/35">
       <div className="flex items-center justify-between gap-3 border-b border-[#2d4a6a] px-4 py-3">
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 items-baseline gap-2">
+          <Settings
+            className="size-6 shrink-0 self-center text-[#3b82f6]"
+            strokeWidth={2}
+            aria-hidden
+          />
+          <h2 className="text-[20px] font-semibold text-white">생성 세부 설정</h2>
           {instrumentInfo ? (
-            <instrumentInfo.Icon className="size-7 text-[#3b82f6]" />
-          ) : null}
-          <h2 className="text-[20px] font-semibold text-white">생성 설정</h2>
-          {instrumentInfo ? (
-            <span className="min-w-0 truncate text-[16px] text-gray-500">
-              {instrumentInfo.name}
+            <span className="min-w-0 truncate text-[16px] text-gray-400">
+              — {instrumentInfo.name}
             </span>
           ) : null}
         </div>
-        {onBack ? (
-          <button
-            type="button"
-            onClick={onBack}
-            className="flex shrink-0 items-center gap-1.5 rounded-lg border border-[#3b82f6]/40 bg-blue-500/8 px-3.5 py-2 text-sm font-medium text-[#3b82f6] transition-colors hover:bg-blue-500/15 hover:border-[#3b82f6]/60"
-          >
-            <ArrowLeft className="size-4" strokeWidth={2} />
-            이전
-          </button>
-        ) : null}
       </div>
 
       <div className="space-y-8 px-4 py-4 md:px-5 md:py-5">
@@ -272,32 +263,24 @@ const InstrumentSettingsPanel = ({
           <section className="space-y-3">
             <div className="flex items-start justify-between gap-4">
               <h3 className="text-[16px] font-bold uppercase tracking-wider text-gray-300">
-                Note Range
+                음역대 조절
               </h3>
               <button
                 type="button"
                 onClick={handleResetNoteRange}
-                className="shrink-0 text-[12px] font-medium text-[#3b82f6] transition-colors hover:text-blue-400"
+                className="shrink-0 text-[14px] font-medium text-[#3b82f6] transition-colors hover:text-blue-400"
               >
                 기본값 복원
               </button>
             </div>
 
-            <p className="text-[14px] text-gray-500">
-              악기별 기본 음역(위 양끝) 안에서만 범위를 좁히거나 넓힐 수
-              있습니다.
+            <p className="text-sm leading-relaxed text-sky-200/95">
+              악기가 낼 수 있는 음역 안에서 원하는 범위로 조절하세요. AI는 이
+              범위 안에서 악보를 생성합니다.
             </p>
-
-            <p className="text-sm font-medium tabular-nums text-gray-200">
-              {midiToNoteName(noteRange.min)} – {midiToNoteName(noteRange.max)}
-            </p>
-
-            <div className="rounded-lg border border-[#2d4a6a]/50 bg-[#080a0f] px-4 py-3">
-              <NoteRangeStaff minNote={noteRange.min} maxNote={noteRange.max} />
-            </div>
 
             <div className="space-y-2.5">
-              <div className="flex items-baseline justify-between gap-3 px-3 text-xs font-medium tabular-nums text-slate-400">
+              <div className="flex items-baseline justify-between gap-3 text-xs font-medium tabular-nums text-slate-400">
                 <span className="min-w-0 truncate" title="악기 기본 최저음">
                   {midiToNoteName(instrumentInfo.defaultMin)}
                 </span>
@@ -353,13 +336,17 @@ const InstrumentSettingsPanel = ({
               </div>
             </div>
 
-            <div className="flex items-center justify-between gap-3 px-3 pt-1">
+            <div className="flex items-center justify-between gap-3 pt-1">
               <span className="text-xs font-medium tabular-nums text-white">
                 {midiToNoteName(noteRange.min)}
               </span>
               <span className="text-xs font-medium tabular-nums text-white">
                 {midiToNoteName(noteRange.max)}
               </span>
+            </div>
+
+            <div className="rounded-lg border border-[#2d4a6a]/50 bg-[#080a0f] px-4 py-3">
+              <NoteRangeStaff minNote={noteRange.min} maxNote={noteRange.max} />
             </div>
           </section>
         ) : null}
@@ -369,11 +356,11 @@ const InstrumentSettingsPanel = ({
         {/* 2. 장르 선택 */}
         <section className="space-y-4">
           <h3 className="text-[16px] font-bold uppercase tracking-wider text-gray-300">
-            Genre
+            장르 선택
           </h3>
-          <p className="text-[14px] text-gray-500">
-            생성할 악보의 장르를 선택합니다. 장르에 따라 편곡 스타일이
-            달라집니다.
+          <p className="text-sm leading-relaxed text-sky-200/95">
+            이 곡의 장르를 알려주세요. AI가 해당 스타일에 맞춰 악보를
+            생성합니다.
           </p>
           <div className="flex flex-wrap gap-3">
             {GENRES.map((g) => {
