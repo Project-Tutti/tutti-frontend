@@ -24,8 +24,10 @@ export default function AuthedLayout({
   const isCollapsed = useSidebarStore((s) => s.isCollapsed);
   const toggle = useSidebarStore((s) => s.toggle);
   const pathname = usePathname();
-  const hasCustomHeader = ROUTES_WITH_CUSTOM_HEADER.some((p) =>
-    pathname.startsWith(p),
+  // 정확히 그 경로이거나 그 하위 경로(/player/download 등)만 매칭.
+  // startsWith만 쓰면 향후 /player-settings 같은 경로가 잘못 매칭됨.
+  const hasCustomHeader = ROUTES_WITH_CUSTOM_HEADER.some(
+    (p) => pathname === p || pathname.startsWith(p + "/"),
   );
 
   return (

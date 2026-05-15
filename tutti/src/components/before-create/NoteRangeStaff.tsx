@@ -101,6 +101,9 @@ const NoteRangeStaff = ({ minNote, maxNote }: NoteRangeStaffProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const osmdRef = useRef<InstanceType<typeof import("opensheetmusicdisplay").OpenSheetMusicDisplay> | null>(null);
   const isRenderingRef = useRef(false);
+  // 첫 ready 시 즉시 render한 직후, debounce effect가 같은 커밋에서
+  // 한 번 더 render하는 이중 렌더링을 막기 위한 플래그.
+  const skipNextDebounceRef = useRef(true);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -154,15 +157,21 @@ const NoteRangeStaff = ({ minNote, maxNote }: NoteRangeStaffProps) => {
   }, []);
 
   // 첫 ready 시점에는 debounce 없이 즉시 render (mount 직후 깜빡임 최소화).
+  // 직후 같은 커밋에서 실행되는 debounce effect는 1회 skip시켜 이중 렌더링 방지.
   useEffect(() => {
     if (!ready) return;
+    skipNextDebounceRef.current = true;
     void renderRange(minNote, maxNote);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 
-  // 이후 slider 변경에는 100ms debounce로 rapid update 중 race 방지.
+  // 이후 slider 변경(minNote/maxNote)에는 100ms debounce로 rapid update 중 race 방지.
   useEffect(() => {
     if (!ready) return;
+    if (skipNextDebounceRef.current) {
+      skipNextDebounceRef.current = false;
+      return;
+    }
     const timer = setTimeout(() => void renderRange(minNote, maxNote), 100);
     return () => clearTimeout(timer);
   }, [ready, minNote, maxNote, renderRange]);
