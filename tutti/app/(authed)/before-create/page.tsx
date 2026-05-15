@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Sidebar from "@/components/common/Sidebar";
 import { Spinner } from "@/components/common/Spinner";
 import Header from "@/components/common/Header";
+import CreateFlowSteps from "@/components/common/CreateFlowSteps";
+import { useSidebarStore } from "@/components/common/sidebar-store";
 import TrackModal from "@/components/before-create/TrackModal";
 import AnalysisInfo from "@/components/before-create/AnalysisInfo";
 import HeaderContent from "@/components/before-create/HeaderContent";
@@ -17,7 +18,6 @@ import { useCreateProjectMutation } from "@api/midi/hooks/mutations/useCreatePro
 import { useRegenerateProjectMutation } from "@api/project/hooks/mutations/useRegenerateProjectMutation";
 import { useProjectQuery } from "@api/project/hooks/queries/useProjectQuery";
 import { useInstrumentCategoriesQuery } from "@api/instruments/hooks/queries/useInstrumentCategoriesQuery";
-import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { toast } from "@/components/common/Toast";
 
 const TRACKS_PER_PAGE = 8;
@@ -61,7 +61,8 @@ function BeforeCreatePageContent() {
     setActiveBeforeCreateKey,
   } = useGenerationStore();
 
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const isSidebarCollapsed = useSidebarStore((s) => s.isCollapsed);
+  const toggleSidebar = useSidebarStore((s) => s.toggle);
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -276,21 +277,20 @@ function BeforeCreatePageContent() {
   const projectNameMissing = !isRegenerateMode && !projectName.trim();
 
   return (
-    <div className="flex h-dvh max-h-dvh flex-row overflow-hidden">
-      <Sidebar
-        isCollapsed={isSidebarCollapsed}
-        onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+    <>
+      <Header
+        onToggleSidebar={toggleSidebar}
+        isSidebarCollapsed={isSidebarCollapsed}
+        title=""
+        rightContent={<HeaderContent trackCount={tracks.length} />}
       />
 
-      <div className="flex h-dvh max-h-dvh min-h-0 grow flex-col overflow-hidden">
-        <Header
-          onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-          isSidebarCollapsed={isSidebarCollapsed}
-          title=""
-          rightContent={<HeaderContent trackCount={tracks.length} />}
-        />
+      <main className="flex min-h-0 grow flex-col overflow-y-auto bg-[#05070a] px-3 pt-14 pb-3 md:px-6 md:pb-6">
+          {/* 스텝 인디케이터 — 페이지 콘텐츠와 동일한 max-w-3xl + pt-14로 home과 위치 일치 */}
+          <div className="mx-auto mb-6 w-full max-w-3xl md:mb-10">
+            <CreateFlowSteps currentStep={3} />
+          </div>
 
-        <main className="flex min-h-0 grow flex-col overflow-y-auto bg-[#05070a] p-3 md:p-6">
           {/* 프로젝트 이름 입력 (재생성 모드면 같은 높이 여백만) */}
           {isRegenerateMode ? (
             <div className="mx-auto mb-2 h-14 w-full max-w-3xl md:mb-3 md:h-16" />
@@ -319,11 +319,6 @@ function BeforeCreatePageContent() {
           {/* 생성설정: 모달이 아니라 페이지에 바로 노출 */}
           <div className="mx-auto mb-3 w-full max-w-3xl md:mb-4">
             <InstrumentSettingsPanel
-              onBack={
-                !isRegenerateMode
-                  ? () => router.push("/home?step=2")
-                  : undefined
-              }
               showInstrumentSelector={isRegenerateMode}
               isSidebarCollapsed={isSidebarCollapsed}
             />
@@ -334,21 +329,23 @@ function BeforeCreatePageContent() {
             <button
               type="button"
               onClick={() => setIsTrackInfoOpen(true)}
-              className="w-full rounded-xl border border-[#2d4a6a] bg-[#0f1218]/35 px-4 py-3 text-left transition-colors hover:bg-[#0f1218]/55"
+              className="w-full space-y-3 rounded-xl border border-[#2d4a6a] bg-[#0f1218]/35 px-4 py-4 text-left transition-colors hover:bg-[#0f1218]/55 md:px-5 md:py-5"
             >
               <div className="flex items-center justify-between gap-3">
-                <div className="flex flex-col">
-                  <span className="text-[16px] font-semibold text-gray-300">
-                    트랙 정보
+                <span className="text-[16px] font-semibold text-gray-300">
+                  악기 매핑 수정
+                  <span className="ml-2 text-[14px] font-normal text-gray-500">
+                    · {tracks.length} tracks · 클릭해서 수정
                   </span>
-                  <span className="mt-0.5 text-[14px] text-gray-500">
-                    {tracks.length} tracks · 클릭해서 확인/매핑
-                  </span>
-                </div>
+                </span>
                 <span className="text-[14px] font-medium text-[#3b82f6]">
                   열기
                 </span>
               </div>
+              <p className="text-sm leading-relaxed text-sky-200/95">
+                MIDI 트랙의 악기가 잘못 인식된 경우에만 여기서 직접 다시
+                매핑하세요. AI는 매핑된 악기 기준으로 악보를 생성합니다.
+              </p>
             </button>
           </div>
 
@@ -357,6 +354,11 @@ function BeforeCreatePageContent() {
             onGenerate={() => {
               void handleGenerate();
             }}
+            onBack={
+              !isRegenerateMode
+                ? () => router.push("/home?step=2")
+                : undefined
+            }
             isPending={
               (isRegenerateMode && parsedRegenerateProjectId != null
                 ? Object.values(entries).some(
@@ -381,7 +383,6 @@ function BeforeCreatePageContent() {
             variant={isRegenerateMode ? "regenerate" : "generate"}
           />
         </main>
-      </div>
 
       {/* 트랙 정보 모달 */}
       <TrackInfoModal
@@ -402,23 +403,21 @@ function BeforeCreatePageContent() {
         track={selectedTrack}
         onClose={() => setIsModalOpen(false)}
       />
-    </div>
+    </>
   );
 }
 
 export default function BeforeCreatePage() {
   return (
-    <ProtectedRoute>
-      <Suspense
-        fallback={
-          <div className="min-h-screen flex flex-col items-center justify-center gap-2 bg-[#05070a]">
-            <Spinner size="sm" />
-            <p className="text-gray-400 text-sm">페이지 준비 중…</p>
-          </div>
-        }
-      >
-        <BeforeCreatePageContent />
-      </Suspense>
-    </ProtectedRoute>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex flex-col items-center justify-center gap-2 bg-[#05070a]">
+          <Spinner size="sm" />
+          <p className="text-gray-400 text-sm">페이지 준비 중…</p>
+        </div>
+      }
+    >
+      <BeforeCreatePageContent />
+    </Suspense>
   );
 }

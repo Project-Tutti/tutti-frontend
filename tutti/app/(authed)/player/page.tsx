@@ -11,7 +11,7 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import { Download, Loader2, RefreshCw } from "lucide-react";
 import MusicPlayer from "@/components/music/MusicPlayer";
-import Sidebar from "@/components/common/Sidebar";
+import { useSidebarStore } from "@/components/common/sidebar-store";
 import Header from "@/components/common/Header";
 import { Spinner } from "@/components/common/Spinner";
 import { getProject } from "@api/project/apis/get/get-project";
@@ -20,7 +20,6 @@ import { useProjectScoreQuery } from "@api/project/hooks/queries/useProjectScore
 import { useProjectTracksQuery } from "@api/project/hooks/queries/useProjectTracksQuery";
 import { useMidiStore } from "@features/midi-create/stores/midi-store";
 import { useGenerationStore } from "@features/midi-create/stores/generation-store";
-import ProtectedRoute from "@/components/common/ProtectedRoute";
 import { toast } from "@/components/common/Toast";
 
 function PlayerPageContent() {
@@ -42,7 +41,8 @@ function PlayerPageContent() {
   const projectId = parsedProjectId;
   const versionId = parsedVersionId;
 
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const isSidebarCollapsed = useSidebarStore((s) => s.isCollapsed);
+  const toggleSidebar = useSidebarStore((s) => s.toggle);
   const [controlBar, setControlBar] = useState<React.ReactNode>(null);
   const handleControlBar = useCallback(
     (node: React.ReactNode) => setControlBar(node),
@@ -224,15 +224,9 @@ function PlayerPageContent() {
   }, [scoreXml]);
 
   return (
-    <div className="flex h-dvh max-h-dvh flex-row overflow-x-hidden">
-      <Sidebar
-        isCollapsed={isSidebarCollapsed}
-        onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-      />
-
-      <div className="flex min-h-0 grow flex-col">
+    <>
         <Header
-          onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          onToggleSidebar={toggleSidebar}
           isSidebarCollapsed={isSidebarCollapsed}
           title=""
           centerContent={
@@ -339,24 +333,21 @@ function PlayerPageContent() {
             )}
           </div>
         </main>
-      </div>
-    </div>
+    </>
   );
 }
 
 export default function PlayerPage() {
   return (
-    <ProtectedRoute>
-      <Suspense
-        fallback={
-          <div className="flex h-dvh max-h-dvh flex-col items-center justify-center gap-3 bg-[#05070a]">
-            <Spinner size="md" />
-            <p className="text-gray-400 text-sm">불러오는 중…</p>
-          </div>
-        }
-      >
-        <PlayerPageContent />
-      </Suspense>
-    </ProtectedRoute>
+    <Suspense
+      fallback={
+        <div className="flex h-dvh max-h-dvh flex-col items-center justify-center gap-3 bg-[#05070a]">
+          <Spinner size="md" />
+          <p className="text-gray-400 text-sm">불러오는 중…</p>
+        </div>
+      }
+    >
+      <PlayerPageContent />
+    </Suspense>
   );
 }
