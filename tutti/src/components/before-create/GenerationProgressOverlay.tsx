@@ -47,7 +47,7 @@ const GenerationProgressOverlay = ({
   return createPortal(
     <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-[#030508]/85 backdrop-blur-md"
+        className="absolute inset-0 bg-[#030508] backdrop-blur-md"
         aria-hidden
       />
       <div
@@ -126,7 +126,7 @@ const GenerationProgressOverlay = ({
               ) : null}
               <p className="mt-2 text-[14px] leading-snug text-slate-400">
                 {state.isComplete
-                  ? "악보 페이지로 이동합니다"
+                  ? "잠시 후 악보 페이지로 이동합니다"
                   : "잠시만 기다려 주세요"}
               </p>
             </div>
@@ -206,15 +206,18 @@ const GenerationProgressOverlay = ({
               완료되면 악보 페이지로 자동 이동합니다.
             </p>
 
-            {!state.isComplete && (
-              <button
-                type="button"
-                onClick={onMinimize}
-                className="mt-1 rounded-lg border border-[#2d4a6a] bg-[#0a0c11] px-4 py-2 text-[13px] font-medium text-slate-300 transition-colors hover:border-[#334155] hover:bg-[#12151d] active:scale-[0.99]"
-              >
-                백그라운드에서 계속
-              </button>
-            )}
+            {/* 완료 시 버튼은 숨기되 자리는 유지 → 모달 높이 변화(layout shift) 방지 */}
+            <button
+              type="button"
+              onClick={onMinimize}
+              aria-hidden={state.isComplete}
+              tabIndex={state.isComplete ? -1 : 0}
+              className={`mt-1 rounded-lg border border-[#2d4a6a] bg-[#0a0c11] px-4 py-2 text-[13px] font-medium text-slate-300 transition-colors hover:border-[#334155] hover:bg-[#12151d] active:scale-[0.99] ${
+                state.isComplete ? "invisible pointer-events-none" : ""
+              }`}
+            >
+              백그라운드에서 계속
+            </button>
           </div>
         )}
       </motion.div>
