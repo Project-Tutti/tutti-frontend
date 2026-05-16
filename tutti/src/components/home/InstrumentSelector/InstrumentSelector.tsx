@@ -14,12 +14,15 @@ interface InstrumentSelectorProps {
   selectedInstrument: number | null;
   onInstrumentSelect: (midiProgram: number, name: string) => void;
   isSidebarCollapsed?: boolean;
+  /** 부모 높이를 채우도록 그리드를 늘림 (home step2에서 UploadCenter와 높이 일치용) */
+  fillHeight?: boolean;
 }
 
 const InstrumentSelector = ({
   selectedInstrument,
   onInstrumentSelect,
   isSidebarCollapsed = false,
+  fillHeight = false,
 }: InstrumentSelectorProps) => {
   const { data: categories, isPending } =
     useGeneratableInstrumentCategoriesQuery();
@@ -50,8 +53,12 @@ const InstrumentSelector = ({
   }
 
   return (
-    <div className="relative w-full">
-      <div className="grid grid-cols-2 gap-4">
+    <div className={`relative w-full ${fillHeight ? "h-full" : ""}`}>
+      <div
+        className={`grid grid-cols-2 gap-4 ${
+          fillHeight ? "h-full auto-rows-fr" : ""
+        }`}
+      >
         {safeCategories.map((cat, idx) => {
           const Icon = INSTRUMENT_GROUP_ICON[cat.name] ?? GiMusicalNotes;
           const isSelected = selectedInfo?.categoryName === cat.name;
@@ -62,7 +69,7 @@ const InstrumentSelector = ({
               type="button"
               onClick={() => setExpandedCategoryIdx(idx)}
               className={[
-                "group relative flex flex-col items-center gap-4 overflow-hidden rounded-2xl border px-4 py-10 text-center",
+                "group relative flex flex-col items-center justify-center gap-4 overflow-hidden rounded-2xl border px-4 py-10 text-center",
                 "transition-all duration-300",
                 isSelected
                   ? "border-[#3b82f6]/50 bg-blue-500/10 shadow-[0_0_32px_rgba(59,130,246,0.15)]"
