@@ -21,7 +21,7 @@ const GenerationProgressOverlay = dynamic(
 
 const START_DELAY_MS = 2000;
 const DURATION_MS = 3000;
-const MIDI_NAME = "태연_I_cello_done.mid";
+const MIDI_NAME = "HeyJude.mid";
 
 function easeInOutCubic(t: number) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
