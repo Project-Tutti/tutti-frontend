@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 
 interface NoteRangeStaffProps {
   minNote: number;
@@ -101,6 +101,9 @@ const NoteRangeStaff = ({ minNote, maxNote }: NoteRangeStaffProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const osmdRef = useRef<InstanceType<typeof import("opensheetmusicdisplay").OpenSheetMusicDisplay> | null>(null);
   const isRenderingRef = useRef(false);
+  // 첫 ready 시 즉시 render한 직후, debounce effect가 같은 커밋에서
+  // 한 번 더 render하는 이중 렌더링을 막기 위한 플래그.
+  const skipNextDebounceRef = useRef(true);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -131,43 +134,53 @@ const NoteRangeStaff = ({ minNote, maxNote }: NoteRangeStaffProps) => {
     };
   }, []);
 
-  useEffect(() => {
-    if (!ready || !osmdRef.current) return;
-
-    const timer = setTimeout(async () => {
-      if (isRenderingRef.current) return;
-      isRenderingRef.current = true;
-      try {
-        const xml = buildMusicXML(minNote, maxNote);
-        await osmdRef.current!.load(xml);
-        osmdRef.current!.render();
-        if (containerRef.current) {
-          try {
-            trimOsmdSvg(containerRef.current);
-          } catch {
-            // ignore (e.g. getBBox not ready yet)
-          }
+  const renderRange = useCallback(async (min: number, max: number) => {
+    if (!osmdRef.current) return;
+    if (isRenderingRef.current) return;
+    isRenderingRef.current = true;
+    try {
+      const xml = buildMusicXML(min, max);
+      await osmdRef.current.load(xml);
+      osmdRef.current.render();
+      if (containerRef.current) {
+        try {
+          trimOsmdSvg(containerRef.current);
+        } catch {
+          // ignore (e.g. getBBox not ready yet)
         }
-      } catch {
-        /* ignore transient render errors during rapid slider updates */
-      } finally {
-        isRenderingRef.current = false;
       }
-    }, 100);
+    } catch {
+      /* ignore transient render errors during rapid slider updates */
+    } finally {
+      isRenderingRef.current = false;
+    }
+  }, []);
 
+  // 첫 ready 시점에는 debounce 없이 즉시 render (mount 직후 깜빡임 최소화).
+  // 직후 같은 커밋에서 실행되는 debounce effect는 1회 skip시켜 이중 렌더링 방지.
+  useEffect(() => {
+    if (!ready) return;
+    skipNextDebounceRef.current = true;
+    void renderRange(minNote, maxNote);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
+
+  // 이후 slider 변경(minNote/maxNote)에는 100ms debounce로 rapid update 중 race 방지.
+  useEffect(() => {
+    if (!ready) return;
+    if (skipNextDebounceRef.current) {
+      skipNextDebounceRef.current = false;
+      return;
+    }
+    const timer = setTimeout(() => void renderRange(minNote, maxNote), 100);
     return () => clearTimeout(timer);
-  }, [ready, minNote, maxNote]);
+  }, [ready, minNote, maxNote, renderRange]);
 
   return (
     <div className="relative">
-      {!ready && (
-        <div className="flex items-center justify-center h-16">
-          <span className="text-[10px] text-gray-500">악보 로딩 중...</span>
-        </div>
-      )}
       <div
         ref={containerRef}
-        className="rounded bg-white overflow-hidden flex justify-center [&_svg]:bg-white! [&_svg]:mx-auto [&_svg]:block"
+        className="min-h-16 rounded bg-white overflow-hidden flex justify-center [&_svg]:bg-white! [&_svg]:mx-auto [&_svg]:block"
       />
     </div>
   );

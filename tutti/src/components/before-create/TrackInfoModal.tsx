@@ -31,7 +31,7 @@ const TrackInfoModal = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="트랙 정보"
+      title="악기 매핑 수정"
       overlayClassName="bg-black/95"
       panelClassName="min-w-[1200px] h-[calc(100vh-32px)]"
       contentClassName="h-full px-0 py-0 overflow-hidden"

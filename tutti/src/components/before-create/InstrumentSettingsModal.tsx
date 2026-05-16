@@ -160,7 +160,7 @@ const InstrumentSettingsModal = ({
             {instrumentInfo && (
               <instrumentInfo.Icon className="size-4 text-[#3b82f6]" />
             )}
-            <h2 className="text-[16px] font-bold text-white">생성 설정</h2>
+            <h2 className="text-[16px] font-bold text-white">생성 세부 설정</h2>
             {instrumentInfo && (
               <span className="text-xs text-gray-500">
                 {instrumentInfo.name}
