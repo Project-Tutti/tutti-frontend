@@ -111,19 +111,6 @@ const HomePageContent = () => {
 
   return (
     <main className="relative flex min-h-0 grow flex-col overflow-y-auto bg-[#05070a]">
-      {/* 배경 그라데이션 */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute left-[10%] top-[-10%] h-[500px] w-[500px] rounded-full bg-blue-900/8 blur-[140px]" />
-        <div className="absolute bottom-[10%] right-[10%] h-[400px] w-[400px] rounded-full bg-indigo-900/8 blur-[120px]" />
-        {/* 파일 업로드 시 중앙 글로우 */}
-        <div
-          className={[
-            "absolute left-1/2 top-1/2 h-[500px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[120px] transition-opacity duration-700",
-            uploadedFile ? "bg-blue-600/8 opacity-100" : "opacity-0",
-          ].join(" ")}
-        />
-      </div>
-
       {/* 콘텐츠 중앙 정렬 */}
       <div className="relative z-10 flex min-h-full flex-col items-center px-4 pt-14 pb-8">
         <div className="w-full max-w-3xl">
