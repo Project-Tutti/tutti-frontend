@@ -47,7 +47,7 @@ export const useCreateProjectMutation = () => {
       const finalName = projectName.trim() || fileBaseName || "project";
       const minNote = noteRange?.min ?? 0;
       const maxNote = noteRange?.max ?? 127;
-      const temperature = 1.0;
+      const temperature = 0.85;
 
       const requestPayload: CreateProjectRequestPayloadDto = {
         instrumentId: selectedInstrument,

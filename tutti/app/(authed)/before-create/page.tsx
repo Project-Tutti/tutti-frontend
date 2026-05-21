@@ -242,7 +242,7 @@ function BeforeCreatePageContent() {
             minNote: noteRange?.min ?? 0,
             maxNote: noteRange?.max ?? 127,
             genre,
-            temperature: 1.0,
+            temperature: 0.85,
             mappings,
           },
         });
